@@ -1,0 +1,48 @@
+// activate
+. venv_webapp/bin/activate
+
+// build
+cd ./
+uvicorn bookshelf_app.main:app --reload
+
+// test unit
+pytest -s
+pytest -s ./tests/unit
+# integration
+pytest -s ./tests/integration
+
+// db
+cd ./test_env
+// test env
+docker-compose up -d
+docker-compose down
+
+// integration
+docker-compose -f docker-compose-integration.yml up -d
+// removing
+docker-compose -f docker-compose-integration.yml down
+
+// condition
+docker-compose ps
+
+// stop
+docker-compose stop
+
+// remove
+docker-compose down --remove-orphans
+
+// force remove
+docker rm -f 9e0e09050ffe2114ee2ce5d7e2a786451ae4f967e48be929560807741e3b98aa
+
+// albemic init
+alembic init ./bookshelf_app/infra/db/migrations
+
+# generate (not care current dir)
+alembic revision --autogenerate -m "message"
+alembic revision --autogenerate -m "02_add_xxxx"
+
+
+# apply
+alembic upgrade head
+
+'Input should be a valid dictionary or object to extract fields from'

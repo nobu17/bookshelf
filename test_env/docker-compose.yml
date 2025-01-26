@@ -1,0 +1,17 @@
+version: "3"
+services:
+  postgres_bookshelf_ut:
+    build:
+      context: ./postgres_ut
+      dockerfile: Dockerfile
+    container_name: "postgres_db_book_shelf_test"
+    environment:
+      POSTGRES_PASSWORD: postgres #スーパーユーザ(postgres)のパスワード
+      POSTGRES_USER: test #ユーザアカウント
+      POSTGRES_DB: test_BookDb #DB名
+      TZ: "Asia/Tokyo"
+    ports:
+      - 17432:5432 #ホストOSの17433をコンテナ内の5432にマッピング
+    volumes:
+      - ./postgres_ut/data:/var/lib/postgresql/data # ※ホストOSで永続化
+      - ./postgres_ut/sql:/docker-entrypoint-initdb.d

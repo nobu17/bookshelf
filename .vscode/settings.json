@@ -1,0 +1,48 @@
+{
+  "cSpell.words": [
+    "albemic",
+    "autoflush",
+    "autouse",
+    "fastapi",
+    "Hoge",
+    "joinedload",
+    "jsonify",
+    "levelname",
+    "nobu",
+    "onupdate",
+    "passlib",
+    "pydantic",
+    "pytest",
+    "pytestconfig",
+    "raiseerr",
+    "rootdir",
+    "sessionmaker",
+    "sqlalchemy",
+    "starlette",
+    "templating",
+    "uvicorn",
+    "venv",
+    "werkzeug"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "pylint.args": [
+    "--disable=C0114",
+    "--disable=C0115",
+    "--disable=C0116",
+    "--disable=C0301",
+    "--disable=W0622"
+  ],
+  "black-formatter.args": ["--line-length=120"],
+  "isort.args": ["--profile", "black"],
+  "flake8.args": ["--max-line-length", "120", "--ignore=W293 E203"],
+  "python.analysis.extraPaths": ["./bookshelf_app"],
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}
