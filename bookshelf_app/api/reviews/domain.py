@@ -197,6 +197,10 @@ class IBookReviewRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def find_latest_modified(self, max_count: int) -> BookReviews:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def create(self, review: BookReview) -> BookReview:
         raise NotImplementedError()
 

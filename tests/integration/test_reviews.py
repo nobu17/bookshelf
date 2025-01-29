@@ -135,7 +135,6 @@ def test_review_post_create(database_service):
     reviews = get_response1.json()["reviews"]
     assert len(reviews) == 3
     review1 = reviews[2]
-    print(review1)
     assert review1["review_id"] is not None
     assert review1["book_id"] == book_ids[2]
     assert review1["content"] == "Good book."
@@ -143,6 +142,18 @@ def test_review_post_create(database_service):
     assert review1["state"] == 2
     assert review1["completed_at"] is not None
     assert review1["last_modified_at"] is not None
+
+    # confirm with latest
+    get_response1 = client.get(URL_BASE + "/latest/100", headers={"Authorization": "Bearer " + token})
+    assert get_response1.status_code == 200
+    reviews = get_response1.json()["reviews"]
+    assert len(reviews) == 3
+
+    # confirm with 2 latest
+    get_response1 = client.get(URL_BASE + "/latest/2", headers={"Authorization": "Bearer " + token})
+    assert get_response1.status_code == 200
+    reviews = get_response1.json()["reviews"]
+    assert len(reviews) == 2
 
 
 def test_review_post_create_same_book_review(database_service):

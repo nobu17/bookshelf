@@ -161,6 +161,16 @@ class BookReviewService:
 
         return BookReviewsAppModel([BookReviewAppModel(x) for x in reviews.reviews])
 
+    def find_latest_modified(self, max_count: int) -> BookReviewsAppModel:
+        if max_count > 1000:
+            raise AppValidationError("book review latest modified", f"not allowed over 1000 count:{max_count}")
+        if max_count < 1:
+            raise AppValidationError("book review latest modified", f"not allowed under 1 count:{max_count}")
+
+        reviews = self._review_repos.find_latest_modified(max_count)
+
+        return BookReviewsAppModel([BookReviewAppModel(x) for x in reviews.reviews])
+
     def create(self, create_data: ReviewCreateAppModel) -> BookReviewAppModel:
         book = self._book_repos.find_by_id(create_data.book_id)
         if book is None:

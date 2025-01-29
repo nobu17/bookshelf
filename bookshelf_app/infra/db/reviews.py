@@ -27,7 +27,9 @@ class BookReviewDTO(Base):
     content: Mapped[str] = mapped_column(String(length=10000), comment="レビュー本文")
     is_draft: Mapped[bool] = mapped_column(Boolean, comment="ドラフト")
     state: Mapped[ReviewStateEnum] = mapped_column(comment="状態", default=ReviewStateEnum.NOT_YET)
-    last_modified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), comment="最終更新日時")
+    last_modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), comment="最終更新日時(Program)", index=True
+    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, comment="読了日")
     book_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("books.book_id"))
     user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.user_id"))
@@ -69,6 +71,17 @@ class SqlBookReviewRepository(IBookReviewRepository):
 
     def find_by_user_id(self, id: UUID) -> BookReviews:
         stmt = select(BookReviewDTO).where(BookReviewDTO.user_id == id).where(BookReviewDTO.is_deleted == false())
+        results = self._session.scalars(stmt).all()
+
+        return BookReviews.create_from_orm([res.to_domain_model() for res in results])
+
+    def find_latest_modified(self, max_count: int) -> BookReviews:
+        stmt = (
+            select(BookReviewDTO)
+            .where(BookReviewDTO.is_deleted == false())
+            .order_by(BookReviewDTO.last_modified_at)
+            .limit(max_count)
+        )
         results = self._session.scalars(stmt).all()
 
         return BookReviews.create_from_orm([res.to_domain_model() for res in results])

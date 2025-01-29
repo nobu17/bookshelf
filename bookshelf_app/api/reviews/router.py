@@ -163,6 +163,15 @@ async def get_my_reviews(
     return BookReviewsResponse(reviews=reviews)
 
 
+@router.get("/reviews/latest/{max_count}", response_model=BookReviewsResponse)
+async def get_latest_reviews(
+    max_count: int, review_service: BookReviewService = Depends(get_book_review_service)
+) -> BookReviewsResponse:
+    result = review_service.find_latest_modified(max_count)
+    reviews = [BookReviewResponse.from_app_model(x) for x in result.reviews]
+    return BookReviewsResponse(reviews=reviews)
+
+
 @router.post("/reviews", response_model=BookReviewResponse)
 async def create_review(
     body: BookReviewCreateModel,
