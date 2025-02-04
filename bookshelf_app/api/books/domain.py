@@ -199,6 +199,10 @@ class IBookRepository(metaclass=abc.ABCMeta):
     def find_with_reviews_by_user_id(self, user_id: uuid.UUID) -> list[BookWithReviews]:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def find_with_latest_reviews(self, max_count: int) -> list[BookWithReviews]:
+        raise NotImplementedError()
+
 
 class BookFactory:
     _book_repos: IBookRepository

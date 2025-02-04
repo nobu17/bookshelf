@@ -16,6 +16,7 @@ from .service import (
     BookSearchIsbn13AppModel,
     BookService,
     BookTagsUpdateAppModel,
+    BookWithReviewLatestAppModel,
     BookWithReviewsAppModel,
     BookWithReviewSearchUserIdAppModel,
 )
@@ -44,7 +45,7 @@ class BookResponse(BookBaseModel):
                     "title": "入門 継続的デリバリー",
                     "publisher": "オライリージャパン",
                     "authors": ["著者1", "著者2"],
-                    "published_at": "2023/01/10",
+                    "published_at": "2023-01-10",
                     "tags": [
                         {
                             "id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
@@ -71,7 +72,7 @@ class BooksResponse(BaseModel):
                             "title": "入門 継続的デリバリー",
                             "publisher": "オライリージャパン",
                             "authors": ["著者1", "著者2"],
-                            "published_at": "2023/01/10",
+                            "published_at": "2023-01-10",
                             "tags": [
                                 {
                                     "id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
@@ -104,7 +105,7 @@ class BooksWithReviewsResponse(BaseModel):
                             "title": "入門 継続的デリバリー",
                             "publisher": "オライリージャパン",
                             "authors": ["著者1", "著者2"],
-                            "published_at": "2023/01/10",
+                            "published_at": "2023-01-10",
                             "tags": [
                                 {
                                     "id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
@@ -201,6 +202,17 @@ async def find_books_with_reviews_by_user_id(
 ) -> BooksWithReviewsResponse:
     model = BookWithReviewSearchUserIdAppModel(user_id)
     results = book_service.list_with_reviews_by_user_id(model)
+    books_with_reviews = [create_with_reviews_from_model(result) for result in results]
+    return BooksWithReviewsResponse(books_with_reviews=books_with_reviews)
+
+
+@router.get("/books/reviews/latest/{max_count}", response_model=BooksWithReviewsResponse)
+async def find_books_with_latest_reviews(
+    max_count: int,
+    book_service: BookService = Depends(get_book_service),
+) -> BooksWithReviewsResponse:
+    model = BookWithReviewLatestAppModel(max_count)
+    results = book_service.list_with_latest_reviews(model)
     books_with_reviews = [create_with_reviews_from_model(result) for result in results]
     return BooksWithReviewsResponse(books_with_reviews=books_with_reviews)
 
