@@ -299,7 +299,6 @@ def test_books_list_with_reviews(database_service):
     assert response.status_code == 200
 
     # act3: get by latest
-    user_id = get_user_id(client, token)
     response = client.get(URL_WITH_REVIEW_LATEST + "/100")
     assert response.status_code == 200
 

@@ -190,6 +190,29 @@ class SqlBookRepository(IBookRepository):
 
         return book_with_reviews
 
+    def find_with_latest_reviews(self, max_count: int) -> list[BookWithReviews]:
+        stmt = (
+            select(BookDTO)
+            .join(BookReviewDTO)
+            .options(
+                joinedload(BookDTO.authors),
+                joinedload(BookDTO.publisher),
+                joinedload(BookDTO.tags),
+                contains_eager(BookDTO.reviews),
+            )
+            .where(BookReviewDTO.is_deleted == false())
+            .order_by(BookReviewDTO.last_modified_at)
+            .limit(max_count)
+        )
+        book_with_reviews: list[BookWithReviews] = []
+        results = self._session.scalars(stmt).unique().all()
+        for result in results:
+            book = result.to_domain_model()
+            reviews = [review.to_domain_model() for review in result.reviews]
+            book_with_reviews.append(BookWithReviews.create_for_orm(book, reviews))
+
+        return book_with_reviews
+
     def create(self, item: Book) -> Book:
         try:
             add_dto = BookDTO.from_domain_model_as_create(item)
