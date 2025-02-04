@@ -16,6 +16,7 @@ URL_TAGS = URL_BASE + "/tags"
 
 URL_WITH_REVIEW = URL_BASE + "/reviews/user_id"
 URL_WITH_REVIEW_ME = URL_BASE + "/reviews/me"
+URL_WITH_REVIEW_LATEST = URL_BASE + "/reviews/latest"
 URL_REVIEW_BASE = "/api/reviews"
 
 
@@ -135,10 +136,25 @@ def test_books_create_same_isbn(database_service):
     get_response1 = client.get(URL_ISBN13 + "/" + "9784814400690")
     assert get_response1.status_code == 200
     get_json1 = get_response1.json()
+    # at first assert id exists
     assert len(get_json1["books"]) == 2
-    book1 = get_json1["books"][0]
-    book1_id = book1["book_id"]
+    book1_id = get_json1["books"][0]["book_id"]
     assert book1_id is not None
+
+    book2_id = get_json1["books"][1]["book_id"]
+    assert book2_id is not None
+    assert book1_id is not book2_id
+
+    # match the data by title due to not ensure the order
+    if get_json1["books"][0]["title"] == "入門 継続的デリバリー":
+        book1 = get_json1["books"][0]
+        book2 = get_json1["books"][1]
+    elif get_json1["books"][0]["title"] == "入門 継続的デリバリー(2)":
+        book2 = get_json1["books"][0]
+        book1 = get_json1["books"][1]
+    else:
+        raise ValueError("not expected book response.")
+
     assert book1["isbn13"] == "9784814400690"
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
@@ -146,9 +162,6 @@ def test_books_create_same_isbn(database_service):
     assert book1["authors"][0] == "著者1"
     assert book1["authors"][1] == "著者2"
 
-    book2 = get_json1["books"][1]
-    book2_id = book2["book_id"]
-    assert book2_id is not None
     assert book2["isbn13"] == "9784814400690"
     assert book2["title"] == "入門 継続的デリバリー(2)"
     assert book2["publisher"] == "オライリージャパン"
@@ -279,13 +292,16 @@ def test_books_list_with_reviews(database_service):
     # act1: get by my review
     response = client.get(URL_WITH_REVIEW_ME, headers={"Authorization": "Bearer " + token})
     assert response.status_code == 200
-    print(str(response.json()))
 
-    # act2: get by umy ser id
+    # act2: get by user id
     user_id = get_user_id(client, token)
     response = client.get(URL_WITH_REVIEW + "/" + user_id, headers={"Authorization": "Bearer " + token})
     assert response.status_code == 200
-    print(str(response.json()))
+
+    # act3: get by latest
+    user_id = get_user_id(client, token)
+    response = client.get(URL_WITH_REVIEW_LATEST + "/100")
+    assert response.status_code == 200
 
 
 def _create_tags(t_client: TestClient, token: str) -> list[str]:
