@@ -46,3 +46,6 @@ alembic revision --autogenerate -m "02_add_xxxx"
 alembic upgrade head
 
 'Input should be a valid dictionary or object to extract fields from'
+
+# apply seed data for test
+python ./bookshelf_app/tools/seeds/test_data.py

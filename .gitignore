@@ -30,6 +30,7 @@ archive.zip
 
 # env file
 .env
+.env.tool
 
 # test related
 /test_env/postgres_ut/data/*
