@@ -1,6 +1,8 @@
 {
   "cSpell.words": [
     "albemic",
+    "apibase",
+    "appbar",
     "autoflush",
     "autouse",
     "fastapi",
@@ -22,6 +24,7 @@
     "templating",
     "uvicorn",
     "venv",
+    "VITE",
     "werkzeug"
   ],
   "[python]": {
