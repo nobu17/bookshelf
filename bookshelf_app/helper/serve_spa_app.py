@@ -21,9 +21,9 @@ def serve_spa_app(app: FastAPI, build_dir: Union[Path, str]) -> FastAPI:
         build_dir = Path(build_dir)
 
     app.mount(
-        "/static/",
-        StaticFiles(directory=build_dir / "static"),
-        name="static files",
+        "/assets/",
+        StaticFiles(directory=build_dir / "assets"),
+        name="assets files",
     )
     templates = Jinja2Templates(directory=build_dir.as_posix())
 
