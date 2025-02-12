@@ -91,14 +91,14 @@ def create_test_reviews(book1: Book, book2: Book, user_id: uuid.UUID):
     repos = SqlBookReviewRepository(session_itr.__next__())
 
     state1 = ReviewState()
-    state1.update(ReviewStateEnum.COMPLETED, completed_at=datetime.now())
-    content1 = ReviewContent("感想です。", True)
+    state1 = state1.update(ReviewStateEnum.COMPLETED, completed_at=datetime.now())
+    content1 = ReviewContent("感想です。(完了)", False)
     detail1 = ReviewDetail(state1, content1)
     review1 = BookReview(user_id, book1.book_id, detail1)
 
     state2 = ReviewState()
-    state2.update(ReviewStateEnum.COMPLETED, completed_at=datetime.now())
-    content2 = ReviewContent("感想?。", True)
+    state2 = state2.update(ReviewStateEnum.IN_PROGRESS, None)
+    content2 = ReviewContent("感想?。(読誦中)", False)
     detail2 = ReviewDetail(state2, content2)
     review2 = BookReview(user_id, book2.book_id, detail2)
 
