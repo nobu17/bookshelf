@@ -190,7 +190,7 @@ class SqlBookRepository(IBookRepository):
 
         return book_with_reviews
 
-    def find_with_latest_reviews(self, max_count: int) -> list[BookWithReviews]:
+    def find_with_latest_active_reviews(self, max_count: int) -> list[BookWithReviews]:
         stmt = (
             select(BookDTO)
             .join(BookReviewDTO)
@@ -200,7 +200,7 @@ class SqlBookRepository(IBookRepository):
                 joinedload(BookDTO.tags),
                 contains_eager(BookDTO.reviews),
             )
-            .where(BookReviewDTO.is_deleted == false())
+            .where(BookReviewDTO.is_deleted == false() and BookReviewDTO.is_draft == false())  # draft is not target
             .order_by(BookReviewDTO.last_modified_at)
             .limit(max_count)
         )

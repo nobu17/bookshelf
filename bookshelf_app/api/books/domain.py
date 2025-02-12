@@ -200,7 +200,7 @@ class IBookRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def find_with_latest_reviews(self, max_count: int) -> list[BookWithReviews]:
+    def find_with_latest_active_reviews(self, max_count: int) -> list[BookWithReviews]:
         raise NotImplementedError()
 
 

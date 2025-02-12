@@ -130,7 +130,7 @@ class BookService:
         return results
 
     def list_with_latest_reviews(self, model: BookWithReviewLatestAppModel) -> list[BookWithReviewsAppModel]:
-        books_with_reviews = self._book_repos.find_with_latest_reviews(model.max_count)
+        books_with_reviews = self._book_repos.find_with_latest_active_reviews(model.max_count)
         # allow empty (not return 404)
         results: list[BookWithReviewsAppModel] = []
         for book_review in books_with_reviews:
