@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from bookshelf_app import main
 from bookshelf_app.infra.db.database import truncate_tables
-from tests.integration.helper import auth_as_user, create_initial_accounts, get_user_id
+from tests.integration.helper import auth_as_user, create_initial_accounts
 
 client = TestClient(main.app)
 
@@ -13,11 +13,6 @@ URL_BASE = "/api/books"
 URL_ISBN13 = URL_BASE + "/isbn13"
 URL_BOOK_ID = URL_BASE + "/book_id"
 URL_TAGS = URL_BASE + "/tags"
-
-URL_WITH_REVIEW = URL_BASE + "/reviews/user_id"
-URL_WITH_REVIEW_ME = URL_BASE + "/reviews/me"
-URL_WITH_REVIEW_LATEST = URL_BASE + "/reviews/latest"
-URL_REVIEW_BASE = "/api/reviews"
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -250,57 +245,6 @@ def test_books_update_tags(database_service):
 
 
 # todo: error parameter case test
-
-
-def test_books_list_with_reviews(database_service):
-    # precondition auth as normal user
-    token = auth_as_user(client)
-    # creating tags as pre condition
-    tag_ids = _create_tags(client, token)
-
-    request_json = {
-        "isbn13": "9784814400690",
-        "title": "入門 継続的デリバリー",
-        "publisher": "オライリージャパン",
-        "authors": ["著者1", "著者2"],
-        "published_at": "2023-01-10",
-    }
-    # post item as new as pre condition
-    post_response1 = client.post(url=URL_BASE, json=request_json, headers={"Authorization": "Bearer " + token})
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
-    book1_id = post_json1["book_id"]
-    assert book1_id is not None
-
-    # add tags as precondition
-    tag_req = {"book_id": book1_id, "tag_ids": tag_ids}
-    put_response1 = client.put(
-        url=URL_TAGS + "/" + book1_id, json=tag_req, headers={"Authorization": "Bearer " + token}
-    )
-    assert put_response1.status_code == 200
-
-    # add reviews as precondition
-    req_json = {
-        "book_id": book1_id,
-        "content": "this is my first review.",
-        "is_draft": False,
-        "state": 0,
-    }
-    post_response1 = client.post(url=URL_REVIEW_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
-    assert post_response1.status_code == 200
-
-    # act1: get by my review
-    response = client.get(URL_WITH_REVIEW_ME, headers={"Authorization": "Bearer " + token})
-    assert response.status_code == 200
-
-    # act2: get by user id
-    user_id = get_user_id(client, token)
-    response = client.get(URL_WITH_REVIEW + "/" + user_id, headers={"Authorization": "Bearer " + token})
-    assert response.status_code == 200
-
-    # act3: get by latest
-    response = client.get(URL_WITH_REVIEW_LATEST + "/100")
-    assert response.status_code == 200
 
 
 def _create_tags(t_client: TestClient, token: str) -> list[str]:

@@ -4,7 +4,6 @@ import uuid
 from datetime import date
 from typing import Self
 
-from bookshelf_app.api.reviews.domain import BookReview
 from bookshelf_app.api.shared.domain import StringLimitValueObject
 from bookshelf_app.api.shared.errors import DomainValidationError
 from bookshelf_app.api.tags.domain import Tag
@@ -152,24 +151,6 @@ class Book:
         return False
 
 
-class BookWithReviews:
-    book: Book
-    reviews: list[BookReview]
-
-    def __init__(self, book: Book, reviews: list[BookReview]):
-        self.book = book
-        self.reviews = reviews
-
-    @classmethod
-    def create_for_orm(
-        cls,
-        book: Book,
-        reviews: list[BookReview],
-    ) -> Self:
-        instance = cls(book, reviews)
-        return instance
-
-
 class IBookRepository(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def find_by_isbn13(self, isbn13: ISBN13) -> list[Book]:
@@ -193,14 +174,6 @@ class IBookRepository(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def delete(self, id: uuid.UUID) -> None:
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def find_with_reviews_by_user_id(self, user_id: uuid.UUID) -> list[BookWithReviews]:
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def find_with_latest_active_reviews(self, max_count: int) -> list[BookWithReviews]:
         raise NotImplementedError()
 
 

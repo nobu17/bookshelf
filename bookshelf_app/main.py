@@ -6,15 +6,19 @@ from bookshelf_app.api.auth import router as auth
 from bookshelf_app.api.books import router as books
 from bookshelf_app.api.reviews import router as reviews
 from bookshelf_app.api.tags import router as tags
+from bookshelf_app.api.book_with_reviews import router as book_with_reviews
 from bookshelf_app.helper import serve_spa_app as spa
 from bookshelf_app.helper.custom_error_handler import handle_custom_error
 from bookshelf_app.helper.http_middleware import HttpRequestMiddleware
 
+API_PREFIX = "/api"
+
 app = FastAPI()
-app.include_router(tags.router, prefix="/api")
-app.include_router(auth.router, prefix="/api")
-app.include_router(books.router, prefix="/api")
-app.include_router(reviews.router, prefix="/api")
+app.include_router(tags.router, prefix=API_PREFIX)
+app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(books.router, prefix=API_PREFIX)
+app.include_router(reviews.router, prefix=API_PREFIX)
+app.include_router(book_with_reviews.router, prefix=API_PREFIX)
 
 app.add_middleware(HttpRequestMiddleware)
 app.add_middleware(

@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from bookshelf_app.api.books.domain import ISBN13, Book, BookFactory, IBookRepository
-from bookshelf_app.api.reviews.service import BookReviewAppModel
-from bookshelf_app.api.shared.errors import AppValidationError, DataNotFoundError
+from bookshelf_app.api.shared.errors import DataNotFoundError
 from bookshelf_app.api.tags.domain import ITagRepository
 from bookshelf_app.api.tags.service import TagAppModel
 
@@ -29,12 +28,6 @@ class BookAppModel:
         self.tags = [TagAppModel(**vars(tag)) for tag in book_domain.tags.get_values()]
 
 
-@dataclass(frozen=False)
-class BookWithReviewsAppModel:
-    book: BookAppModel
-    reviews: list[BookReviewAppModel]
-
-
 @dataclass(frozen=True)
 class BookCreateAppModel:
     isbn13: str
@@ -52,23 +45,6 @@ class BookSearchIsbn13AppModel:
 @dataclass(frozen=True)
 class BookSearchBookIdAppModel:
     book_id: uuid.UUID
-
-
-@dataclass(frozen=True)
-class BookWithReviewSearchUserIdAppModel:
-    user_id: uuid.UUID
-
-
-@dataclass(frozen=True)
-class BookWithReviewLatestAppModel:
-    max_count: int
-
-
-def __post_init__(self):
-    if self.max_count > 1000:
-        raise AppValidationError("book review latest modified", f"not allowed over 1000 count:{self.max_count}")
-    if self.max_count < 1:
-        raise AppValidationError("book review latest modified", f"not allowed under 1 count:{self.max_count}")
 
 
 @dataclass(frozen=True)
@@ -117,28 +93,6 @@ class BookService:
             raise DataNotFoundError(str(model.book_id), self.ENTITY_NAME, "find_by_book_id")
 
         return BookAppModel(book)
-
-    def list_with_reviews_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> list[BookWithReviewsAppModel]:
-        books_with_reviews = self._book_repos.find_with_reviews_by_user_id(model.user_id)
-        # allow empty (not return 404)
-        results: list[BookWithReviewsAppModel] = []
-        for book_review in books_with_reviews:
-            book_app = BookAppModel(book_review.book)
-            reviews = [BookReviewAppModel(review) for review in book_review.reviews]
-            results.append(BookWithReviewsAppModel(book_app, reviews))
-
-        return results
-
-    def list_with_latest_reviews(self, model: BookWithReviewLatestAppModel) -> list[BookWithReviewsAppModel]:
-        books_with_reviews = self._book_repos.find_with_latest_active_reviews(model.max_count)
-        # allow empty (not return 404)
-        results: list[BookWithReviewsAppModel] = []
-        for book_review in books_with_reviews:
-            book_app = BookAppModel(book_review.book)
-            reviews = [BookReviewAppModel(review) for review in book_review.reviews]
-            results.append(BookWithReviewsAppModel(book_app, reviews))
-
-        return results
 
     def create(self, model: BookCreateAppModel) -> BookAppModel:
         book = self._book_factory.create_new_book(

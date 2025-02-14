@@ -4,15 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import Column, Date, ForeignKey, String, Table, Uuid, delete, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import (
-    Mapped,
-    Session,
-    contains_eager,
-    joinedload,
-    mapped_column,
-    relationship,
-)
-from sqlalchemy.sql.expression import false
+from sqlalchemy.orm import Mapped, Session, joinedload, mapped_column, relationship
 
 from bookshelf_app.api.books.domain import (
     ISBN13,
@@ -20,14 +12,12 @@ from bookshelf_app.api.books.domain import (
     Authors,
     Book,
     BookTitle,
-    BookWithReviews,
     IBookRepository,
     Publisher,
     Tags,
 )
 from bookshelf_app.infra.db.database import Base
 
-from .reviews import BookReviewDTO
 from .tags import TagDTO
 
 # note for a Core table, we use the sqlalchemy.Column construct,
@@ -110,7 +100,6 @@ class BookDTO(Base):
     publisher: Mapped[PublisherDTO] = relationship(secondary=books_publishers_association_table)
     authors: Mapped[list[AuthorDTO]] = relationship(secondary=books_authors_association_table)
     tags: Mapped[list[TagDTO]] = relationship(secondary=books_tags_association_table)
-    reviews: Mapped[list[BookReviewDTO]] = relationship()
 
     def to_domain_model(self) -> Book:
         isbn13 = ISBN13(self.isbn13)
@@ -168,50 +157,6 @@ class SqlBookRepository(IBookRepository):
             return None
 
         return result.to_domain_model()
-
-    def find_with_reviews_by_user_id(self, user_id: UUID) -> list[BookWithReviews]:
-        stmt = (
-            select(BookDTO)
-            .join(BookReviewDTO)
-            .options(
-                joinedload(BookDTO.authors),
-                joinedload(BookDTO.publisher),
-                joinedload(BookDTO.tags),
-                contains_eager(BookDTO.reviews),
-            )
-            .where(BookReviewDTO.user_id == user_id and BookReviewDTO.is_deleted == false())
-        )
-        book_with_reviews: list[BookWithReviews] = []
-        results = self._session.scalars(stmt).unique().all()
-        for result in results:
-            book = result.to_domain_model()
-            reviews = [review.to_domain_model() for review in result.reviews]
-            book_with_reviews.append(BookWithReviews.create_for_orm(book, reviews))
-
-        return book_with_reviews
-
-    def find_with_latest_active_reviews(self, max_count: int) -> list[BookWithReviews]:
-        stmt = (
-            select(BookDTO)
-            .join(BookReviewDTO)
-            .options(
-                joinedload(BookDTO.authors),
-                joinedload(BookDTO.publisher),
-                joinedload(BookDTO.tags),
-                contains_eager(BookDTO.reviews),
-            )
-            .where(BookReviewDTO.is_deleted == false() and BookReviewDTO.is_draft == false())  # draft is not target
-            .order_by(BookReviewDTO.last_modified_at)
-            .limit(max_count)
-        )
-        book_with_reviews: list[BookWithReviews] = []
-        results = self._session.scalars(stmt).unique().all()
-        for result in results:
-            book = result.to_domain_model()
-            reviews = [review.to_domain_model() for review in result.reviews]
-            book_with_reviews.append(BookWithReviews.create_for_orm(book, reviews))
-
-        return book_with_reviews
 
     def create(self, item: Book) -> Book:
         try:
