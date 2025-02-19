@@ -1,17 +1,17 @@
 import Grid from "@mui/material/Grid2";
 
 import BookCard from "./BookCard";
-import { BookInfo } from "../../types/data";
+import { BookWithReviews } from "../../types/data";
 
 type BookCardsProps = {
-  books: BookInfo[];
-  onSelect: (book: BookInfo) => void;
+  books: BookWithReviews[];
+  isRibbonRender?: boolean;
+  onSelect: (book: BookWithReviews) => void;
 };
 
 export default function BookCards(props: BookCardsProps) {
-  const { books, onSelect } = props;
+  const { books, isRibbonRender, onSelect } = props;
   const handleSelect = (bookId: string) => {
-    alert(bookId);
     const book = books.find((x) => x.bookId == bookId);
     if (book) {
       onSelect(book);
@@ -28,8 +28,12 @@ export default function BookCards(props: BookCardsProps) {
         }}
       >
         {books.map((book) => (
-          <Grid size={{ xs: 6, md: 3 }} sx={{ border: 2 }}>
-            <BookCard {...book} onSelect={handleSelect}></BookCard>
+          <Grid size={{ xs: 6, md: 3 }} sx={{ border: 2 }} key={book.bookId}>
+            <BookCard
+              book={book}
+              isRibbonRender={isRibbonRender}
+              onSelect={handleSelect}
+            ></BookCard>
           </Grid>
         ))}
       </Grid>

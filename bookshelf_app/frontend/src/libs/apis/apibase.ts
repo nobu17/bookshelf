@@ -56,12 +56,16 @@ export default class ApiBase {
     });
   }
 
-  getAsync<T>(url: string): Promise<ApiResponse<T>> {
+  getAsync<T>(url: string, converter?: ((data: any)=> ApiResponse<T>)): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
       this._api
         .get(reqUrl)
         .then((r) => {
+          if (converter) {
+            resolve(converter(r.data));
+            return;
+          }
           const res = {
             data: r.data,
           };

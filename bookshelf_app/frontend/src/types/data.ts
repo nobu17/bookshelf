@@ -4,7 +4,7 @@ export type BookInfo = {
   title: string;
   publisher: string;
   authors: string[];
-  published_at: Date;
+  publishedAt: Date;
   tags: BookTag[];
 };
 
@@ -18,27 +18,33 @@ export type Review = {
   content: string;
   isDraft: boolean;
   state: ReviewState;
-  completedAt: Date;
+  completedAt: Date | null;
   lastModifiedAt: Date;
+  user: ReviewUser;
 };
 
-const ReviewStateDef = {
+export const ReviewStateDef = {
   NotYet: 0,
   InProgress: 1,
   Completed: 2,
 } as const;
 
-type ReviewState = (typeof ReviewStateDef)[keyof typeof ReviewStateDef];
+export type ReviewState = (typeof ReviewStateDef)[keyof typeof ReviewStateDef];
 
 export function toJapanese(state: ReviewState) {
   switch (state) {
     case ReviewStateDef.NotYet:
       return "未読";
     case ReviewStateDef.InProgress:
-      return "読書中";
+      return "読中";
     case ReviewStateDef.Completed:
-      return "完了";
+      return "読了";
   }
+}
+
+export type ReviewUser = {
+  userId: string;
+  name: string;
 }
 
 export type BookWithReviews = BookInfo & {
