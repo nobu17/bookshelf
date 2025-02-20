@@ -2,8 +2,6 @@ import Grid from "@mui/material/Grid2";
 import LatestBookReviewsContainer from "../../components/containers/LatestBookReviewsContainer";
 import PageTitle from "../../components/parts/PageTitle";
 
-// import BookCard from "../../components/parts/BookCards"
-
 function Home() {
   return (
     <>

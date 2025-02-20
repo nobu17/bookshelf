@@ -21,6 +21,12 @@ export default class BookWithReviewsApi extends ApiBase {
     );
     return { data: convert(result.data) };
   }
+  async getSpecificUserReviews(userId: string) : Promise<ApiResponse<BooksWithResponse>> {
+    const result = await this.getAsync<ApiRawResp>(
+      `/book_with_reviews/user_id/${userId}`
+    );
+    return { data: convert(result.data) };
+  }
 }
 
 const convert = (data: ApiRawResp): BooksWithResponse => {

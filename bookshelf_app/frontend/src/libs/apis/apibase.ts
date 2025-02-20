@@ -25,7 +25,7 @@ export class ApiError implements ApiErrorImpl {
   }
 
   isBadRequest(): boolean {
-    return this.code === 400;
+    return this.code === 400 || this.code === 422;
   }
 }
 

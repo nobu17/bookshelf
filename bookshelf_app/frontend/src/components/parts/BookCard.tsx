@@ -97,4 +97,11 @@ const renderAggregateRibbon = (book: BookWithReviews) => {
     const label = toJapanese(latest.state);
     return <span className={`${styles.ribbon} ${styles.red}`}>{label}</span>;
   }
+  const prev = order_by_latest[1];
+  if (
+    latest.state === ReviewStateDef.InProgress &&
+    prev.state === ReviewStateDef.Completed
+  ) {
+    return <span className={`${styles.ribbon} ${styles.red}`}>再読中</span>;
+  }
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { CircularProgress } from "@mui/material";
 
-import useLatestBookReviews from "../../hooks/UseLatestBookReviews";
+import useSpecificUserBookReviews from "../../hooks/UseSpecificUserBookReviews";
 import BookCards from "../parts/BookCards";
 import ErrorAlert from "../parts/ErrorAlert";
 import BookReviewDialog from "../parts/dialogs/BookReviewDialog";
@@ -18,9 +18,17 @@ const initialState: DialogState = {
   book: undefined,
 };
 
-export default function LatestBookReviewsContainer() {
+type LatestBookReviewsContainerProps = {
+  userId: string;
+};
+
+export default function SpecificUserBookReviewsContainer(
+  props: LatestBookReviewsContainerProps
+) {
+  const { userId } = props;
   const [dialogState, setDialogState] = useState<DialogState>(initialState);
-  const { bookWithReviews, error, loading } = useLatestBookReviews();
+  const { bookWithReviews, error, loading } =
+    useSpecificUserBookReviews(userId);
 
   const handleClosed = () => {
     setDialogState(initialState);
@@ -36,6 +44,7 @@ export default function LatestBookReviewsContainer() {
     <>
       <BookCards
         books={bookWithReviews}
+        isRibbonRender={true}
         onSelect={(b) => {
           if (!b) return;
           setDialogState({ open: true, book: b });
