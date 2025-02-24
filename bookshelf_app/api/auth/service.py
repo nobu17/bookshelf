@@ -1,7 +1,7 @@
+import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Self
-import uuid
 
 from fastapi.security import OAuth2PasswordBearer
 
@@ -22,12 +22,6 @@ from bookshelf_app.api.shared.errors import (
 class LoginRequestAppModel:
     email: str
     password: str
-
-
-@dataclass(frozen=True)
-class TokenAppModel:
-    access_token: str
-    token_type: str
 
 
 class UserAppRoleEnum(StrEnum):
@@ -53,6 +47,13 @@ class TokenUserAppModel:
         return UserAppRoleEnum.Admin in self.roles
 
 
+@dataclass(frozen=True)
+class TokenAppModel:
+    access_token: str
+    token_type: str
+    user: TokenUserAppModel
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 
@@ -75,7 +76,17 @@ class AuthService:
             raise AuthFailedError(f"password invalid. password:{domain_req.password}")
 
         token = self._crypts.create_token(user)
-        return TokenAppModel(**vars(token))
+        user_app = TokenUserAppModel(
+            user_id=user.user_id,
+            name=user.name.value,
+            email=user.email.value,
+            roles=[UserAppRoleEnum.value_of(str(role)) for role in user.roles],
+        )
+        return TokenAppModel(
+            token_type=token.token_type,
+            access_token=token.access_token,
+            user=user_app,
+        )
 
     def get_current_user(self, token: str) -> TokenUserAppModel:
         decoded_token = self._crypts.decode_token(token)

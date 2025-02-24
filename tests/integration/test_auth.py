@@ -139,6 +139,11 @@ def test_auth_login_success(database_service):
     json = response.json()
     assert json["access_token"] != ""
     assert json["token_type"] == "bearer"
+    user = json["user"]
+    assert user["name"] == "admin"
+    assert user["roles"] == ["admin"]
+    assert user["email"] == "hoge@hoge.com"
+    assert user["user_id"] is not None
 
     # try get me
     me_response = client.get(
