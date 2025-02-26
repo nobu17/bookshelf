@@ -45,9 +45,19 @@ export function toJapanese(state: ReviewState) {
 export type ReviewUser = {
   userId: string;
   name: string;
-}
+};
 
 export type BookWithReviews = BookInfo & {
-  reviews: Review[]
-}
+  reviews: Review[];
+};
 
+export type UserToken = {
+  token: string;
+  user: AuthUserInfo;
+};
+
+export type AuthUserInfo = {
+  userId: string;
+  name: string;
+  roles: string[];
+};

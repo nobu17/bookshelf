@@ -11,10 +11,13 @@ import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
+import { AccountCircle } from "@mui/icons-material";
 
 type ResponsiveAppBarProps = {
   title: string;
   menus: PageLink[];
+  userMenus: PageLink[];
+  isAuthorized: boolean;
   onMenuSelect: (menu: PageLink) => void;
 };
 
@@ -24,17 +27,24 @@ type PageLink = {
 };
 
 export default function ResponsiveAppBar(props: ResponsiveAppBarProps) {
-  const { title, menus, onMenuSelect } = props;
+  const { title, menus, userMenus, isAuthorized, onMenuSelect } = props;
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(
     null
   );
+  const [anchorElUserNav, setAnchorElUserNav] =
+    React.useState<null | HTMLElement>(null);
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
   };
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
   };
-
+  const handleOpenUserNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUserNav(event.currentTarget);
+  };
+  const handleCloseUserNavMenu = () => {
+    setAnchorElUserNav(null);
+  };
   const handleLinkClick = (menu: PageLink) => {
     setAnchorElNav(null);
     onMenuSelect(menu);
@@ -129,6 +139,46 @@ export default function ResponsiveAppBar(props: ResponsiveAppBarProps) {
               </Button>
             ))}
           </Box>
+          {isAuthorized && (
+            <div>
+              <IconButton
+                size="large"
+                aria-label="account of current user"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleOpenUserNavMenu}
+                color="inherit"
+              >
+                <AccountCircle />
+              </IconButton>
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorElUserNav}
+                anchorOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                open={Boolean(anchorElUserNav)}
+                onClose={handleCloseUserNavMenu}
+              >
+                {userMenus.map((menu) => (
+                  <MenuItem
+                    key={menu.name}
+                    onClick={() => handleLinkClick(menu)}
+                  >
+                    <Typography sx={{ textAlign: "center" }}>
+                      {menu.name}
+                    </Typography>
+                  </MenuItem>
+                ))}
+              </Menu>
+            </div>
+          )}
         </Toolbar>
       </Container>
     </AppBar>

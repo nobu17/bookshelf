@@ -12,6 +12,7 @@ interface ApiErrorImpl {
   code: number;
   message: string;
   isBadRequest: () => boolean;
+  isAuthError: () => boolean;
 }
 
 export class ApiError implements ApiErrorImpl {
@@ -27,24 +28,34 @@ export class ApiError implements ApiErrorImpl {
   isBadRequest(): boolean {
     return this.code === 400 || this.code === 422;
   }
+  isAuthError(): boolean {
+    return this.code === 401;
+  }
 }
 
 export default class ApiBase {
-  private _api: AxiosInstance;
+  protected _api: AxiosInstance;
 
-  constructor(private _baseUrl: string = "", private _timeOut: number = 0) {
+  constructor(
+    protected _baseUrl: string = "",
+    protected _timeOut: number = 0,
+    protected _headers: any = null
+  ) {
     if (this._baseUrl === "") {
       this._baseUrl = Config.apiRoot;
     }
     if (this._timeOut <= 0) {
       this._timeOut = Config.apiTimeout;
     }
-    this._api = axios.create({
-      baseURL: this._baseUrl,
-      headers: {
+    if (!this._headers) {
+      this._headers = {
         "Content-Type": "application/json",
         "X-Requested-With": "XMLHttpRequest",
-      },
+      };
+    }
+    this._api = axios.create({
+      baseURL: this._baseUrl,
+      headers: this._headers,
       responseType: "json",
       timeout: this._timeOut,
     });
@@ -56,7 +67,10 @@ export default class ApiBase {
     });
   }
 
-  getAsync<T>(url: string, converter?: ((data: any)=> ApiResponse<T>)): Promise<ApiResponse<T>> {
+  getAsync<T>(
+    url: string,
+    converter?: (data: any) => ApiResponse<T>
+  ): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
       this._api
@@ -125,7 +139,7 @@ export default class ApiBase {
   }
 }
 
-const convertError = (error: any): ApiError => {
+export const convertError = (error: any): ApiError => {
   if (isAxiosError(error)) {
     const message =
       typeof error.response?.data === "string" ? error.response?.data : "";
