@@ -34,12 +34,13 @@ export default class AuthApi extends ApiBase {
 
 const convert = (raw: ApiUserToken): UserToken => {
   const adjusted: UserToken = { ...raw };
+  adjusted.token = raw.access_token;
   adjusted.user.userId = raw.user.user_id;
   return adjusted;
 };
 
 type ApiUserToken = UserToken & {
-  token: string;
+  access_token: string;
   user: ApiAuthUserInfo;
 };
 

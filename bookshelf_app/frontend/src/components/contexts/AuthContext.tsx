@@ -20,6 +20,7 @@ type ContextType = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetAuth: () => void;
   error: AuthError;
 };
 
@@ -85,13 +86,17 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
   const signOut = (): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        clearAuth();
-        setState(initialState);
+        resetAuth();
         resolve();
       } catch (e: unknown) {
         reject(e);
       }
     });
+  };
+
+  const resetAuth = () => {
+    clearAuth();
+    setState(initialState);
   };
 
   const setAuthState = (token: UserToken) => {
@@ -107,6 +112,7 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
     loading,
     signIn,
     signOut,
+    resetAuth,
     error,
   };
 

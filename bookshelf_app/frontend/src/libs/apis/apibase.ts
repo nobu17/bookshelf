@@ -67,6 +67,10 @@ export default class ApiBase {
     });
   }
 
+  getAxiosInstance(): AxiosInstance {
+    return this._api;
+  }
+
   getAsync<T>(
     url: string,
     converter?: (data: any) => ApiResponse<T>
@@ -155,3 +159,7 @@ export const convertError = (error: any): ApiError => {
 const isAxiosError = (error: any): error is AxiosError => {
   return !!error.isAxiosError;
 };
+
+export interface Api {
+  getAxiosInstance(): AxiosInstance;
+}
