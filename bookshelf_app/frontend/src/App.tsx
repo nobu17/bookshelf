@@ -5,6 +5,8 @@ import {
   ThemeProvider,
 } from "@mui/material/styles";
 import Container from "@mui/material/Container";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 import Header from "./components/layouts/Header";
 import Home from "./pages/home/Home";
@@ -18,6 +20,7 @@ import SignIn from "./pages/auth/SignIn";
 import { AuthContextProvider } from "./components/contexts/AuthContext";
 import MyHome from "./pages/mypage/MyHome";
 import SignOut from "./pages/auth/SignOut";
+import MyReviews from "./pages/mypage/MyReviews";
 
 let theme = createTheme({
   typography: {
@@ -38,6 +41,7 @@ theme = responsiveFontSizes(theme);
 function App() {
   return (
     <>
+     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <ThemeProvider theme={theme}>
         <AuthContextProvider>
           <GlobalSpinnerContextProvider>
@@ -49,6 +53,7 @@ function App() {
                   <Route path="/auth/signin" element={<SignIn />} />
                   <Route path="/auth/signout" element={<SignOut />} />
                   <Route path="/mypage" element={<MyHome />} />
+                  <Route path="/mypage/reviews" element={<MyReviews />} />
                   <Route path="/reviews/user/:id" element={<UserReviews />} />
                   <Route path="*" element={<Home />} />
                 </Routes>
@@ -57,6 +62,7 @@ function App() {
           </GlobalSpinnerContextProvider>
         </AuthContextProvider>
       </ThemeProvider>
+      </LocalizationProvider>
     </>
   );
 }

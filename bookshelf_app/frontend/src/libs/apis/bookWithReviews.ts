@@ -21,10 +21,19 @@ export default class BookWithReviewsApi extends ApiBase {
     );
     return { data: convert(result.data) };
   }
-  async getSpecificUserReviews(userId: string) : Promise<ApiResponse<BooksWithResponse>> {
+  async getSpecificUserReviews(
+    userId: string
+  ): Promise<ApiResponse<BooksWithResponse>> {
     const result = await this.getAsync<ApiRawResp>(
       `/book_with_reviews/user_id/${userId}`
     );
+    return { data: convert(result.data) };
+  }
+}
+
+export class BookWithMyReviewsApi extends ApiBase {
+  async getMyReviews(): Promise<ApiResponse<BooksWithResponse>> {
+    const result = await this.getAsync<ApiRawResp>(`/book_with_reviews/me`);
     return { data: convert(result.data) };
   }
 }
@@ -62,7 +71,7 @@ type ApiBookInfo = BookInfo & {
 type ApiReview = Review & {
   review_id: string;
   is_draft: boolean;
-  completed_at: string;
+  completed_at: string | null;
   last_modified_at: string;
 };
 

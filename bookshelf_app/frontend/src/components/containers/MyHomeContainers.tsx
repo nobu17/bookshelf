@@ -6,9 +6,12 @@ import { useEffect } from "react";
 const myReviewBaseUrl = "/reviews/user/";
 
 const bookDisplayMenu: PageMenuProps = {
-  title: "その他",
+  title: "マイレビュー",
   icon: "science",
-  pageInfoList: [{ title: "マイレビュー表示", url: myReviewBaseUrl }],
+  pageInfoList: [
+    { title: "マイレビュー一覧(編集)", url: "/mypage/reviews" },
+    { title: "マイレビュー表示", url: myReviewBaseUrl },
+  ],
 };
 
 export default function MyHomeContainer() {

@@ -31,7 +31,7 @@ export const ReviewStateDef = {
 
 export type ReviewState = (typeof ReviewStateDef)[keyof typeof ReviewStateDef];
 
-export function toJapanese(state: ReviewState) {
+export function toJapanese(state: ReviewState): string {
   switch (state) {
     case ReviewStateDef.NotYet:
       return "未読";
@@ -41,6 +41,12 @@ export function toJapanese(state: ReviewState) {
       return "読了";
   }
 }
+
+export const AllReviewStates: ReviewState[] = [
+  ReviewStateDef.NotYet,
+  ReviewStateDef.InProgress,
+  ReviewStateDef.Completed,
+];
 
 export type ReviewUser = {
   userId: string;
@@ -60,4 +66,33 @@ export type AuthUserInfo = {
   userId: string;
   name: string;
   roles: string[];
+};
+
+export const copyReview = (review: Review): Review => {
+  const copied = JSON.parse(JSON.stringify(review), (key, value) => {
+    if (value === null) {
+      return null;
+    }
+    if (key === "lastModifiedAt" || key === "completedAt") {
+      // parseは数値表現にするだけなのでDateコンストラクタに渡す
+      return new Date(Date.parse(value));
+    }
+    return value;
+  });
+  return copied;
+};
+
+export const copyBookWithReviews = (book: BookWithReviews): BookWithReviews => {
+  const copied = JSON.parse(JSON.stringify(book), (key, value) => {
+    if (value === null) {
+      return null;
+    }
+    if (key === "reviews") {
+      return null;
+    }
+    return value;
+  });
+  copied.reviews = book.reviews.map((x) => copyReview(x));
+
+  return copied;
 };
