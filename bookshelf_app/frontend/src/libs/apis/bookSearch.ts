@@ -2,13 +2,13 @@ import axios from "axios";
 import { XMLParser } from "fast-xml-parser";
 import { NdlBook } from "../../types/ndls";
 
-const MaxCountSearch = 200;
+const MaxCountSearch = 500;
 
 export const searchNdlBooks = async (keyword: string): Promise<NdlBook[]> => {
   try {
     const url = "https://ndlsearch.ndl.go.jp/api/opensearch";
     const params = {
-      title: keyword,
+      any: keyword,
       cnt: MaxCountSearch,
       mediatype: "books",
     };

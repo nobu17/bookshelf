@@ -25,6 +25,9 @@ export default function useSearchBooks() {
       }
       const res = await searchNdlBooks(searchWord);
       const aggregated = aggregateReview(res, myReviews);
+      aggregated.sort(
+        (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
+      );
       setBooks(aggregated);
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -45,6 +48,9 @@ export default function useSearchBooks() {
       setReviews(myReviews);
       const res = await searchNdlBooks(searchWord);
       const aggregated = aggregateReview(res, myReviews);
+      aggregated.sort(
+        (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
+      );
       setBooks(aggregated);
     } catch (e: unknown) {
       if (e instanceof Error) {

@@ -11,7 +11,7 @@ const bookDisplayMenu: PageMenuProps = {
   pageInfoList: [
     { title: "マイレビュー一覧(編集)", url: "/mypage/reviews" },
     { title: "マイレビュー表示", url: myReviewBaseUrl },
-    { title: "検索", url: "/mypage/book/search" },
+    { title: "レビュー投稿(本を探す)", url: "/mypage/book/search" },
   ],
 };
 

@@ -6,7 +6,7 @@ function BookSearch() {
   useAuthGuard();
   return (
     <>
-      <MyPageBase title="検索" />
+      <MyPageBase title="レビュー投稿(本を探す)" />
       <SearchBooksContainer />
     </>
   );
