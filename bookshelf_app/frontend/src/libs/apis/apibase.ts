@@ -31,6 +31,9 @@ export class ApiError implements ApiErrorImpl {
   isAuthError(): boolean {
     return this.code === 401;
   }
+  isNotFound(): boolean {
+    return this.code === 404;
+  }
 }
 
 export default class ApiBase {

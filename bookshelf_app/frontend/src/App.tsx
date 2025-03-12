@@ -21,6 +21,7 @@ import { AuthContextProvider } from "./components/contexts/AuthContext";
 import MyHome from "./pages/mypage/MyHome";
 import SignOut from "./pages/auth/SignOut";
 import MyReviews from "./pages/mypage/MyReviews";
+import BookSearch from "./pages/mypage/BookSearch";
 
 let theme = createTheme({
   typography: {
@@ -55,6 +56,7 @@ function App() {
                   <Route path="/mypage" element={<MyHome />} />
                   <Route path="/mypage/reviews" element={<MyReviews />} />
                   <Route path="/reviews/user/:id" element={<UserReviews />} />
+                  <Route path="/mypage/book/search" element={<BookSearch />} />
                   <Route path="*" element={<Home />} />
                 </Routes>
               </Container>

@@ -25,7 +25,7 @@ export function dateToString(date: Date): string {
   return formattedDate;
 }
 
-// return as "YYYY-MM-DD"
+// return as "YYYY-MM-DD hh:mm"
 export function dateTimeToString(date: Date): string {
   const formattedDate = new Intl.DateTimeFormat("ja-JP", {
     year: "numeric",
@@ -40,7 +40,6 @@ export function dateTimeToString(date: Date): string {
 }
 
 export const toISOStringWithTimezone = (date: Date): string => {
-  console.log("date", date, typeof date);
   const year = date.getFullYear().toString();
   const month = zeroPadding((date.getMonth() + 1).toString());
   const day = zeroPadding(date.getDate().toString());

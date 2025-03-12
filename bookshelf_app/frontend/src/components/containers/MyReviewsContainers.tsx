@@ -10,6 +10,7 @@ import { BookInfo, copyReview, Review } from "../../types/data";
 import { useConfirmDialog } from "../../hooks/dialogs/UseConfirmDialog";
 import BookReviewEditFormDialog from "../parts/dialogs/BookReviewEditFormDialog";
 import BookWithReviewsDataGrid from "../parts/BookWithReviewsDataGrid";
+import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 
 export default function MyReviewsContainer() {
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -51,14 +52,18 @@ export default function MyReviewsContainer() {
     }
   };
 
-  const handleEditClose = async (item: Review | null) => {
+  const handleEditClose = async (item: ReviewEditInfo | null) => {
     setIsEditOpen(false);
     setEditItem(null);
     setBook(null);
     if (!item) {
       return;
     }
-    await updateAsync(item.reviewId, item);
+    if (!editItem) {
+      return;
+    }
+    const newItem = { ...editItem, ...item };
+    await updateAsync(newItem.reviewId, newItem);
   };
 
   useEffect(() => {

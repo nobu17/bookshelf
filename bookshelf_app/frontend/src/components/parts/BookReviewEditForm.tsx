@@ -10,24 +10,40 @@ import {
   Box,
 } from "@mui/material";
 
-import { BookInfo, Review, ReviewStateDef } from "../../types/data";
+import { ReviewState, ReviewStateDef } from "../../types/data";
 import SubmitButtons from "./SubmitButtons";
 import { RhfReviewStateSelect } from "./Rhf/RhfReviewStateSelect";
 import { getImageUrl } from "../../libs/utils/image";
-import { DateTimePicker } from "@mui/x-date-pickers";
+import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { useEffect } from "react";
+import { dateToString } from "../../libs/utils/date";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+type BookInfoForDisplay = {
+  isbn13: string;
+  title: string;
+  publisher: string;
+  authors: string[];
+  publishedAt: Date;
+};
+
 type BookReviewEditFormProps = {
-  bookInfo: BookInfo;
-  editItem: Review;
-  onSubmit: (review: Review) => void;
+  bookInfo: BookInfoForDisplay;
+  editItem: ReviewEditInfo;
+  onSubmit: (review: ReviewEditInfo) => void;
   onCancel: () => void;
+};
+
+export type ReviewEditInfo = {
+  content: string;
+  isDraft: boolean;
+  state: ReviewState;
+  completedAt: Date | null;
 };
 
 export default function BookReviewEditForm(props: BookReviewEditFormProps) {
@@ -38,7 +54,7 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
     setValue,
     control,
     formState: { errors },
-  } = useForm<Review>({ defaultValues: editItem });
+  } = useForm<ReviewEditInfo>({ defaultValues: editItem });
 
   const state = useWatch({ control, name: "state" });
 
@@ -52,12 +68,10 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
     setValue("completedAt", dayjs().tz("Asia/Tokyo").toDate());
   }, [setValue, state, editItem.completedAt]);
 
-  const handlePreSubmit = (data: Review) => {
-    console.log("pre st", data);
+  const handlePreSubmit = (data: ReviewEditInfo) => {
     if (data.state !== ReviewStateDef.Completed) {
       data.completedAt = null;
     }
-    console.log("pre", data);
     onSubmit(data);
   };
 
@@ -66,8 +80,14 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
       <Container maxWidth="sm" sx={{ pt: 1 }}>
         <Divider />
         <Stack spacing={3}>
-          <Typography variant="subtitle1" align="center">
+          <Typography variant="subtitle1" align="left">
             書籍名：{bookInfo.title}
+            <br />
+            出版社：{bookInfo.publisher}
+            <br />
+            著者：{bookInfo.authors.join(": ")}
+            <br />
+            出版年：{dateToString(bookInfo.publishedAt)}
           </Typography>
           <Box
             component="img"
@@ -96,10 +116,10 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
               control={control}
               render={({ field }) => {
                 return (
-                  <DateTimePicker
+                  <DatePicker
                     {...field}
                     label="読了日"
-                    format="YYYY-MM-DD hh:mm"
+                    format="YYYY-MM-DD"
                     {...field}
                     value={dayjs(field.value)}
                     onChange={(newValue) => {

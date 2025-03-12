@@ -1,0 +1,1 @@
+- Creating Ping API for check auth as initial

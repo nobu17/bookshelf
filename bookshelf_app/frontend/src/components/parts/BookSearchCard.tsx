@@ -3,22 +3,19 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
-import styles from "./BookCard.module.css";
-import {
-  BookWithReviews,
-} from "../../types/data";
 import { getImageUrl } from "../../libs/utils/image";
+import { NdlBookWithReviews } from "../../types/ndls";
 import BookCardRibbon from "./BookCardRibbon";
+import styles from "./BookSearchCard.module.css";
 
-type BookCardProps = {
-  book: BookWithReviews;
-  isRibbonRender?: boolean;
-  onSelect: (bookId: string) => void;
+type BookSearchCardProps = {
+  book: NdlBookWithReviews;
+  onSelect: (book: NdlBookWithReviews) => void;
 };
 
-export default function BookCard(props: BookCardProps) {
-  const { bookId, title, isbn13 } = props.book;
-  const { book, isRibbonRender } = props;
+export default function BookSearchCard(props: BookSearchCardProps) {
+  const { title, isbn13 } = props.book;
+  const { book } = props;
   const { onSelect } = props;
   return (
     <>
@@ -30,9 +27,9 @@ export default function BookCard(props: BookCardProps) {
           justifyContent: "center",
           alignItems: "center",
         }}
-        onClick={() => onSelect(bookId)}
+        onClick={() => onSelect(book)}
       >
-        {isRibbonRender ? <BookCardRibbon reviews={book.reviews} />: <></>}
+        <BookCardRibbon reviews={book.reviews} />
         <CardMedia
           component="img"
           height="200"
