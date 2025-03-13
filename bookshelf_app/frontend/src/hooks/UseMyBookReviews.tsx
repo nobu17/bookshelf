@@ -25,7 +25,7 @@ export default function useMyBookReviews() {
   const loadAsync = async () => {
     setLoading(true);
     try {
-      const res = await api.getMyReviews();
+      const res = await api.getMyReviewsForEdit();
       setBookWithReviews(res.data.books_with_reviews);
     } catch (e: unknown) {
       if (e instanceof ApiError) {
@@ -64,11 +64,33 @@ export default function useMyBookReviews() {
     await loadAsync();
   };
 
+  const deleteAsync = async (reviewId: string) => {
+    setLoading(true);
+    try {
+      await reviewApi.deleteReview(reviewId);
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        if (!e.isBadRequest()) {
+          setError(e);
+          return;
+        }
+      } else if (e instanceof Error) {
+        setError(e);
+        return;
+      }
+      setError(new Error("unexpected error."));
+    } finally {
+      setLoading(false);
+    }
+    await loadAsync();
+  }
+
   return {
     bookWithReviews,
     error,
     loading,
     loadAsync,
     updateAsync,
+    deleteAsync,
   };
 }

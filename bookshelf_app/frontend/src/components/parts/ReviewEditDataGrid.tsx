@@ -130,7 +130,7 @@ const convertToDataGridRow = (
       rows.push({ book: bookReview, review: review });
     }
   }
-  console.log(rows);
+  // console.log(rows);
   return rows;
 };
 

@@ -36,6 +36,12 @@ export class BookWithMyReviewsApi extends ApiBase {
     const result = await this.getAsync<ApiRawResp>(`/book_with_reviews/me`);
     return { data: convert(result.data) };
   }
+  async getMyReviewsForEdit(): Promise<ApiResponse<BooksWithResponse>> {
+    const result = await this.getAsync<ApiRawResp>(
+      `/book_with_reviews/for_edit/me`
+    );
+    return { data: convert(result.data) };
+  }
 }
 
 const convert = (data: ApiRawResp): BooksWithResponse => {

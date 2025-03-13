@@ -18,7 +18,8 @@ export default function MyReviewsContainer() {
   const [book, setBook] = useState<BookInfo | null>(null);
   const { showConfirmDialog, renderConfirmDialog } = useConfirmDialog();
   const { setIsSpinnerOn } = useGlobalSpinnerContext();
-  const { bookWithReviews, updateAsync, error, loading } = useMyBookReviews();
+  const { bookWithReviews, updateAsync, deleteAsync, error, loading } =
+    useMyBookReviews();
 
   const handleEdit = ({
     bookId,
@@ -40,6 +41,7 @@ export default function MyReviewsContainer() {
     setEditItem(copied);
     setIsEditOpen(true);
   };
+
   const handleDelete = async ({
     bookId,
     review,
@@ -47,8 +49,13 @@ export default function MyReviewsContainer() {
     bookId: string;
     review: Review;
   }) => {
-    if (await showConfirmDialog("確認", "削除を行ないます、よろしいですか？")) {
-      alert(`delete bookId: ${bookId}, review: ${review}`);
+    const book = bookWithReviews.find((b) => b.bookId === bookId);
+    if (!book) {
+      console.error("not found book.", bookId);
+      return;
+    }
+    if (await showConfirmDialog("確認", `[${book.title}]の削除を行ないます、よろしいですか？`)) {
+      await deleteAsync(review.reviewId);
     }
   };
 

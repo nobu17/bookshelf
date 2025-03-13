@@ -20,7 +20,7 @@ export default function useSearchBooks() {
       setLoading(true);
       let myReviews: BookWithReviews[] = [];
       if (reviews == null) {
-        myReviews = (await api.getMyReviews()).data.books_with_reviews;
+        myReviews = (await api.getMyReviewsForEdit()).data.books_with_reviews;
         setReviews(myReviews);
       }
       const res = await searchNdlBooks(searchWord);

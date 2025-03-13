@@ -21,6 +21,9 @@ export default class ReviewsApi extends ApiBase {
     );
     return { data: { reviewId: resp.data.review_id } };
   }
+  async deleteReview(reviewId: string): Promise<void> {
+    return await this.deleteAsync(`/reviews/${reviewId}`);
+  }
 }
 
 export type UpdateReviewParameter = {

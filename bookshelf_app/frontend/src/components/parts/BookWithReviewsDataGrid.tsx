@@ -70,6 +70,12 @@ export default function BookWithReviewsDataGrid(
       valueGetter: (_, row) => `${toJapanese(row.representative.state)}`,
     },
     {
+      field: "isDraft",
+      headerName: "下書き",
+      width: 80,
+      valueGetter: (_, row) => `${row.representative.isDraft ? "◯" : ""}`,
+    },
+    {
       field: "id",
       width: 100,
       headerName: "",
