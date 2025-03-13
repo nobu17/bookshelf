@@ -7,8 +7,9 @@ export const useSignInGuard = (): void => {
   const { state, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return;
     // when already authorized, back to my page
-    if (state.isAuthorized && !loading) {
+    if (state.isAuthorized) {
       navigate("/mypage");
     }
   }, [navigate, state, loading]);

@@ -50,7 +50,7 @@ const api = new AuthApi();
 
 export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
   const [state, setState] = useState(initialState);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError>(null);
 
   useEffect(() => {
@@ -58,6 +58,7 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
     if (storedInfo) {
       setAuthState(storedInfo);
     }
+    setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string): Promise<void> => {

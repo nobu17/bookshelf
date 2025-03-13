@@ -7,8 +7,9 @@ export const useAuthGuard = (): void => {
   const { state, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return;
     // when not authorized, back to sign in page
-    if (!state.isAuthorized && !loading) {
+    if (!state.isAuthorized) {
       navigate("/auth/signin");
     }
   }, [navigate, state, loading]);
