@@ -196,7 +196,7 @@ async def update_review(
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tag(
+async def delete_review(
     review_id: UUID4,
     review_service: BookReviewService = Depends(get_book_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),

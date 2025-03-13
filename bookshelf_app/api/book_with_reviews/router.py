@@ -123,6 +123,16 @@ async def find_books_with_my_reviews(
     return BooksWithReviewsResponse(books_with_reviews=_convert(out_model))
 
 
+@router.get("/book_with_reviews/for_edit/me", response_model=BooksWithReviewsResponse)
+async def find_books_for_edit_with_my_reviews(
+    service: BookWithReviewsService = Depends(get_book_with_review_service),
+    user: TokenUserAppModel = Depends(get_user_dependency),
+) -> BooksWithReviewsResponse:
+    model = BookWithReviewSearchUserIdAppModel(user.user_id)
+    out_model = service.list_by_user_id(model)
+    return BooksWithReviewsResponse(books_with_reviews=_convert(out_model))
+
+
 # pylint: disable=too-many-function-args
 def _convert(out_model: BooksWithReviewsAppModel) -> list[BookWithReviewsResponse]:
     book_with_reviews: list[BookWithReviewsResponse] = []

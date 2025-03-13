@@ -74,6 +74,10 @@ class IBookWithReviewsQueryService(metaclass=abc.ABCMeta):
     def find_active_by_user_id(self, user_id: uuid.UUID) -> BooksWithReviewsAppModel:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def find_by_user_id(self, user_id: uuid.UUID) -> BooksWithReviewsAppModel:
+        raise NotImplementedError()
+
 
 class BookWithReviewsService:
     ENTITY_NAME: str = "BookWithReviews"
@@ -87,3 +91,6 @@ class BookWithReviewsService:
 
     def list_active_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> BooksWithReviewsAppModel:
         return self._query_service.find_active_by_user_id(model.user_id)
+
+    def list_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> BooksWithReviewsAppModel:
+        return self._query_service.find_by_user_id(model.user_id)
