@@ -133,3 +133,27 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
             book_with_reviews.append(result.to_response())
 
         return BooksWithReviewsAppModel(book_with_reviews)
+
+    def find_by_user_id_and_book_id(self, user_id: UUID, book_id: UUID) -> BookWithReviewsAppModel | None:
+        stmt = (
+            select(BookExtendDTO)
+            .join(BookReviewExtendDTO)
+            .options(
+                joinedload(BookExtendDTO.authors),
+                joinedload(BookExtendDTO.publisher),
+                joinedload(BookExtendDTO.tags),
+                contains_eager(BookExtendDTO.ex_reviews, BookReviewExtendDTO.ex_user),
+            )
+            .where(
+                and_(
+                    BookExtendDTO.book_id == book_id,
+                    BookReviewExtendDTO.user_id == user_id,
+                    BookReviewExtendDTO.is_deleted == false(),
+                )
+            )  # draft is target
+        )
+        result = self._session.scalars(stmt).first()
+        if result is None:
+            return None
+
+        return result.to_response()
