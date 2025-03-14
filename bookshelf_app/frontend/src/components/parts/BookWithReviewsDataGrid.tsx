@@ -119,7 +119,11 @@ export default function BookWithReviewsDataGrid(
     if (!info || !onSelect) {
       return;
     }
-    onSelect(info);
+    // notify before filtered
+    const original = reviews.find((x) => x.bookId === info.bookId);
+    if (original) {
+      onSelect(original);
+    }
   };
 
   const handleEdit = (bookId: string, review: Review) => {

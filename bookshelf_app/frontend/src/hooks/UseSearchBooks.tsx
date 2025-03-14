@@ -78,10 +78,11 @@ const aggregateReview = (
 ): NdlBookWithReviews[] => {
   const aggregates: NdlBookWithReviews[] = [];
   for (const book of books) {
-    const base: NdlBookWithReviews = { ...book, reviews: [] };
+    const base: NdlBookWithReviews = { ...book, bookId: "", reviews: [] };
     if (reviews) {
       const sameBook = reviews.find((x) => x.isbn13 === base.isbn13);
       if (sameBook) {
+        base.bookId = sameBook.bookId;
         base.reviews = sameBook.reviews;
       }
     }

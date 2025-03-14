@@ -12,6 +12,7 @@ import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import useBookAndReviewCreate from "../../hooks/UseBookAndReviewCreate";
 import { useGlobalSpinnerContext } from "../contexts/GlobalSpinnerContext";
 import { useMessageDialog } from "../../hooks/dialogs/UseMessageDialog";
+import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
 
 const displayError = (error: Error | undefined) => {
   if (error) {
@@ -50,9 +51,9 @@ export default function SearchBooksContainer() {
   const { renderDialog, showMessageDialog } = useMessageDialog();
   const [word, setWord] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(
-    null
-  );
+  const [isReviewListOpen, setIsReviewListOpen] = useState(false);
+  const [bookId, setBookId] = useState("");
+  const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
   const [selectBook, setSelectBook] = useState<NdlBook | null>(null);
 
   useEffect(() => {
@@ -72,7 +73,17 @@ export default function SearchBooksContainer() {
       setIsEditOpen(true);
       return;
     }
-    // todo: edit case (need to select one if multiple)
+    if (!book.bookId) {
+      return;
+    }
+    // if review exists, display review list dialog
+    setIsReviewListOpen(true);
+    setBookId(book.bookId);
+  };
+
+  const handleReviewListClose = () => {
+    setIsReviewListOpen(false);
+    setBookId("");
   };
 
   const handleCreateClose = async (item: ReviewEditInfo | null) => {
@@ -107,6 +118,11 @@ export default function SearchBooksContainer() {
         editItem={createItem}
         bookInfo={selectBook}
         onClose={handleCreateClose}
+      />
+      <OneBookReviewsListDialogContainer
+        open={isReviewListOpen}
+        bookId={bookId}
+        onClose={handleReviewListClose}
       />
       {renderDialog()}
     </>

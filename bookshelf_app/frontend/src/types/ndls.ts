@@ -9,5 +9,6 @@ export type NdlBook = {
 };
 
 export type NdlBookWithReviews = NdlBook & {
+  bookId: string,
   reviews: Review[];
 };

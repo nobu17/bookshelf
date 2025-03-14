@@ -12,6 +12,8 @@ type BooksWithResponse = {
   books_with_reviews: BookWithReviews[];
 };
 
+type BookWithResponse = BookWithReviews;
+
 export default class BookWithReviewsApi extends ApiBase {
   async getLatest(
     maxCount: number = 100
@@ -41,6 +43,14 @@ export class BookWithMyReviewsApi extends ApiBase {
       `/book_with_reviews/for_edit/me`
     );
     return { data: convert(result.data) };
+  }
+  async getMyReviewForEditByBookId(
+    bookId: string
+  ): Promise<ApiResponse<BookWithResponse>> {
+    const result = await this.getAsync<ApiBookWithReviews>(
+      `/book_with_reviews/for_edit/book_id/${bookId}`
+    );
+    return { data: adjust(result.data) };
   }
 }
 

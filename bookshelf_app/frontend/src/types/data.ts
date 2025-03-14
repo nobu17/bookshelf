@@ -96,3 +96,12 @@ export const copyBookWithReviews = (book: BookWithReviews): BookWithReviews => {
 
   return copied;
 };
+
+export type GenericBookInfoWithReviews = {
+  title: string;
+  authors: string[];
+  publisher: string;
+  isbn13: string;
+  publishedAt: Date;
+  reviews: Review[];
+};

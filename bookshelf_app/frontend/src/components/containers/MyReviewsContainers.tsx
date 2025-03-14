@@ -6,19 +6,29 @@ import useMyBookReviews from "../../hooks/UseMyBookReviews";
 import ReviewEditDataGrid from "../parts/ReviewEditDataGrid";
 import { useGlobalSpinnerContext } from "../contexts/GlobalSpinnerContext";
 import ErrorAlert from "../parts/ErrorAlert";
-import { BookInfo, copyReview, Review } from "../../types/data";
+import {
+  BookInfo,
+  BookWithReviews,
+  copyReview,
+  Review,
+} from "../../types/data";
 import { useConfirmDialog } from "../../hooks/dialogs/UseConfirmDialog";
 import BookReviewEditFormDialog from "../parts/dialogs/BookReviewEditFormDialog";
 import BookWithReviewsDataGrid from "../parts/BookWithReviewsDataGrid";
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
+import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
 
 export default function MyReviewsContainer() {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isListOpen, setIsListOpen] = useState(false);
   const [editItem, setEditItem] = useState<Review | null>(null);
   const [book, setBook] = useState<BookInfo | null>(null);
+  const [bookWithReview, setBookWithReview] = useState<BookWithReviews | null>(
+    null
+  );
   const { showConfirmDialog, renderConfirmDialog } = useConfirmDialog();
   const { setIsSpinnerOn } = useGlobalSpinnerContext();
-  const { bookWithReviews, updateAsync, deleteAsync, error, loading } =
+  const { bookWithReviews, updateAsync, deleteAsync, loadAsync, error, loading } =
     useMyBookReviews();
 
   const handleEdit = ({
@@ -54,9 +64,25 @@ export default function MyReviewsContainer() {
       console.error("not found book.", bookId);
       return;
     }
-    if (await showConfirmDialog("確認", `[${book.title}]の削除を行ないます、よろしいですか？`)) {
+    if (
+      await showConfirmDialog(
+        "確認",
+        `[${book.title}]の削除を行ないます、よろしいですか？`
+      )
+    ) {
       await deleteAsync(review.reviewId);
     }
+  };
+
+  const handleSelect = (bookWithReview: BookWithReviews) => {
+    setBookWithReview(bookWithReview);
+    setIsListOpen(true);
+  };
+
+  const handleSelectClose = async () => {
+    setBookWithReview(null);
+    setIsListOpen(false);
+    await loadAsync();
   };
 
   const handleEditClose = async (item: ReviewEditInfo | null) => {
@@ -89,9 +115,9 @@ export default function MyReviewsContainer() {
             reviews={bookWithReviews}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onSelect={handleSelect}
           />
         </Grid>
-
         <Grid size={{ xs: 12, md: 10 }}>
           <ReviewEditDataGrid
             reviews={bookWithReviews}
@@ -105,6 +131,11 @@ export default function MyReviewsContainer() {
         editItem={editItem}
         bookInfo={book}
         onClose={handleEditClose}
+      />
+      <OneBookReviewsListDialogContainer
+        open={isListOpen}
+        bookId={bookWithReview?.bookId ?? ""}
+        onClose={handleSelectClose}
       />
       {renderConfirmDialog()}
     </>
