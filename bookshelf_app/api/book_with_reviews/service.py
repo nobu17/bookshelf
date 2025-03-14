@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import UUID4
 
-from bookshelf_app.api.shared.errors import AppValidationError
+from bookshelf_app.api.shared.errors import AppValidationError, DataNotFoundError
 
 
 @dataclass(frozen=True)
@@ -65,6 +65,12 @@ class BookWithReviewSearchUserIdAppModel:
     user_id: uuid.UUID
 
 
+@dataclass(frozen=True)
+class BookWithReviewSearchUserIdAndBookIdAppModel:
+    user_id: uuid.UUID
+    book_id: uuid.UUID
+
+
 class IBookWithReviewsQueryService(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def find_active_latest(self, max_count: int) -> BooksWithReviewsAppModel:
@@ -76,6 +82,10 @@ class IBookWithReviewsQueryService(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def find_by_user_id(self, user_id: uuid.UUID) -> BooksWithReviewsAppModel:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def find_by_user_id_and_book_id(self, user_id: uuid.UUID, book_id: uuid.UUID) -> BookWithReviewsAppModel | None:
         raise NotImplementedError()
 
 
@@ -94,3 +104,14 @@ class BookWithReviewsService:
 
     def list_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> BooksWithReviewsAppModel:
         return self._query_service.find_by_user_id(model.user_id)
+
+    def find_by_user_id_and_book_id(
+        self, model: BookWithReviewSearchUserIdAndBookIdAppModel
+    ) -> BookWithReviewsAppModel:
+        result = self._query_service.find_by_user_id_and_book_id(model.user_id, model.book_id)
+        if result is None:
+            raise DataNotFoundError(
+                str(model.user_id) + "," + str(model.book_id), self.ENTITY_NAME, "find_by_user_id_and_book_id"
+            )
+
+        return result
