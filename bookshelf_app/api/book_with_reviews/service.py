@@ -110,6 +110,7 @@ class BookWithReviewsService:
     ) -> BookWithReviewsAppModel:
         result = self._query_service.find_by_user_id_and_book_id(model.user_id, model.book_id)
         if result is None:
+            # only when book is not found case raise error
             raise DataNotFoundError(
                 str(model.user_id) + "," + str(model.book_id), self.ENTITY_NAME, "find_by_user_id_and_book_id"
             )

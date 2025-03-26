@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Mapped, Session, contains_eager, joinedload, relationship
 from sqlalchemy.sql.expression import false
 
@@ -137,7 +137,7 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
     def find_by_user_id_and_book_id(self, user_id: UUID, book_id: UUID) -> BookWithReviewsAppModel | None:
         stmt = (
             select(BookExtendDTO)
-            .join(BookReviewExtendDTO)
+            .outerjoin(BookReviewExtendDTO)
             .options(
                 joinedload(BookExtendDTO.authors),
                 joinedload(BookExtendDTO.publisher),
@@ -147,13 +147,22 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
             .where(
                 and_(
                     BookExtendDTO.book_id == book_id,
-                    BookReviewExtendDTO.user_id == user_id,
-                    BookReviewExtendDTO.is_deleted == false(),
+                    or_(
+                        BookReviewExtendDTO.user_id == user_id,
+                        BookReviewExtendDTO.user_id.is_(None),  # no joined review
+                    ),
+                    or_(
+                        BookReviewExtendDTO.is_deleted == false(),
+                        BookReviewExtendDTO.is_deleted.is_(None),  # no joined review
+                    ),
                 )
             )  # draft is target
         )
         result = self._session.scalars(stmt).first()
         if result is None:
             return None
+
+        if result and result.ex_reviews is None:
+            result.ex_reviews = []
 
         return result.to_response()

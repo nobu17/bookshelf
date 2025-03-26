@@ -16,6 +16,7 @@
     "ndls",
     "nobu",
     "onupdate",
+    "outerjoin",
     "passlib",
     "pydantic",
     "pytest",
