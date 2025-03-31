@@ -4,6 +4,7 @@ import { BookWithReviews, Review } from "../types/data";
 import { ApiError } from "../libs/apis/apibase";
 import useAuthApi from "./UseAuthApi";
 import ReviewsApi from "../libs/apis/reviews";
+import { updateReview } from "../libs/services/reviewCreateWorkflow";
 
 const api = new BookWithMyReviewsApi();
 const reviewApi = new ReviewsApi();
@@ -43,10 +44,10 @@ export default function useMyBookReviews() {
     }
   };
 
-  const updateAsync = async (reviewId: string, review: Review) => {
+  const updateAsync = async (bookId: string, reviewId: string, review: Review) => {
     setLoading(true);
     try {
-      await reviewApi.updateReview(reviewId, review);
+      await updateReview(api, reviewApi, bookId, reviewId, review);
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         if (!e.isBadRequest()) {

@@ -76,6 +76,12 @@ export default function BookWithReviewsDataGrid(
       valueGetter: (_, row) => `${row.representative.isDraft ? "◯" : ""}`,
     },
     {
+      field: "reviewCount",
+      headerName: "レビュー数",
+      width: 100,
+      valueGetter: (_, row) => `${row.filteredReviews.length}`,
+    },
+    {
       field: "id",
       width: 100,
       headerName: "",

@@ -88,12 +88,16 @@ const filteredByCondition = (
     };
   }
   // other condition is ensured only 1
+  const filteredCond =
+    condition === FilterConditionDef.OnlyInProgress
+      ? ReviewStateDef.InProgress
+      : ReviewStateDef.NotYet;
   for (const book of copied) {
-    const alls = book.reviews.filter((x) => x.state === condition);
+    const alls = book.reviews.filter((x) => x.state === filteredCond);
     if (alls.length === 0) {
       continue;
     }
-    const representative = alls.find((x) => x.state === condition);
+    const representative = alls.find((x) => x.state === filteredCond);
 
     filtered.push({
       ...book,

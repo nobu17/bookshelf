@@ -35,6 +35,6 @@ export function toJapanese(state: FilterCondition): string {
     case FilterConditionDef.OnlyInProgress:
       return "読中";
     case FilterConditionDef.OnlyNotYet:
-      return "未読";
+      return "積読";
   }
 }

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid2";
 
 import useMyBookReviews from "../../hooks/UseMyBookReviews";
-import ReviewEditDataGrid from "../parts/ReviewEditDataGrid";
 import { useGlobalSpinnerContext } from "../contexts/GlobalSpinnerContext";
 import ErrorAlert from "../parts/ErrorAlert";
 import {
@@ -92,11 +91,11 @@ export default function MyReviewsContainer() {
     if (!item) {
       return;
     }
-    if (!editItem) {
+    if (!editItem || !book) {
       return;
     }
     const newItem = { ...editItem, ...item };
-    await updateAsync(newItem.reviewId, newItem);
+    await updateAsync(book.bookId, newItem.reviewId, newItem);
   };
 
   useEffect(() => {
@@ -116,13 +115,6 @@ export default function MyReviewsContainer() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onSelect={handleSelect}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 10 }}>
-          <ReviewEditDataGrid
-            reviews={bookWithReviews}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
           />
         </Grid>
       </Grid>

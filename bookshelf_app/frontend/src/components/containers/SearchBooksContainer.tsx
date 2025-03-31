@@ -5,14 +5,11 @@ import BookSearchCards from "../parts/BookSearchCards";
 import ErrorAlert from "../parts/ErrorAlert";
 import { NdlBook, NdlBookWithReviews } from "../../types/ndls";
 import BookSearchInput from "../parts/BookSearchInput";
-import BookReviewCreateFormDialog from "../parts/dialogs/BookReviewCreateFormDialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ReviewStateDef } from "../../types/data";
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
-import useBookAndReviewCreate from "../../hooks/UseBookAndReviewCreate";
-import { useGlobalSpinnerContext } from "../contexts/GlobalSpinnerContext";
-import { useMessageDialog } from "../../hooks/dialogs/UseMessageDialog";
 import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
+import BookReviewCreateFormDialogContainers from "./BookReviewCreateFormDialogContainers";
 
 const displayError = (error: Error | undefined) => {
   if (error) {
@@ -42,13 +39,6 @@ const displayResult = (
 
 export default function SearchBooksContainer() {
   const { loading, error, books, search, reload } = useSearchBooks();
-  const {
-    loading: bookLoading,
-    error: bookError,
-    create,
-  } = useBookAndReviewCreate();
-  const { setIsSpinnerOn } = useGlobalSpinnerContext();
-  const { renderDialog, showMessageDialog } = useMessageDialog();
   const [word, setWord] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReviewListOpen, setIsReviewListOpen] = useState(false);
@@ -56,11 +46,8 @@ export default function SearchBooksContainer() {
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
   const [selectBook, setSelectBook] = useState<NdlBook | null>(null);
 
-  useEffect(() => {
-    setIsSpinnerOn(bookLoading);
-  }, [setIsSpinnerOn, bookLoading]);
-
   const handleSelect = (book: NdlBookWithReviews) => {
+    // no existing review case, show create new dialog
     if (book.reviews.length === 0) {
       setSelectBook(book);
       const initial = {
@@ -88,13 +75,11 @@ export default function SearchBooksContainer() {
 
   const handleCreateClose = async (item: ReviewEditInfo | null) => {
     setIsEditOpen(false);
+    setCreateItem(null);
+    setSelectBook(null);
     if (!item || !selectBook) {
       return;
     }
-    await create(selectBook, item);
-    setCreateItem(null);
-    setSelectBook(null);
-    await showMessageDialog("情報", "レビュー投稿完了しました。");
     await reload(word);
   };
 
@@ -106,14 +91,13 @@ export default function SearchBooksContainer() {
   return (
     <>
       {displayError(error)}
-      {displayError(bookError)}
       <BookSearchInput
         word={word}
         onSubmit={handleSubmit}
         isLoading={loading}
       ></BookSearchInput>
       {loading ? <CircularProgress /> : displayResult(books, handleSelect)}
-      <BookReviewCreateFormDialog
+      <BookReviewCreateFormDialogContainers
         open={isEditOpen}
         editItem={createItem}
         bookInfo={selectBook}
@@ -124,7 +108,6 @@ export default function SearchBooksContainer() {
         bookId={bookId}
         onClose={handleReviewListClose}
       />
-      {renderDialog()}
     </>
   );
 }

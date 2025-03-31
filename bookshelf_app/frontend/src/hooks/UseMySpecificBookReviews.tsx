@@ -5,6 +5,11 @@ import { ApiError } from "../libs/apis/apibase";
 import useAuthApi from "./UseAuthApi";
 import ReviewsApi from "../libs/apis/reviews";
 import { ReviewEditInfo } from "../components/parts/BookReviewEditForm";
+import {
+  createNewReview,
+  updateReview,
+} from "../libs/services/reviewCreateWorkflow";
+import { ValidationError } from "../types/errors";
 
 const api = new BookWithMyReviewsApi();
 const reviewApi = new ReviewsApi();
@@ -16,7 +21,8 @@ export default function useMySpecificBookReviews() {
     useState<BookWithReviews | null>(null);
   const [bookId, setBookId] = useState("");
   const [error, setError] = useState<Error>();
-  const [loading, setLoading] = useState(true);
+
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -27,71 +33,66 @@ export default function useMySpecificBookReviews() {
     }
   }, [bookId]);
 
-  const createAsync = async (bookId: string, createReview: ReviewEditInfo) => {
+  const createAsync = async (
+    bookId: string,
+    createReview: ReviewEditInfo
+  ): Promise<ValidationError | null> => {
     setLoading(true);
     try {
-      // attach book Id to review
-      const createReviewInfo = { ...createReview, bookId: bookId };
-      await reviewApi.createReview(createReviewInfo);
+      await createNewReview(api, reviewApi, bookId, createReview);
       // reload
       const res = await api.getMyReviewForEditByBookId(bookId);
       setBookWithReviews(res.data);
+      setError(undefined);
+      return null;
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         if (!e.isBadRequest()) {
           setError(e);
-          return;
+          return null;
         }
+      } else if (e instanceof ValidationError) {
+        setError(undefined);
+        return e;
       } else if (e instanceof Error) {
         setError(e);
-        return;
+        return null;
       }
       setError(new Error("unexpected error."));
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAsync = async () => {
+  const updateAsync = async (
+    bookId: string,
+    reviewId: string,
+    review: Review
+  ): Promise<ValidationError | null> => {
     setLoading(true);
     try {
-      const res = await api.getMyReviewForEditByBookId(bookId);
-      setBookWithReviews(res.data);
+      await updateReview(api, reviewApi, bookId, reviewId, review);
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         if (!e.isBadRequest()) {
           setError(e);
-          return;
+          return null;
         }
+      } else if (e instanceof ValidationError) {
+        setError(undefined);
+        return e;
       } else if (e instanceof Error) {
         setError(e);
-        return;
+        return null;
       }
       setError(new Error("unexpected error."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateAsync = async (reviewId: string, review: Review) => {
-    setLoading(true);
-    try {
-      await reviewApi.updateReview(reviewId, review);
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        if (!e.isBadRequest()) {
-          setError(e);
-          return;
-        }
-      } else if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("unexpected error."));
+      return null;
     } finally {
       setLoading(false);
     }
     await loadAsync();
+    return null;
   };
 
   const deleteAsync = async (reviewId: string) => {
@@ -113,6 +114,27 @@ export default function useMySpecificBookReviews() {
       setLoading(false);
     }
     await loadAsync();
+  };
+
+  const loadAsync = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getMyReviewForEditByBookId(bookId);
+      setBookWithReviews(res.data);
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        if (!e.isBadRequest()) {
+          setError(e);
+          return;
+        }
+      } else if (e instanceof Error) {
+        setError(e);
+        return;
+      }
+      setError(new Error("unexpected error."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {

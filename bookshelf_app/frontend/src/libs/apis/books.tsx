@@ -4,7 +4,10 @@ import ApiBase, { ApiResponse } from "./apibase";
 
 export default class BooksApi extends ApiBase {
   async findByIsbn13(isbn13: string): Promise<ApiResponse<BookFindResponse>> {
-    return await this.getAsync(`/books/isbn13/${isbn13}`);
+    const res = await this.getAsync<ApiBookFindResponse>(
+      `/books/isbn13/${isbn13}`
+    );
+    return { data: convertToBookFindResponse(res.data) };
   }
   async create(
     createBook: BookCreateParameter
@@ -21,6 +24,10 @@ type BookFindResponse = {
   books: BookInfo[];
 };
 
+type ApiBookFindResponse = {
+  books: ApiBookInfo[];
+};
+
 type BookCreateResponse = BookInfo & {};
 
 type ApiBookInfo = {
@@ -33,7 +40,17 @@ type ApiBookInfo = {
   tags: BookTag[];
 };
 
+const convertToBookFindResponse = (
+  info: ApiBookFindResponse
+): BookFindResponse => {
+  return { books: info.books.map((x) => convertTotBookInfo(x)) };
+};
+
 const convertTiBookCreateResponse = (info: ApiBookInfo): BookCreateResponse => {
+  return convertTotBookInfo(info);
+};
+
+const convertTotBookInfo = (info: ApiBookInfo): BookInfo => {
   return {
     bookId: info.book_id,
     isbn13: info.isbn13,

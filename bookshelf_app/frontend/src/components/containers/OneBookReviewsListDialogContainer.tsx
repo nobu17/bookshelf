@@ -8,6 +8,7 @@ import { copyReview, Review, ReviewStateDef } from "../../types/data";
 import BookReviewEditFormDialog from "../parts/dialogs/BookReviewEditFormDialog";
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import BookReviewCreateFormDialog from "../parts/dialogs/BookReviewCreateFormDialog";
+import { ValidationError } from "../../types/errors";
 
 type OneBookReviewsListDialogContainerProps = {
   open: boolean;
@@ -35,6 +36,8 @@ export default function OneBookReviewsListDialogContainer(
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Review | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [validationError, setValidationError] =
+    useState<ValidationError | null>(null);
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
 
   useEffect(() => {
@@ -69,12 +72,21 @@ export default function OneBookReviewsListDialogContainer(
     setIsCreateOpen(true);
   };
   const handleAddClose = async (item: ReviewEditInfo | null) => {
-    setIsCreateOpen(false);
-    setCreateItem(null);
-    if (!item || !bookWithReviews) {
-      return;
+    let validationErr: ValidationError | null = null;
+    try {
+      if (!item || !bookWithReviews) {
+        return;
+      }
+      validationErr = await createAsync(bookWithReviews.bookId, item);
+      setValidationError(validationErr);
+    } finally {
+      // validation error case, not close the dialog.
+      if (validationErr === null) {
+        setIsCreateOpen(false);
+        setCreateItem(null);
+        setValidationError(null);
+      }
     }
-    await createAsync(bookWithReviews.bookId, item);
   };
   const handleEdit = async (review: Review) => {
     const copied = copyReview(review);
@@ -82,24 +94,44 @@ export default function OneBookReviewsListDialogContainer(
     setIsEditOpen(true);
   };
   const handleEditClose = async (item: ReviewEditInfo | null) => {
-    setIsEditOpen(false);
-    setEditItem(null);
-    if (!item) {
-      return;
+    let validationErr: ValidationError | null = null;
+    try {
+      if (!item || !bookWithReviews) {
+        return;
+      }
+      if (!editItem) {
+        return;
+      }
+      const newItem = { ...editItem, ...item };
+      validationErr = await updateAsync(
+        bookWithReviews.bookId,
+        newItem.reviewId,
+        newItem
+      );
+      setValidationError(validationErr);
+    } finally {
+      // validation error case, not close the dialog.
+      if (validationErr === null) {
+        setIsEditOpen(false);
+        setEditItem(null);
+        setValidationError(null);
+      }
     }
-    if (!editItem) {
-      return;
-    }
-    const newItem = { ...editItem, ...item };
-    await updateAsync(newItem.reviewId, newItem);
   };
 
   return (
     <>
       <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={error ? true : false}
         autoHideDuration={6000}
         message={error ? error.message : ""}
+      />
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        open={validationError ? true : false}
+        autoHideDuration={6000}
+        message={validationError ? validationError.message : ""}
       />
       <OneBookReviewsListDialog
         open={open}

@@ -34,7 +34,7 @@ export type ReviewState = (typeof ReviewStateDef)[keyof typeof ReviewStateDef];
 export function toJapanese(state: ReviewState): string {
   switch (state) {
     case ReviewStateDef.NotYet:
-      return "未読";
+      return "積読";
     case ReviewStateDef.InProgress:
       return "読中";
     case ReviewStateDef.Completed:

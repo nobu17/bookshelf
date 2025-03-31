@@ -7,14 +7,14 @@ import BookReviewEditForm, { ReviewEditInfo } from "../BookReviewEditForm";
 import { DialogTitle } from "@mui/material";
 import { NdlBook } from "../../../types/ndls";
 
-type BookReviewCreateFormDialogProps = {
+export type BookReviewCreateFormDialogProps = {
   bookInfo: NdlBook | null;
   editItem: CreateParameter | null;
   open: boolean;
   onClose: (item: ReviewEditInfo | null) => void;
 };
 
-type CreateParameter = {
+export type CreateParameter = {
   content: string;
   state: ReviewState;
   isDraft: boolean;
