@@ -3,7 +3,6 @@ import {
   ReviewState,
   ReviewStateDef,
   toJapanese,
-  copyReview,
 } from "../../types/data";
 
 import styles from "./BookCardRibbon.module.css";
@@ -41,20 +40,33 @@ const renderStandardRibbon = (state: ReviewState) => {
 };
 
 const renderAggregateRibbon = (reviews: Review[]) => {
-  const copied = reviews.map((x) => copyReview(x));
-  const orderByLatest = copied.sort(
-    (a, b) => a.lastModifiedAt.getTime() - b.lastModifiedAt.getTime()
-  );
-  const latest = orderByLatest[0];
-  if (latest.state === ReviewStateDef.Completed) {
-    const label = toJapanese(latest.state);
-    return <span className={`${styles.ribbon} ${styles.red}`}>{label}</span>;
+  const inProgs = reviews.filter((x) => x.state === ReviewStateDef.InProgress);
+  const comps = reviews.filter((x) => x.state === ReviewStateDef.Completed);
+  if (inProgs.length > 0) {
+    const inProgMsg = toJapanese(inProgs[0].state);
+    if (comps.length > 0) {
+      return (
+        <span className={`${styles.ribbon} ${styles.blue}`}>再{inProgMsg}</span>
+      );
+    } else {
+      return (
+        <span className={`${styles.ribbon} ${styles.blue}`}>{inProgMsg}</span>
+      );
+    }
   }
-  const prev = orderByLatest[1];
-  if (
-    latest.state === ReviewStateDef.InProgress &&
-    prev.state === ReviewStateDef.Completed
-  ) {
-    return <span className={`${styles.ribbon} ${styles.red}`}>再読中</span>;
+  const notYet = reviews.filter((x) => x.state === ReviewStateDef.NotYet);
+  if (notYet.length > 0) {
+    return (
+      <span className={`${styles.ribbon} ${styles.grey}`}>
+        {toJapanese(notYet[0].state)}
+      </span>
+    );
+  }
+  if (comps.length > 0) {
+    return (
+      <span className={`${styles.ribbon} ${styles.red}`}>
+        {toJapanese(comps[0].state)}
+      </span>
+    );
   }
 };
