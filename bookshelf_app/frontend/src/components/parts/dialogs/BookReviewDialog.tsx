@@ -13,7 +13,7 @@ import {
 import Grid from "@mui/material/Grid2";
 
 import { BookWithReviews, Review, toJapanese } from "../../../types/data";
-import { getImageUrl } from "../../../libs/utils/image";
+import { getFallbackImageUrl, getImageUrl } from "../../../libs/utils/image";
 import { dateToString } from "../../../libs/utils/date";
 import LineBreakText from "../LineBreakText";
 
@@ -54,6 +54,9 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
             height="200"
             style={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
             src={getImageUrl(book.isbn13)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
           />
           <Grid
             container

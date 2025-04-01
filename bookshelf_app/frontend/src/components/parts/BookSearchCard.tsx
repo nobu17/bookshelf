@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
-import { getImageUrl } from "../../libs/utils/image";
+import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
 import { NdlBookWithReviews } from "../../types/ndls";
 import BookCardRibbon from "./BookCardRibbon";
 import styles from "./BookSearchCard.module.css";
@@ -35,6 +35,9 @@ export default function BookSearchCard(props: BookSearchCardProps) {
           height="200"
           sx={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
           image={getImageUrl(isbn13)}
+          onError={(e) => {
+            e.currentTarget.src = getFallbackImageUrl();
+          }}
         />
         <Box
           sx={{

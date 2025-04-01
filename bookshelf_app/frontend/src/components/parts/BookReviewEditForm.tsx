@@ -13,7 +13,7 @@ import {
 import { ReviewState, ReviewStateDef } from "../../types/data";
 import SubmitButtons from "./SubmitButtons";
 import { RhfReviewStateSelect } from "./Rhf/RhfReviewStateSelect";
-import { getImageUrl } from "../../libs/utils/image";
+import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
 import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -93,6 +93,9 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
             component="img"
             sx={{ height: "150px", width: "auto", objectFit: "contain" }}
             src={getImageUrl(bookInfo.isbn13)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
           />
           <Divider />
           <TextField

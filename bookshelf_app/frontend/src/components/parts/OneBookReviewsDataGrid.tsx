@@ -2,7 +2,7 @@ import { Box, Button, Container, Stack, Typography } from "@mui/material";
 import { GenericBookInfoWithReviews, Review } from "../../types/data";
 import ReviewsDataGrid from "./ReviewsDataGrid";
 import { dateToString } from "../../libs/utils/date";
-import { getImageUrl } from "../../libs/utils/image";
+import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
 
 type OneBookReviewsDataGridProps = {
   bookWithReviews: GenericBookInfoWithReviews;
@@ -33,6 +33,9 @@ export default function OneBookReviewsDataGrid(
             component="img"
             sx={{ height: "150px", width: "auto", objectFit: "contain" }}
             src={getImageUrl(bookWithReviews.isbn13)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
           />
           <Button variant="contained" onClick={onAdd}>
             新規投稿
