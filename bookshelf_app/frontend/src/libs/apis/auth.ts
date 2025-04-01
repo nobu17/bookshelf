@@ -32,10 +32,23 @@ export default class AuthApi extends ApiBase {
   }
 }
 
+export class AuthPingApi extends ApiBase {
+  async getCurrentUser(): Promise<ApiResponse<AuthUserInfo>> {
+    const res = await this.getAsync<ApiAuthUserInfo>("/users/me");
+    return { data: convertUser(res.data) };
+  }
+}
+
 const convert = (raw: ApiUserToken): UserToken => {
   const adjusted: UserToken = { ...raw };
   adjusted.token = raw.access_token;
   adjusted.user.userId = raw.user.user_id;
+  return adjusted;
+};
+
+const convertUser = (raw: ApiAuthUserInfo): AuthUserInfo => {
+  const adjusted: AuthUserInfo = { ...raw };
+  adjusted.userId = raw.user_id;
   return adjusted;
 };
 

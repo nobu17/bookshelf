@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
-import AuthApi from "../../libs/apis/auth";
+import AuthApi, { AuthPingApi } from "../../libs/apis/auth";
 import { ApiError } from "../../libs/apis/apibase";
 import {
   storeAuth,
@@ -54,11 +54,24 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
   const [error, setError] = useState<AuthError>(null);
 
   useEffect(() => {
-    const storedInfo = restoreAuth();
-    if (storedInfo) {
-      setAuthState(storedInfo);
-    }
-    setLoading(false);
+    const init = async () => {
+      const storedInfo = restoreAuth();
+      if (storedInfo) {
+        const checkResult = await checkAuth(storedInfo);
+        // only when auth error case reset auth (unexpected error case is stay store auth for temporary error)
+        if (checkResult.isAuthError) {
+          resetAuth();
+          setLoading(false);
+          return;
+        }
+        if (checkResult.error) {
+          console.error("unexpected error. but stay auth", checkResult.error);
+        }
+        setAuthState(storedInfo);
+      }
+      setLoading(false);
+    };
+    init();
   }, []);
 
   const signIn = async (email: string, password: string): Promise<void> => {
@@ -118,4 +131,46 @@ export const AuthContextProvider = ({ children }: AuthContextProviderProps) => {
   };
 
   return <AuthContext.Provider value={values}>{children}</AuthContext.Provider>;
+};
+
+type AuthCheckResult =
+  | { isAuthorized: true; isAuthError: false; error?: never } // authorized
+  | { isAuthorized: false; isAuthError: true; error?: never } // not authorized
+  | { isAuthorized: false; isAuthError: false; error: Error }; // unexpected error
+
+const checkAuth = async (token: UserToken): Promise<AuthCheckResult> => {
+  const pingApi = new AuthPingApi();
+  const requestIntercept = pingApi.getAxiosInstance().interceptors.request.use(
+    async (request) => {
+      if (!request || !request.headers) return request;
+
+      const currentAuth = token;
+      if (!currentAuth) {
+        return request;
+      }
+      request.headers.Authorization = `Bearer ${currentAuth.token}`;
+      return request;
+    },
+    (error) => Promise.reject(error)
+  );
+  try {
+    const user = await pingApi.getCurrentUser();
+    if (user) {
+      return { isAuthorized: true, isAuthError: false };
+    }
+  } catch (e: unknown) {
+    if (e instanceof ApiError) {
+      if (e.isAuthError() || e.isForbidden()) {
+        return { isAuthorized: false, isAuthError: true };
+      }
+      return { isAuthorized: false, isAuthError: false, error: e };
+    }
+  } finally {
+    pingApi.getAxiosInstance().interceptors.request.eject(requestIntercept);
+  }
+  return {
+    isAuthorized: false,
+    isAuthError: false,
+    error: new Error("no user info."),
+  };
 };
