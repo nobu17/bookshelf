@@ -1,4 +1,4 @@
-import { CircularProgress, Typography } from "@mui/material";
+import { Button, CircularProgress, Typography } from "@mui/material";
 
 import useSearchBooks from "../../hooks/UseSearchBooks";
 import BookSearchCards from "../parts/BookSearchCards";
@@ -10,6 +10,7 @@ import { ReviewStateDef } from "../../types/data";
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
 import BookReviewCreateFormDialogContainers from "./BookReviewCreateFormDialogContainers";
+import ISBN13CaptureDialog from "../parts/dialogs/ISBN13CaptureDialog";
 
 const displayError = (error: Error | undefined) => {
   if (error) {
@@ -45,6 +46,8 @@ export default function SearchBooksContainer() {
   const [bookId, setBookId] = useState("");
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
   const [selectBook, setSelectBook] = useState<NdlBook | null>(null);
+
+  const [isCaptureOpen, setIsCaptureOpen] = useState(false);
 
   const handleSelect = (book: NdlBookWithReviews) => {
     // no existing review case, show create new dialog
@@ -88,6 +91,18 @@ export default function SearchBooksContainer() {
     await search(submitWord);
   };
 
+  const handleCaptureStart = () => {
+    setIsCaptureOpen(true);
+  };
+
+  const handleCaptureClose = async (isbn13: string | null) => {
+    setIsCaptureOpen(false);
+    if (isbn13) {
+      setWord(isbn13);
+      await search(isbn13);
+    }
+  };
+
   return (
     <>
       {displayError(error)}
@@ -95,7 +110,12 @@ export default function SearchBooksContainer() {
         word={word}
         onSubmit={handleSubmit}
         isLoading={loading}
+        key={word}
       ></BookSearchInput>
+      <Button variant="outlined" onClick={handleCaptureStart}>
+        バーコードから探す
+      </Button>
+      <br />
       {loading ? <CircularProgress /> : displayResult(books, handleSelect)}
       <BookReviewCreateFormDialogContainers
         open={isEditOpen}
@@ -108,6 +128,7 @@ export default function SearchBooksContainer() {
         bookId={bookId}
         onClose={handleReviewListClose}
       />
+      <ISBN13CaptureDialog open={isCaptureOpen} onClose={handleCaptureClose} />
     </>
   );
 }

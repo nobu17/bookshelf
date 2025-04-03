@@ -7,6 +7,7 @@
     "autouse",
     "dcndl",
     "dcterms",
+    "ericblade",
     "fastapi",
     "Hoge",
     "joinedload",
