@@ -93,7 +93,7 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
 
 function ReviewCard(review: Review) {
   return (
-    <Card sx={{ minWidth: 275, border: 1 }} key={review.reviewId}>
+    <Card sx={{ minWidth: 275, border: 1, m: 1 }} key={review.reviewId}>
       <CardContent>
         <Typography gutterBottom sx={{ fontSize: 14 }}>
           {review.user.name}
