@@ -12,7 +12,7 @@ services:
       POSTGRES_DB: test_BookDb          #DB名
       TZ: "Asia/Tokyo"
     ports:
-      - 17432:5432  #ホストOSの17432をコンテナ内の5432にマッピング
+      - 18432:5432  #ホストOSの17432をコンテナ内の5432にマッピング
     volumes:
       - ./postgres_integration/data:/var/lib/postgresql/data    # ※ホストOSで永続化
       - ./postgres_integration/sql:/docker-entrypoint-initdb.d
