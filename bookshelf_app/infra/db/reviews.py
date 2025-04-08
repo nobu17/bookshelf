@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, select, update
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, and_, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlalchemy.sql.expression import false
 
@@ -14,6 +14,8 @@ from bookshelf_app.api.reviews.domain import (
     ReviewDetail,
     ReviewState,
     ReviewStateEnum,
+    SpecificBookUserReviews,
+    SpecificUserBookReviews,
 )
 from bookshelf_app.infra.db.database import Base
 
@@ -69,11 +71,21 @@ class SqlBookReviewRepository(IBookReviewRepository):
 
         return result.to_domain_model()
 
-    def find_by_user_id(self, id: UUID) -> BookReviews:
+    def find_by_user_id(self, id: UUID) -> SpecificUserBookReviews:
         stmt = select(BookReviewDTO).where(BookReviewDTO.user_id == id).where(BookReviewDTO.is_deleted == false())
         results = self._session.scalars(stmt).all()
 
-        return BookReviews.create_from_orm([res.to_domain_model() for res in results])
+        return SpecificUserBookReviews.create_from_orm(id, [res.to_domain_model() for res in results])
+
+    def find_by_user_id_and_book_id(self, user_id: UUID, book_id: UUID) -> SpecificBookUserReviews:
+        stmt = select(BookReviewDTO).where(
+            and_(
+                BookReviewDTO.user_id == user_id, BookReviewDTO.book_id == book_id, BookReviewDTO.is_deleted == false()
+            )
+        )
+        results = self._session.scalars(stmt).all()
+
+        return SpecificBookUserReviews.create_from_orm(user_id, book_id, [res.to_domain_model() for res in results])
 
     def find_latest_modified(self, max_count: int) -> BookReviews:
         stmt = (

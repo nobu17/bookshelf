@@ -177,7 +177,10 @@ class BookReviewService:
             raise AppValidationError("book review create", f"book is not exists. book_id:{create_data.book_id}")
 
         domain_review = create_data.to_domain()
-        created = self._review_repos.create(domain_review)
+        user_reviews = self._review_repos.find_by_user_id_and_book_id(create_data.user_id, create_data.book_id)
+        user_reviews.add(domain_review)
+
+        created = self._review_repos.create(user_reviews.last_modified)
         return BookReviewAppModel(created)
 
     def update(self, update_data: ReviewUpdateAppModel) -> BookReviewAppModel:
@@ -189,7 +192,10 @@ class BookReviewService:
             )
 
         updated_review = review.update(update_parameter)
-        updated = self._review_repos.update(updated_review)
+        user_reviews = self._review_repos.find_by_user_id_and_book_id(updated_review.user_id, updated_review.book_id)
+        user_reviews.update(updated_review)
+
+        updated = self._review_repos.update(user_reviews.last_modified)
         return BookReviewAppModel(updated)
 
     def delete(self, delete_info: ReviewDeleteAppModel) -> None:

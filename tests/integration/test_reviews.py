@@ -162,12 +162,13 @@ def test_review_post_create_same_book_review(database_service):
     # create book at first
     book_id = _create_initial_book(client, token)
 
-    # case1: create new review
+    # case1: create new completed review
     req_json = {
         "book_id": book_id,
         "content": "this is my first review.",
         "is_draft": False,
-        "state": 0,
+        "state": 2,
+        "completed_at": "2032-04-23T10:20:30.400+02:30",
     }
     post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
     assert post_response1.status_code == 200
@@ -182,15 +183,15 @@ def test_review_post_create_same_book_review(database_service):
     assert review1["book_id"] == book_id
     assert review1["content"] == "this is my first review."
     assert review1["is_draft"] is False
-    assert review1["state"] == 0
-    assert review1["completed_at"] is None
+    assert review1["state"] == 2
+    assert review1["completed_at"] is not None
 
-    # case2: create additional review of same book
+    # case2: create additional review of same book and other state (not yet)
     req_json = {
         "book_id": book_id,
         "content": "this is my second review.",
         "is_draft": True,
-        "state": 0,
+        "state": 0,  # not yet
     }
     post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
     assert post_response1.status_code == 200
@@ -207,6 +208,125 @@ def test_review_post_create_same_book_review(database_service):
     assert review1["is_draft"] is True
     assert review1["state"] == 0
     assert review1["completed_at"] is None
+
+    # case3: create new completed review again
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my third review.",
+        "is_draft": False,
+        "state": 2,
+        "completed_at": "2034-04-23T10:20:30.400+02:30",
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+
+    # confirm with get response
+    get_response1 = client.get(URL_BASE + "/me", headers={"Authorization": "Bearer " + token})
+    assert get_response1.status_code == 200
+    reviews = get_response1.json()["reviews"]
+    assert len(reviews) == 3
+    review1 = reviews[2]
+    assert review1["review_id"] is not None
+    assert review1["book_id"] == book_id
+    assert review1["content"] == "this is my third review."
+    assert review1["is_draft"] is False
+    assert review1["state"] == 2
+    assert review1["completed_at"] is not None
+
+
+def test_review_post_create_same_book_review_invalid_state_not_yet(database_service):
+    # precondition auth as normal user
+    token = auth_as_user(client)
+    # create book at first
+    book_id = _create_initial_book(client, token)
+
+    # preparation1: create new completed review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 2,
+        "completed_at": "2032-04-23T10:20:30.400+02:30",
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # preparation2: create new not-yet review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my second review.",
+        "is_draft": False,
+        "state": 0,
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # case1: create not yet review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my third review.",
+        "is_draft": False,
+        "state": 0,  # not yet
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 422
+
+    # case2: create in-progress review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my third review.",
+        "is_draft": False,
+        "state": 1,  # in-progress
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 422
+
+
+def test_review_post_create_same_book_review_invalid_state_in_progress(database_service):
+    # precondition auth as normal user
+    token = auth_as_user(client)
+    # create book at first
+    book_id = _create_initial_book(client, token)
+
+    # preparation1: create new completed review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 2,
+        "completed_at": "2032-04-23T10:20:30.400+02:30",
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # preparation2: create new in-progress review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my second review.",
+        "is_draft": False,
+        "state": 1,
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # case1: create not yet review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my third review.",
+        "is_draft": False,
+        "state": 0,  # not yet
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 422
+
+    # case2: create in-progress review
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my third review.",
+        "is_draft": False,
+        "state": 1,  # in-progress
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 422
 
 
 def test_review_put_update_not_existed_data(database_service):
@@ -371,6 +491,112 @@ def test_review_put_update(database_service):
     assert review1["is_draft"] is True
     assert review1["state"] == 1
     assert review1["completed_at"] is None
+
+
+def test_review_put_update_invalid_state_not_yet(database_service):
+    # precondition auth as normal user
+    token = auth_as_user(client)
+    # create book at first
+    book_id = _create_initial_book(client, token)
+
+    # precondition1: create new review as completed
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 2,
+        "completed_at": "2032-04-23T10:20:30.400+02:30",
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+    review_id1 = post_response1.json()["review_id"]
+
+    # precondition2: create new review as not-yet
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 0,
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # case1: update completed -> not-yet
+    req_update = {
+        "review_id": review_id1,
+        "content": "update a content",
+        "is_draft": False,
+        "state": 0,
+    }
+    put_response1 = client.put(
+        url=URL_BASE + "/" + review_id1, json=req_update, headers={"Authorization": "Bearer " + token}
+    )
+    assert put_response1.status_code == 422
+
+    # case2: update completed -> in-progress
+    req_update = {
+        "review_id": review_id1,
+        "content": "update a content",
+        "is_draft": False,
+        "state": 1,
+    }
+    put_response1 = client.put(
+        url=URL_BASE + "/" + review_id1, json=req_update, headers={"Authorization": "Bearer " + token}
+    )
+    assert put_response1.status_code == 422
+
+
+def test_review_put_update_invalid_state_in_progress(database_service):
+    # precondition auth as normal user
+    token = auth_as_user(client)
+    # create book at first
+    book_id = _create_initial_book(client, token)
+
+    # precondition1: create new review as completed
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 2,
+        "completed_at": "2032-04-23T10:20:30.400+02:30",
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+    review_id1 = post_response1.json()["review_id"]
+
+    # precondition2: create new review as in-progress
+    req_json = {
+        "book_id": book_id,
+        "content": "this is my first review.",
+        "is_draft": False,
+        "state": 1,
+    }
+    post_response1 = client.post(url=URL_BASE, json=req_json, headers={"Authorization": "Bearer " + token})
+    assert post_response1.status_code == 200
+
+    # case1: update completed -> not-yet
+    req_update = {
+        "review_id": review_id1,
+        "content": "update a content",
+        "is_draft": False,
+        "state": 0,
+    }
+    put_response1 = client.put(
+        url=URL_BASE + "/" + review_id1, json=req_update, headers={"Authorization": "Bearer " + token}
+    )
+    assert put_response1.status_code == 422
+
+    # case2: update completed -> in-progress
+    req_update = {
+        "review_id": review_id1,
+        "content": "update a content",
+        "is_draft": False,
+        "state": 1,
+    }
+    put_response1 = client.put(
+        url=URL_BASE + "/" + review_id1, json=req_update, headers={"Authorization": "Bearer " + token}
+    )
+    assert put_response1.status_code == 422
 
 
 def test_review_delete_no_authorization(database_service):

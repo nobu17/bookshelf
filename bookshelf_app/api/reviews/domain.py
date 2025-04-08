@@ -187,13 +187,129 @@ class BookReviews:
         return instance
 
 
+class SpecificUserBookReviews:
+    user_id: uuid.UUID
+    reviews: list[BookReview]
+    last_modified: BookReview
+
+    def __init__(self, user_id: uuid.UUID):
+        self.user_id = user_id
+        self.reviews = []
+
+    @classmethod
+    def create_from_orm(
+        cls,
+        user_id: uuid.UUID,
+        reviews: list[BookReview],
+    ) -> Self:
+        instance = cls(user_id)
+        instance.reviews = reviews
+
+        return instance
+
+
+class SpecificBookUserReviews:
+    user_id: uuid.UUID
+    book_id: uuid.UUID
+    reviews: list[BookReview]
+    last_modified: BookReview
+
+    def __init__(self, user_id: uuid.UUID, book_id: uuid.UUID):
+        self.user_id = user_id
+        self.book_id = book_id
+        self.reviews = []
+
+    def add(self, target: BookReview):
+        if self.user_id != target.user_id:
+            raise DomainValidationError(
+                self.__class__.__name__, f"user_id is incorrect: self:{self.user_id}, add:{target.user_id}"
+            )
+        if self.book_id != target.book_id:
+            raise DomainValidationError(
+                self.__class__.__name__, f"book_id is incorrect: self:{self.book_id}, add:{target.book_id}"
+            )
+
+        same_review_ids = [x for x in self.reviews if x.detail.review_id == target.detail.review_id]
+        if len(same_review_ids) > 0:
+            raise DomainValidationError(
+                self.__class__.__name__, f"try to add duplicate review: review_id:{target.detail.review_id}"
+            )
+
+        state_validator = StateValidation(self.reviews, target)
+        state_validator.validate()
+
+        self.reviews.append(target)
+        self.last_modified = target
+
+    def update(self, target: BookReview):
+        if self.user_id != target.user_id:
+            raise DomainValidationError(
+                self.__class__.__name__, f"user_id is incorrect: self:{self.user_id}, add:{target.user_id}"
+            )
+
+        if self.book_id != target.book_id:
+            raise DomainValidationError(
+                self.__class__.__name__, f"book_id is incorrect: self:{self.book_id}, add:{target.book_id}"
+            )
+
+        same_review_ids = [x for x in self.reviews if x.detail.review_id == target.detail.review_id]
+        if len(same_review_ids) == 0:
+            raise DomainValidationError(
+                self.__class__.__name__, f"update review is not exist: review_id:{target.detail.review_id}"
+            )
+
+        except_updates = [x for x in self.reviews if x.detail.review_id != target.detail.review_id]
+        state_validator = StateValidation(except_updates, target)
+        state_validator.validate()
+
+        self.reviews = except_updates
+        self.reviews.append(target)
+        self.last_modified = target
+
+    @classmethod
+    def create_from_orm(
+        cls,
+        user_id: uuid.UUID,
+        book_id: uuid.UUID,
+        reviews: list[BookReview],
+    ) -> Self:
+        instance = cls(user_id, book_id)
+        instance.reviews = reviews
+
+        return instance
+
+
+class StateValidation:
+    _reviews: list[BookReview]
+    _target: BookReview
+
+    def __init__(self, reviews: list[BookReview], target: BookReview):
+        self._reviews = reviews
+        self._target = target
+
+    def validate(self):
+        if self._target.detail.state.state == ReviewStateEnum.COMPLETED:
+            return
+
+        not_completes = [x for x in self._reviews if x.detail.state.state != ReviewStateEnum.COMPLETED]
+        if len(not_completes) > 0:
+            raise DomainValidationError(
+                self.__class__.__name__,
+                f"not completed state is only allow exists 1: target:{self._target.detail.state.state}",
+            )
+
+
 class IBookReviewRepository(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def find_by_review_id(self, id: uuid.UUID) -> BookReview | None:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def find_by_user_id(self, id: uuid.UUID) -> BookReviews:
+    def find_by_user_id(self, id: uuid.UUID) -> SpecificUserBookReviews:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def find_by_user_id_and_book_id(self, user_id: uuid.UUID, book_id: uuid.UUID) -> SpecificBookUserReviews:
         raise NotImplementedError()
 
     @abc.abstractmethod
