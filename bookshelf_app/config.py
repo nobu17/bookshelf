@@ -1,5 +1,6 @@
 # pylint: disable=E0213
 from functools import lru_cache
+import os
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     crypt_algorithm: str = ""
     db_connection: str = ""
 
-    model_config = SettingsConfigDict(env_file=(".env", ".env.prod"), env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=(os.getenv("ENV_FILE", ".env"), ".env.prod"), env_file_encoding="utf-8")
 
     @field_validator("crypt_secret_key", mode="before")
     def validate_crypt_secret_key_value(cls, v) -> str:
