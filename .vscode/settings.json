@@ -33,6 +33,15 @@
     "VITE",
     "werkzeug"
   ],
+  "cSpell.ignorePaths": [
+    "**/package-lock.json",
+    "**/node_modules/**",
+    "**/vscode-extension/**",
+    "**/.git/objects/**",
+    ".vscode",
+    ".vscode-insiders",
+    "**/test_env/**",
+  ],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
