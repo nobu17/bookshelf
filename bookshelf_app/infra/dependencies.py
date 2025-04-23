@@ -32,7 +32,7 @@ def get_book_review_service(session: Session = Depends(get_session)) -> BookRevi
 
 
 def get_book_with_review_service(session: Session = Depends(get_session)) -> BookWithReviewsService:
-    return BookWithReviewsService(SqlBookWithQueryService(session))
+    return BookWithReviewsService(SqlBookWithQueryService(session), SqlUserRepository(session))
 
 
 def get_admin_dependency(

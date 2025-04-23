@@ -5,7 +5,12 @@ from datetime import date, datetime
 
 from pydantic import UUID4
 
-from bookshelf_app.api.shared.errors import AppValidationError, DataNotFoundError
+from bookshelf_app.api.auth.domain import IUserRepository
+from bookshelf_app.api.shared.errors import (
+    AppValidationError,
+    DataNotFoundError,
+    UserNotFoundError,
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,12 @@ class BookWithReviewsAppModel:
 @dataclass(frozen=True)
 class BooksWithReviewsAppModel:
     books_with_reviews: list[BookWithReviewsAppModel]
+
+
+@dataclass(frozen=True)
+class SpecificUserBooksWithReviewsAppModel:
+    books_with_reviews: list[BookWithReviewsAppModel]
+    user: UserAppModel
 
 
 @dataclass(frozen=True)
@@ -92,15 +103,23 @@ class IBookWithReviewsQueryService(metaclass=abc.ABCMeta):
 class BookWithReviewsService:
     ENTITY_NAME: str = "BookWithReviews"
     _query_service: IBookWithReviewsQueryService
+    _user_repo: IUserRepository
 
-    def __init__(self, query_service: IBookWithReviewsQueryService):
+    def __init__(self, query_service: IBookWithReviewsQueryService, user_repo: IUserRepository):
         self._query_service = query_service
+        self._user_repo = user_repo
 
     def list_active_latest(self, model: BookWithReviewLatestInputAppModel) -> BooksWithReviewsAppModel:
         return self._query_service.find_active_latest(model.max_count)
 
-    def list_active_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> BooksWithReviewsAppModel:
-        return self._query_service.find_active_by_user_id(model.user_id)
+    def list_active_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> SpecificUserBooksWithReviewsAppModel:
+        user = self._user_repo.find_by_user_id(model.user_id)
+        if user is None:
+            raise UserNotFoundError(model.user_id)
+
+        book_models = self._query_service.find_active_by_user_id(model.user_id)
+        user_app = UserAppModel(user.user_id, user.name.value)
+        return SpecificUserBooksWithReviewsAppModel(books_with_reviews=book_models.books_with_reviews, user=user_app)
 
     def list_by_user_id(self, model: BookWithReviewSearchUserIdAppModel) -> BooksWithReviewsAppModel:
         return self._query_service.find_by_user_id(model.user_id)

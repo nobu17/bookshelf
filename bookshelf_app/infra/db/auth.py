@@ -29,6 +29,14 @@ class SqlUserRepository(IUserRepository):
 
         return result.to_domain_model()
 
+    def find_by_user_id(self, user_id: UUID) -> UserHashed | None:
+        stmt = select(UserDTO).where(UserDTO.user_id == user_id).where(UserDTO.is_deleted == false())
+        result = self._session.scalars(stmt).first()
+        if result is None:
+            return None
+
+        return result.to_domain_model()
+
     def create(self, user: UserHashed) -> UserHashed:
         add_dto = UserDTO.from_domain_model(user)
         self._session.add(add_dto)

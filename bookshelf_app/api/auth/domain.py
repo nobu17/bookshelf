@@ -108,6 +108,10 @@ class IUserRepository(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def find_by_user_id(self, user_id: UUID) -> UserHashed | None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def create(self, user: UserHashed) -> UserHashed:
         raise NotImplementedError()
 

@@ -1,3 +1,6 @@
+import uuid
+
+
 class ApiException(Exception):
     status_code: int = 400
     detail: str = "API error"
@@ -95,5 +98,15 @@ class AuthRolePermissionError(Exception):
     def __init__(self, required_role: str, *args, **kwargs):
         self.required_role = required_role
         msg = f"Role permission is denied. {required_role} role is needed."
+
+        super().__init__(msg, *args, **kwargs)
+
+
+class UserNotFoundError(Exception):
+    user_id: uuid.UUID  # for internal usage. should not output
+
+    def __init__(self, user_id: uuid.UUID, *args, **kwargs):
+        self.user_id = user_id
+        msg = f"User not found. id:{user_id}."
 
         super().__init__(msg, *args, **kwargs)

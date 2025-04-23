@@ -9,6 +9,7 @@ from bookshelf_app.api.shared.errors import (
     AppValidationError,
     AuthCredentialsError,
     AuthFailedError,
+    UserNotFoundError,
     AuthRolePermissionError,
     DataNotFoundError,
     DomainValidationError,
@@ -63,6 +64,12 @@ class HttpRequestMiddleware(BaseHTTPMiddleware):
             response = JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"message": "failed to auth. UserName(Email) or Password is incorrect."},
+            )
+        except UserNotFoundError:
+            logger.exception("UserNotFoundError error is happened.")
+            response = JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"message": "failed to find user. incorrect user_id."},
             )
         except AuthCredentialsError as exc:
             logger.exception("AuthCredentialsError error is happened.")

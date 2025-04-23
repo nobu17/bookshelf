@@ -11,6 +11,7 @@ from bookshelf_app.api.book_with_reviews.service import (
     BookWithReviewSearchUserIdAndBookIdAppModel,
     BookWithReviewSearchUserIdAppModel,
     BookWithReviewsService,
+    SpecificUserBooksWithReviewsAppModel,
 )
 from bookshelf_app.api.shared.custom_router import CustomRouter
 from bookshelf_app.infra.dependencies import (
@@ -132,6 +133,51 @@ class BooksWithReviewsResponse(BaseModel):
     }
 
 
+class SpecificUserBooksWithReviewsResponse(BaseModel):
+    books_with_reviews: list[BookWithReviewsResponse]
+    user_name: str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "user_name": "hoge",
+                    "books_with_reviews": [
+                        {
+                            "book_id": "4b4b6c77-6825-4a2d-8ae9-0d431e8d8d83",
+                            "isbn13": "9784814400690",
+                            "title": "入門 継続的デリバリー",
+                            "publisher": "オライリージャパン",
+                            "authors": ["著者1", "著者2"],
+                            "published_at": "2023-01-10",
+                            "tags": [
+                                {
+                                    "id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
+                                    "name": "DevOps",
+                                }
+                            ],
+                            "reviews": [
+                                {
+                                    "review_id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
+                                    "content": "レビューとか感想とか",
+                                    "is_draft": False,
+                                    "state": 2,
+                                    "completed_at": "2032-04-23T10:20:30.400+02:30",
+                                    "last_modified_at": "2032-04-23T10:20:30.400+02:30",
+                                    "user": {
+                                        "user_id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
+                                        "name": "user",
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+
+
 @router.get("/book_with_reviews/latest/{max_count}", response_model=BooksWithReviewsResponse)
 async def find_books_with_latest_reviews(
     max_count: int,
@@ -142,14 +188,16 @@ async def find_books_with_latest_reviews(
     return BooksWithReviewsResponse(books_with_reviews=_convert(out_model))
 
 
-@router.get("/book_with_reviews/user_id/{user_id}", response_model=BooksWithReviewsResponse)
+@router.get("/book_with_reviews/user_id/{user_id}", response_model=SpecificUserBooksWithReviewsResponse)
 async def find_books_with_reviews_by_user_id(
     user_id: UUID4,
     service: BookWithReviewsService = Depends(get_book_with_review_service),
-) -> BooksWithReviewsResponse:
+) -> SpecificUserBooksWithReviewsResponse:
     model = BookWithReviewSearchUserIdAppModel(user_id)
     out_model = service.list_active_by_user_id(model)
-    return BooksWithReviewsResponse(books_with_reviews=_convert(out_model))
+    return SpecificUserBooksWithReviewsResponse(
+        books_with_reviews=_convert_specific_user(out_model), user_name=out_model.user.name
+    )
 
 
 @router.get("/book_with_reviews/me", response_model=BooksWithReviewsResponse)
@@ -159,7 +207,7 @@ async def find_books_with_my_reviews(
 ) -> BooksWithReviewsResponse:
     model = BookWithReviewSearchUserIdAppModel(user.user_id)
     out_model = service.list_active_by_user_id(model)
-    return BooksWithReviewsResponse(books_with_reviews=_convert(out_model))
+    return BooksWithReviewsResponse(books_with_reviews=_convert_specific_user(out_model))
 
 
 @router.get("/book_with_reviews/for_edit/me", response_model=BooksWithReviewsResponse)
@@ -185,6 +233,16 @@ async def find_specific_book_for_edit_with_my_reviews(
 
 # pylint: disable=too-many-function-args
 def _convert(out_model: BooksWithReviewsAppModel) -> list[BookWithReviewsResponse]:
+    book_with_reviews: list[BookWithReviewsResponse] = []
+    for model in out_model.books_with_reviews:
+        book_with_review = _convert_book_with_review(model)
+        book_with_reviews.append(book_with_review)
+
+    return book_with_reviews
+
+
+# pylint: disable=too-many-function-args
+def _convert_specific_user(out_model: SpecificUserBooksWithReviewsAppModel) -> list[BookWithReviewsResponse]:
     book_with_reviews: list[BookWithReviewsResponse] = []
     for model in out_model.books_with_reviews:
         book_with_review = _convert_book_with_review(model)
