@@ -7,6 +7,7 @@ const api = new BookWithReviewsApi();
 
 export default function useSpecificUserBookReviews(initialUserId: string) {
   const [userId, setUserId] = useState<string>(initialUserId);
+  const [userName, setUserName] = useState<string>("");
   const [bookWithReviews, setBookWithReviews] = useState<BookWithReviews[]>([]);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
     try {
       const res = await api.getSpecificUserReviews(userId);
       setBookWithReviews(res.data.books_with_reviews);
+      setUserName(res.data.user_name);
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         if (e.isBadRequest()) {
@@ -45,6 +47,7 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
 
   return {
     bookWithReviews,
+    userName,
     error,
     loading,
     setUserId,

@@ -8,7 +8,7 @@ function UserReviews() {
   const { id = "" } = useParams();
   return (
     <>
-      <PageTitle title="感想" />
+      <PageTitle title="レビュー" />
       <Grid container spacing={2}>
         <Grid size={12}>
           <SpecificUserBookReviewsContainer userId={id} />

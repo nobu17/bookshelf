@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { CircularProgress } from "@mui/material";
+import { CircularProgress, Typography } from "@mui/material";
 
 import useSpecificUserBookReviews from "../../hooks/UseSpecificUserBookReviews";
 import BookCards from "../parts/BookCards";
@@ -27,7 +27,7 @@ export default function SpecificUserBookReviewsContainer(
 ) {
   const { userId } = props;
   const [dialogState, setDialogState] = useState<DialogState>(initialState);
-  const { bookWithReviews, error, loading } =
+  const { bookWithReviews, userName, error, loading } =
     useSpecificUserBookReviews(userId);
 
   const handleClosed = () => {
@@ -42,6 +42,9 @@ export default function SpecificUserBookReviewsContainer(
   }
   return (
     <>
+      <Typography variant="h6" align="center" gutterBottom>
+        {userName}さんの読んだ本
+      </Typography>
       <BookCards
         books={bookWithReviews}
         isRibbonRender={true}

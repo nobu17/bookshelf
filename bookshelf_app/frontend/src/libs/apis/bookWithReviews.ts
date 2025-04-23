@@ -12,6 +12,11 @@ type BooksWithResponse = {
   books_with_reviews: BookWithReviews[];
 };
 
+type SpecificUserBooksWithResponse = {
+  books_with_reviews: BookWithReviews[];
+  user_name: string;
+};
+
 type BookWithResponse = BookWithReviews;
 
 export default class BookWithReviewsApi extends ApiBase {
@@ -25,11 +30,11 @@ export default class BookWithReviewsApi extends ApiBase {
   }
   async getSpecificUserReviews(
     userId: string
-  ): Promise<ApiResponse<BooksWithResponse>> {
-    const result = await this.getAsync<ApiRawResp>(
+  ): Promise<ApiResponse<SpecificUserBooksWithResponse>> {
+    const result = await this.getAsync<ApiSpecificUserRawResp>(
       `/book_with_reviews/user_id/${userId}`
     );
-    return { data: convert(result.data) };
+    return { data: convert_specific_user(result.data) };
   }
 }
 
@@ -57,6 +62,13 @@ export class BookWithMyReviewsApi extends ApiBase {
 const convert = (data: ApiRawResp): BooksWithResponse => {
   const converted = data.books_with_reviews.map((x) => adjust(x));
   return { books_with_reviews: converted };
+};
+
+const convert_specific_user = (
+  data: ApiSpecificUserRawResp
+): SpecificUserBooksWithResponse => {
+  const converted = data.books_with_reviews.map((x) => adjust(x));
+  return { books_with_reviews: converted, user_name: data.user_name };
 };
 
 const adjust = (data: ApiBookWithReviews): BookWithReviews => {
@@ -101,4 +113,9 @@ type ApiBookWithReviews = ApiBookInfo & {
 
 type ApiRawResp = {
   books_with_reviews: ApiBookWithReviews[];
+};
+
+type ApiSpecificUserRawResp = {
+  books_with_reviews: ApiBookWithReviews[];
+  user_name: string;
 };
