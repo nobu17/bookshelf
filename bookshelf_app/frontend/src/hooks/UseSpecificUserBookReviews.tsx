@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import BookWithReviewsApi from "../libs/apis/bookWithReviews";
-import { BookWithReviews } from "../types/data";
+import { BookWithReviews, ReviewState, ReviewStateDef } from "../types/data";
 import { ApiError } from "../libs/apis/apibase";
+import { DisplayOption } from "../types/dsiplay";
 
 const api = new BookWithReviewsApi();
+const initialOption: DisplayOption = {
+  isDisplayComplete: true,
+  isDisplayInProgress: true,
+  isDisplayNotYet: true,
+};
 
 export default function useSpecificUserBookReviews(initialUserId: string) {
   const [userId, setUserId] = useState<string>(initialUserId);
   const [userName, setUserName] = useState<string>("");
   const [bookWithReviews, setBookWithReviews] = useState<BookWithReviews[]>([]);
+  const [filteredReviews, setFilteredReviews] = useState<BookWithReviews[]>([]);
+  const [displayOption, setDisplayOption] =
+    useState<DisplayOption>(initialOption);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +29,11 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
       init();
     }
   }, [userId]);
+
+  useEffect(() => {
+    const filtered = filterByOptions(bookWithReviews, displayOption);
+    setFilteredReviews(filtered);
+  }, [displayOption, bookWithReviews]);
 
   const loadAsync = async (userId: string) => {
     setLoading(true);
@@ -47,9 +61,45 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
 
   return {
     bookWithReviews,
+    filteredReviews,
+    displayOption,
+    setDisplayOption,
     userName,
     error,
     loading,
     setUserId,
   };
 }
+
+const filterByOptions = (
+  originals: BookWithReviews[],
+  option: DisplayOption
+): BookWithReviews[] => {
+  const filtered: BookWithReviews[] = [];
+  if (option.isDisplayComplete) {
+    filtered.push(
+      ...filterByState(originals, ReviewStateDef.Completed, filtered)
+    );
+  }
+  if (option.isDisplayInProgress) {
+    filtered.push(
+      ...filterByState(originals, ReviewStateDef.InProgress, filtered)
+    );
+  }
+  if (option.isDisplayNotYet) {
+    filtered.push(...filterByState(originals, ReviewStateDef.NotYet, filtered));
+  }
+  return filtered;
+};
+
+const filterByState = (
+  originals: BookWithReviews[],
+  condition: ReviewState,
+  currentItems: BookWithReviews[]
+): BookWithReviews[] => {
+  const targets = originals.filter((x) =>
+    x.reviews.some((review) => review.state === condition)
+  );
+  const existingIds = new Set(currentItems.map((r) => r.bookId));
+  return targets.filter((r) => !existingIds.has(r.bookId));
+};

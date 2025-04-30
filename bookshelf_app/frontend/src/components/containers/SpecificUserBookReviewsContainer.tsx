@@ -7,6 +7,7 @@ import BookCards from "../parts/BookCards";
 import ErrorAlert from "../parts/ErrorAlert";
 import BookReviewDialog from "../parts/dialogs/BookReviewDialog";
 import { BookWithReviews } from "../../types/data";
+import BookCardsDisplayOptions from "../parts/BookCardsDisplayOptions";
 
 type DialogState = {
   open: boolean;
@@ -27,7 +28,7 @@ export default function SpecificUserBookReviewsContainer(
 ) {
   const { userId } = props;
   const [dialogState, setDialogState] = useState<DialogState>(initialState);
-  const { bookWithReviews, userName, error, loading } =
+  const { filteredReviews, displayOption, setDisplayOption, userName, error, loading } =
     useSpecificUserBookReviews(userId);
 
   const handleClosed = () => {
@@ -45,8 +46,9 @@ export default function SpecificUserBookReviewsContainer(
       <Typography variant="h6" align="center" gutterBottom>
         {userName}さんの本棚
       </Typography>
+      <BookCardsDisplayOptions option={displayOption} onChange={setDisplayOption} />
       <BookCards
-        books={bookWithReviews}
+        books={filteredReviews}
         isRibbonRender={true}
         onSelect={(b) => {
           if (!b) return;
