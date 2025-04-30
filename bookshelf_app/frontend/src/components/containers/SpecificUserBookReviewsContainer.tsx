@@ -43,7 +43,7 @@ export default function SpecificUserBookReviewsContainer(
   return (
     <>
       <Typography variant="h6" align="center" gutterBottom>
-        {userName}さんの読んだ本
+        {userName}さんの本棚
       </Typography>
       <BookCards
         books={bookWithReviews}
