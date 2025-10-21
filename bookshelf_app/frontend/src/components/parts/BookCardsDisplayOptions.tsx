@@ -1,6 +1,7 @@
 import { FormControlLabel, FormGroup, Switch } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { DisplayOption } from "../../types/dsiplay";
+import { DisplayOption, DisplayOrderOption } from "../../types/display";
+import { OrderStateSelect } from "./OrderStateSelect";
 
 type BookCardsDisplayOptionsProps = {
   option: DisplayOption;
@@ -19,6 +20,9 @@ export default function BookCardsDisplayOptions(
   };
   const handleNotYet = (event: React.ChangeEvent<HTMLInputElement>) => {
     fireOptionChange({ ...option, isDisplayNotYet: event.target.checked });
+  };
+  const handleOrderChange = (value: DisplayOrderOption) => {
+    fireOptionChange({ ...option, order: value });
   };
   const fireOptionChange = (option: DisplayOption) => {
     if (onChange) {
@@ -64,6 +68,11 @@ export default function BookCardsDisplayOptions(
             label="未読"
           />
         </FormGroup>
+        <OrderStateSelect
+          label="表示順"
+          value={option.order}
+          onChange={handleOrderChange}
+        />
       </Grid>
     </>
   );

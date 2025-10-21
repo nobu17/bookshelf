@@ -1,14 +1,27 @@
 import { useEffect, useState } from "react";
 import BookWithReviewsApi from "../libs/apis/bookWithReviews";
-import { BookWithReviews, ReviewState, ReviewStateDef } from "../types/data";
+import {
+  BookWithReviews,
+  ReviewState,
+  ReviewStateDef,
+  getLatestCompletedAt,
+  getOldestCompletedAt,
+  getLatestLastModifiedAt,
+  getOldestLastModifiedAt,
+} from "../types/data";
 import { ApiError } from "../libs/apis/apibase";
-import { DisplayOption } from "../types/dsiplay";
+import {
+  DisplayOption,
+  DisplayOrderOptionDef,
+  DisplayOrderOption,
+} from "../types/display";
 
 const api = new BookWithReviewsApi();
 const initialOption: DisplayOption = {
   isDisplayComplete: true,
   isDisplayInProgress: true,
   isDisplayNotYet: true,
+  order: DisplayOrderOptionDef.CompletedDesc,
 };
 
 export default function useSpecificUserBookReviews(initialUserId: string) {
@@ -32,7 +45,8 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
 
   useEffect(() => {
     const filtered = filterByOptions(bookWithReviews, displayOption);
-    setFilteredReviews(filtered);
+    const sorted = sortByDate(filtered, displayOption.order);
+    setFilteredReviews(sorted);
   }, [displayOption, bookWithReviews]);
 
   const loadAsync = async (userId: string) => {
@@ -103,3 +117,87 @@ const filterByState = (
   const existingIds = new Set(currentItems.map((r) => r.bookId));
   return targets.filter((r) => !existingIds.has(r.bookId));
 };
+
+const sortByDate = (
+  items: BookWithReviews[],
+  option: DisplayOrderOption
+): BookWithReviews[] => {
+  const sortFunc = sortBookStrategyMap[option];
+  return sortFunc(items);
+};
+
+const sortBooksByLatestCompletedAt = (
+  books: BookWithReviews[]
+): BookWithReviews[] => {
+  return sortByLatestBooks(books, getLatestCompletedAt);
+};
+
+const sortBooksByOldestCompletedAt = (
+  books: BookWithReviews[]
+): BookWithReviews[] => {
+  return sortByOldestBooks(books, getOldestCompletedAt);
+};
+
+const sortBooksByLatestLastModifiedAt = (
+  books: BookWithReviews[]
+): BookWithReviews[] => {
+  return sortByLatestBooks(books, getLatestLastModifiedAt);
+};
+
+const sortBooksByOldestLastModifiedAt = (
+  books: BookWithReviews[]
+): BookWithReviews[] => {
+  return sortByOldestBooks(books, getOldestLastModifiedAt);
+};
+
+const sortBookStrategyMap: Record<
+  DisplayOrderOption,
+  (books: BookWithReviews[]) => BookWithReviews[]
+> = {
+  [DisplayOrderOptionDef.CompletedDesc]: sortBooksByLatestCompletedAt,
+  [DisplayOrderOptionDef.CompletedAsc]: sortBooksByOldestCompletedAt,
+  [DisplayOrderOptionDef.EditedDesc]: sortBooksByLatestLastModifiedAt,
+  [DisplayOrderOptionDef.EditedAsc]: sortBooksByOldestLastModifiedAt,
+};
+
+const sortByLatestBooks = (
+  books: BookWithReviews[],
+  getDate: (book: BookWithReviews) => Date | null
+): BookWithReviews[] => {
+  return [...books].sort((a, b) => {
+    const latestA = getDate(a);
+    const latestB = getDate(b);
+
+    // 両方 null
+    if (latestA === null && latestB === null) return 0;
+    // A が null → 後ろへ
+    if (latestA === null) return 1;
+    // B が null → 前へ
+    if (latestB === null) return -1;
+    // 降順（新しい日付が先）
+    return latestB.getTime() - latestA.getTime();
+  });
+};
+
+const sortByOldestBooks = (
+  books: BookWithReviews[],
+  getDate: (book: BookWithReviews) => Date | null
+): BookWithReviews[] => {
+  return [...books].sort((a, b) => {
+    const latestA = getDate(a);
+    const latestB = getDate(b);
+
+    // 両方 null
+    if (latestA === null && latestB === null) return 0;
+    // A が null → 後ろへ
+    if (latestA === null) return 1;
+    // B が null → 前へ
+    if (latestB === null) return -1;
+    // 照順（古い日付が先）
+    return latestA.getTime() - latestB.getTime();
+  });
+};
+
+// type ReviewDatePair =
+//   | { completed: Date; lastModified?: never }
+//   | { completed: null; lastModified: Date };

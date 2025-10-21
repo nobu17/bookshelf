@@ -68,6 +68,48 @@ export type AuthUserInfo = {
   roles: string[];
 };
 
+export const getLatestCompletedAt = (book: BookWithReviews): Date | null => {
+  return getLatestCompletedAtReview(book.reviews);
+};
+
+export const getOldestCompletedAt = (book: BookWithReviews): Date | null => {
+  return getOldestCompletedAtReview(book.reviews);
+};
+
+export const getLatestLastModifiedAt = (book: BookWithReviews): Date | null => {
+  const lastModifiedAt = book.reviews.map((r) => r.lastModifiedAt);
+  if (lastModifiedAt.length === 0) return null;
+
+  return new Date(Math.max(...lastModifiedAt.map((d) => d.getTime())));
+};
+
+export const getOldestLastModifiedAt = (book: BookWithReviews): Date | null => {
+  const lastModifiedAt = book.reviews.map((r) => r.lastModifiedAt);
+  if (lastModifiedAt.length === 0) return null;
+
+  return new Date(Math.min(...lastModifiedAt.map((d) => d.getTime())));
+};
+
+const getLatestCompletedAtReview = (reviews: Review[]): Date | null => {
+  const completedDates = reviews
+    .map((r) => r.completedAt)
+    .filter((d): d is Date => d !== null);
+
+  if (completedDates.length === 0) return null;
+
+  return new Date(Math.max(...completedDates.map((d) => d.getTime())));
+};
+
+const getOldestCompletedAtReview = (reviews: Review[]): Date | null => {
+  const completedDates = reviews
+    .map((r) => r.completedAt)
+    .filter((d): d is Date => d !== null);
+
+  if (completedDates.length === 0) return null;
+
+  return new Date(Math.min(...completedDates.map((d) => d.getTime())));
+};
+
 export const copyReview = (review: Review): Review => {
   const copied = JSON.parse(JSON.stringify(review), (key, value) => {
     if (value === null) {

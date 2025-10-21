@@ -1,6 +1,21 @@
 // activate
 . venv_webapp/bin/activate
 
+// server side lunch
+cd ./test_env
+docker compose up -d
+cd ..
+uvicorn bookshelf_app.main:app --reload
+
+// server side down 
+docker compose down
+
+
+// front end lunch
+cd ./frontend
+npm start dev
+
+
 // build
 cd ./
 uvicorn bookshelf_app.main:app --reload

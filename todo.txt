@@ -1,1 +1,3 @@
-- Creating Ping API for check auth as initial
+- Add hover animation of card
+
+
