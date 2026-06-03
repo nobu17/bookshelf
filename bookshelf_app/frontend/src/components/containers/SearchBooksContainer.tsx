@@ -3,7 +3,10 @@ import { Button, CircularProgress, Typography } from "@mui/material";
 import useSearchBooks from "../../hooks/UseSearchBooks";
 import BookSearchCards from "../parts/BookSearchCards";
 import ErrorAlert from "../parts/ErrorAlert";
-import { NdlBook, NdlBookWithReviews } from "../../types/ndls";
+import {
+  BookSearchResult,
+  BookSearchResultWithReviews,
+} from "../../types/bookSearch";
 import BookSearchInput from "../parts/BookSearchInput";
 import { useState } from "react";
 import { ReviewStateDef } from "../../types/data";
@@ -19,8 +22,8 @@ const displayError = (error: Error | undefined) => {
 };
 
 const displayResult = (
-  books: NdlBookWithReviews[],
-  handleSelect: (book: NdlBookWithReviews) => void
+  books: BookSearchResultWithReviews[],
+  handleSelect: (book: BookSearchResultWithReviews) => void
 ) => {
   if (!books || books.length === 0) {
     return <Typography variant="subtitle1">検索結果: 0 件</Typography>;
@@ -45,11 +48,11 @@ export default function SearchBooksContainer() {
   const [isReviewListOpen, setIsReviewListOpen] = useState(false);
   const [bookId, setBookId] = useState("");
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
-  const [selectBook, setSelectBook] = useState<NdlBook | null>(null);
+  const [selectBook, setSelectBook] = useState<BookSearchResult | null>(null);
 
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
 
-  const handleSelect = (book: NdlBookWithReviews) => {
+  const handleSelect = (book: BookSearchResultWithReviews) => {
     // no existing review case, show create new dialog
     if (book.reviews.length === 0) {
       setSelectBook(book);

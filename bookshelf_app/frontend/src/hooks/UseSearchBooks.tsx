@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { searchNdlBooks } from "../libs/apis/bookSearch";
-import { NdlBook, NdlBookWithReviews } from "../types/ndls";
+import { searchBooks } from "../libs/bookSearch";
+import {
+  BookSearchResult,
+  BookSearchResultWithReviews,
+} from "../types/bookSearch";
 import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import useAuthApi from "./UseAuthApi";
 import { BookWithReviews } from "../types/data";
@@ -10,7 +13,7 @@ const api = new BookWithMyReviewsApi();
 export default function useSearchBooks() {
   useAuthApi(api);
   const [reviews, setReviews] = useState<BookWithReviews[] | null>(null);
-  const [books, setBooks] = useState<NdlBookWithReviews[]>([]);
+  const [books, setBooks] = useState<BookSearchResultWithReviews[]>([]);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +26,7 @@ export default function useSearchBooks() {
         myReviews = (await api.getMyReviewsForEdit()).data.books_with_reviews;
         setReviews(myReviews);
       }
-      const res = await searchNdlBooks(searchWord);
+      const res = await searchBooks(searchWord);
       const aggregated = aggregateReview(res, myReviews);
       aggregated.sort(
         (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
@@ -46,7 +49,7 @@ export default function useSearchBooks() {
       setLoading(true);
       const myReviews = (await api.getMyReviews()).data.books_with_reviews;
       setReviews(myReviews);
-      const res = await searchNdlBooks(searchWord);
+      const res = await searchBooks(searchWord);
       const aggregated = aggregateReview(res, myReviews);
       aggregated.sort(
         (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
@@ -73,12 +76,12 @@ export default function useSearchBooks() {
 }
 
 const aggregateReview = (
-  books: NdlBook[],
+  books: BookSearchResult[],
   reviews: BookWithReviews[] | null
-): NdlBookWithReviews[] => {
-  const aggregates: NdlBookWithReviews[] = [];
+): BookSearchResultWithReviews[] => {
+  const aggregates: BookSearchResultWithReviews[] = [];
   for (const book of books) {
-    const base: NdlBookWithReviews = { ...book, bookId: "", reviews: [] };
+    const base: BookSearchResultWithReviews = { ...book, bookId: "", reviews: [] };
     if (reviews) {
       const sameBook = reviews.find((x) => x.isbn13 === base.isbn13);
       if (sameBook) {

@@ -5,10 +5,10 @@ import DialogContent from "@mui/material/DialogContent";
 import { ReviewState } from "../../../types/data";
 import BookReviewEditForm, { ReviewEditInfo } from "../BookReviewEditForm";
 import { DialogTitle } from "@mui/material";
-import { NdlBook } from "../../../types/ndls";
+import { BookCreateParameter } from "../../../libs/apis/books";
 
 export type BookReviewCreateFormDialogProps = {
-  bookInfo: NdlBook | null;
+  bookInfo: (BookCreateParameter & { imageUrl?: string | null }) | null;
   editItem: CreateParameter | null;
   open: boolean;
   onClose: (item: ReviewEditInfo | null) => void;

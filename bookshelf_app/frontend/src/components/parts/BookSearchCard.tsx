@@ -3,18 +3,18 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
-import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
-import { NdlBookWithReviews } from "../../types/ndls";
+import { getFallbackImageUrl, getSearchResultImageUrl } from "../../libs/utils/image";
+import { BookSearchResultWithReviews } from "../../types/bookSearch";
 import BookCardRibbon from "./BookCardRibbon";
 import styles from "./BookSearchCard.module.css";
 
 type BookSearchCardProps = {
-  book: NdlBookWithReviews;
-  onSelect: (book: NdlBookWithReviews) => void;
+  book: BookSearchResultWithReviews;
+  onSelect: (book: BookSearchResultWithReviews) => void;
 };
 
 export default function BookSearchCard(props: BookSearchCardProps) {
-  const { title, isbn13 } = props.book;
+  const { title } = props.book;
   const { book } = props;
   const { onSelect } = props;
   return (
@@ -34,7 +34,7 @@ export default function BookSearchCard(props: BookSearchCardProps) {
           component="img"
           height="200"
           sx={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
-          image={getImageUrl(isbn13)}
+          image={getSearchResultImageUrl(book)}
           onError={(e) => {
             e.currentTarget.src = getFallbackImageUrl();
           }}

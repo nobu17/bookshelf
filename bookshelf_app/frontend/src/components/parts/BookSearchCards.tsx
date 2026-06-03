@@ -1,11 +1,11 @@
 import Grid from "@mui/material/Grid2";
 
 import BookSearchCard from "./BookSearchCard";
-import { NdlBookWithReviews } from "../../types/ndls";
+import { BookSearchResultWithReviews } from "../../types/bookSearch";
 
 type BookSearchCardsProps = {
-  books: NdlBookWithReviews[];
-  onSelect: (book: NdlBookWithReviews) => void;
+  books: BookSearchResultWithReviews[];
+  onSelect: (book: BookSearchResultWithReviews) => void;
 };
 
 export default function BookSearchCards(props: BookSearchCardsProps) {
@@ -34,7 +34,7 @@ export default function BookSearchCards(props: BookSearchCardsProps) {
         }}
       >
         {books.map((book) => (
-          <Grid size={{ xs: 6, md: 3 }} sx={{ border: 2 }} key={(book.isbn13 + book.title)}>
+          <Grid size={{ xs: 6, md: 3 }} sx={{ border: 2 }} key={`${book.source}:${book.sourceId}:${book.isbn13}`}>
             <BookSearchCard
               book={book}
               onSelect={handleSelect}

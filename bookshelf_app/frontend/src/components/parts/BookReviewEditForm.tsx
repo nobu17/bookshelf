@@ -13,7 +13,7 @@ import {
 import { ReviewState, ReviewStateDef } from "../../types/data";
 import SubmitButtons from "./SubmitButtons";
 import { RhfReviewStateSelect } from "./Rhf/RhfReviewStateSelect";
-import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
+import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -30,6 +30,7 @@ type BookInfoForDisplay = {
   publisher: string;
   authors: string[];
   publishedAt: Date;
+  imageUrl?: string | null;
 };
 
 type BookReviewEditFormProps = {
@@ -92,7 +93,7 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
           <Box
             component="img"
             sx={{ height: "150px", width: "auto", objectFit: "contain" }}
-            src={getImageUrl(bookInfo.isbn13)}
+            src={getBookInfoImageUrl(bookInfo)}
             onError={(e) => {
               e.currentTarget.src = getFallbackImageUrl();
             }}
