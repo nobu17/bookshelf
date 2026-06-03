@@ -1,7 +1,11 @@
 import axios from "axios";
 
 import { BookSearchResult } from "../../../types/bookSearch";
-import { BookSearchProvider, BookSearchQuery } from "../provider";
+import {
+  BookSearchProvider,
+  BookSearchQuery,
+  BookSearchRateLimitError,
+} from "../provider";
 import {
   convertIsbn10ToIsbn13,
   isIsbn13,
@@ -21,14 +25,9 @@ export class GoogleBooksProvider implements BookSearchProvider {
     }
 
     const q = isIsbn13(keyword) ? `isbn:${normalizeIsbn(keyword)}` : keyword;
-    const response = await axios.get<GoogleVolumesResponse>(ApiRoot, {
-      params: {
-        q,
-        printType: "books",
-        langRestrict: "ja",
-        maxResults: Math.min(query.maxResults ?? MaxResults, MaxResults),
-        key: GoogleBooksApiKey || undefined,
-      },
+    const response = await getVolumes({
+      q,
+      maxResults: Math.min(query.maxResults ?? MaxResults, MaxResults),
     });
 
     return uniqueByIsbn13(
@@ -72,6 +71,31 @@ const convertVolume = (volume: GoogleVolume): BookSearchResult | null => {
       null,
     description: info.description,
   };
+};
+
+const getVolumes = async ({
+  q,
+  maxResults,
+}: {
+  q: string;
+  maxResults: number;
+}): Promise<{ data: GoogleVolumesResponse }> => {
+  try {
+    return await axios.get<GoogleVolumesResponse>(ApiRoot, {
+      params: {
+        q,
+        printType: "books",
+        langRestrict: "ja",
+        maxResults,
+        key: GoogleBooksApiKey || undefined,
+      },
+    });
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      throw new BookSearchRateLimitError();
+    }
+    throw error;
+  }
 };
 
 const findIsbn13 = (

@@ -14,6 +14,17 @@ export const parsePublishedDate = (value: string | undefined): Date => {
     const [year, month, day] = value.split("-").map(Number);
     return new Date(year, month - 1, day);
   }
+  if (/^\d{6}$/.test(value)) {
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6));
+    return new Date(year, month - 1, 1);
+  }
+  if (/^\d{8}$/.test(value)) {
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6));
+    const day = Number(value.slice(6, 8));
+    return new Date(year, month - 1, day);
+  }
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
