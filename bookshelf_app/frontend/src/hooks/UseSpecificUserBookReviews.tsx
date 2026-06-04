@@ -82,6 +82,7 @@ export default function useSpecificUserBookReviews(initialUserId: string) {
     error,
     loading,
     setUserId,
+    loadAsync,
   };
 }
 

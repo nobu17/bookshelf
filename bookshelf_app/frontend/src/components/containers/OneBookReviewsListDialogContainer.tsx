@@ -9,6 +9,14 @@ import BookReviewEditFormDialog from "../parts/dialogs/BookReviewEditFormDialog"
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import BookReviewCreateFormDialog from "../parts/dialogs/BookReviewCreateFormDialog";
 import { ValidationError } from "../../types/errors";
+import { useAuth } from "../contexts/AuthContext";
+import BooksApi from "../../libs/apis/books";
+import useAuthApi from "../../hooks/UseAuthApi";
+import BookMasterEditFormDialog from "../parts/dialogs/BookMasterEditFormDialog";
+import {
+  BookMasterEditInfo,
+  toBookUpdateParameter,
+} from "../parts/BookMasterEditForm";
 
 type OneBookReviewsListDialogContainerProps = {
   open: boolean;
@@ -17,6 +25,8 @@ type OneBookReviewsListDialogContainerProps = {
   onEditError?: (error: Error | undefined) => void;
   onError?: (error: Error | undefined) => void;
 };
+
+const bookApi = new BooksApi();
 
 export default function OneBookReviewsListDialogContainer(
   props: OneBookReviewsListDialogContainerProps
@@ -30,19 +40,27 @@ export default function OneBookReviewsListDialogContainer(
     loading,
     setBookId,
     error,
+    loadAsync,
   } = useMySpecificBookReviews();
+  useAuthApi(bookApi);
+  const {
+    state: { isAuthorized },
+  } = useAuth();
   const { setIsSpinnerOn } = useGlobalSpinnerContext();
   const { showConfirmDialog, renderConfirmDialog } = useConfirmDialog();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Review | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBookEditOpen, setIsBookEditOpen] = useState(false);
+  const [bookEditError, setBookEditError] = useState<Error | null>(null);
+  const [isBookEditLoading, setIsBookEditLoading] = useState(false);
   const [validationError, setValidationError] =
     useState<ValidationError | null>(null);
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
 
   useEffect(() => {
-    setIsSpinnerOn(loading);
-  }, [loading, setIsSpinnerOn]);
+    setIsSpinnerOn(loading || isBookEditLoading);
+  }, [loading, isBookEditLoading, setIsSpinnerOn]);
 
   useEffect(() => {
     setBookId(bookId);
@@ -118,6 +136,31 @@ export default function OneBookReviewsListDialogContainer(
       }
     }
   };
+  const handleBookEdit = () => {
+    setBookEditError(null);
+    setIsBookEditOpen(true);
+  };
+  const handleBookEditClose = async (item: BookMasterEditInfo | null) => {
+    if (!item || !bookWithReviews) {
+      setIsBookEditOpen(false);
+      return;
+    }
+    setIsBookEditLoading(true);
+    try {
+      await bookApi.update(bookWithReviews.bookId, toBookUpdateParameter(item));
+      await loadAsync();
+      setBookEditError(null);
+      setIsBookEditOpen(false);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setBookEditError(e);
+        return;
+      }
+      setBookEditError(new Error("unexpected error."));
+    } finally {
+      setIsBookEditLoading(false);
+    }
+  };
 
   return (
     <>
@@ -133,6 +176,12 @@ export default function OneBookReviewsListDialogContainer(
         autoHideDuration={6000}
         message={validationError ? validationError.message : ""}
       />
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        open={bookEditError ? true : false}
+        autoHideDuration={6000}
+        message={bookEditError ? bookEditError.message : ""}
+      />
       <OneBookReviewsListDialog
         open={open}
         bookWithReviews={bookWithReviews}
@@ -140,12 +189,21 @@ export default function OneBookReviewsListDialogContainer(
         onEdit={handleEdit}
         onDelete={handleDelete}
         onAdd={handleAdd}
+        onBookEdit={handleBookEdit}
+        isBookEditEnabled={isAuthorized}
+      />
+      <BookMasterEditFormDialog
+        open={isBookEditOpen}
+        bookInfo={bookWithReviews}
+        onClose={handleBookEditClose}
       />
       <BookReviewEditFormDialog
         open={isEditOpen}
         editItem={editItem}
         bookInfo={bookWithReviews}
         onClose={handleEditClose}
+        onBookEdit={handleBookEdit}
+        isBookEditEnabled={isAuthorized}
       />
       <BookReviewCreateFormDialog
         open={isCreateOpen}

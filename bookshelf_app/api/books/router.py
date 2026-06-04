@@ -5,7 +5,7 @@ from pydantic import UUID4, BaseModel, ConfigDict
 
 from bookshelf_app.api.shared.custom_router import CustomRouter
 from bookshelf_app.api.tags.router import TagResponse
-from bookshelf_app.infra.dependencies import get_book_service, get_user_dependency
+from bookshelf_app.infra.dependencies import get_admin_dependency, get_book_service, get_user_dependency
 
 from .service import (
     BookAppModel,
@@ -14,6 +14,7 @@ from .service import (
     BookSearchIsbn13AppModel,
     BookService,
     BookTagsUpdateAppModel,
+    BookUpdateAppModel,
 )
 
 router = CustomRouter()
@@ -99,6 +100,24 @@ class BookCreateModel(BookBaseModel):
     }
 
 
+class BookUpdateModel(BookBaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "isbn13": "9784814400690",
+                    "title": "入門 継続的デリバリー 改訂版",
+                    "publisher": "オライリージャパン",
+                    "authors": ["著者1", "著者2"],
+                    "published_at": "2023-01-10",
+                    "image_url": "https://example.com/cover.jpg",
+                }
+            ]
+        },
+    )
+
+
 class BookTagUpdateModel(BaseModel):
     tag_ids: list[UUID4]
 
@@ -143,6 +162,16 @@ async def find_book_by_book_id(
 ) -> BookResponse:
     model = BookSearchBookIdAppModel(book_id)
     result = book_service.find_by_book_id(model)
+    return create_from_model(result)
+
+
+@router.put("/books/{book_id}", response_model=BookResponse, dependencies=[Depends(get_admin_dependency)])
+async def update_book(
+    book_id: UUID4,
+    body: BookUpdateModel,
+    book_service: BookService = Depends(get_book_service),
+) -> BookResponse:
+    result = book_service.update(BookUpdateAppModel(book_id=book_id, **vars(body)))
     return create_from_model(result)
 
 

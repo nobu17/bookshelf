@@ -18,6 +18,16 @@ export default class BooksApi extends ApiBase {
     );
     return { data: convertTiBookCreateResponse(res.data) };
   }
+  async update(
+    bookId: string,
+    updateBook: BookUpdateParameter
+  ): Promise<ApiResponse<BookUpdateResponse>> {
+    const res = await this.putAsyncWithResponse<ApiBookInfo>(
+      `/books/${bookId}`,
+      convertToApiBookUpdateParameter(updateBook)
+    );
+    return { data: convertTiBookUpdateResponse(res.data) };
+  }
 }
 
 type BookFindResponse = {
@@ -29,6 +39,8 @@ type ApiBookFindResponse = {
 };
 
 type BookCreateResponse = BookInfo & {};
+
+type BookUpdateResponse = BookInfo & {};
 
 type ApiBookInfo = {
   book_id: string;
@@ -48,6 +60,10 @@ const convertToBookFindResponse = (
 };
 
 const convertTiBookCreateResponse = (info: ApiBookInfo): BookCreateResponse => {
+  return convertTotBookInfo(info);
+};
+
+const convertTiBookUpdateResponse = (info: ApiBookInfo): BookUpdateResponse => {
   return convertTotBookInfo(info);
 };
 
@@ -73,6 +89,8 @@ export type BookCreateParameter = {
   imageUrl?: string | null;
 };
 
+export type BookUpdateParameter = BookCreateParameter & {};
+
 type ApiBookCreateParameter = {
   isbn13: string;
   title: string;
@@ -93,4 +111,10 @@ const convertToApiBookCreateParameter = (
     published_at: dateToString(param.publishedAt),
     image_url: param.imageUrl || "",
   };
+};
+
+const convertToApiBookUpdateParameter = (
+  param: BookUpdateParameter
+): ApiBookCreateParameter => {
+  return convertToApiBookCreateParameter(param);
 };

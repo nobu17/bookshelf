@@ -9,8 +9,10 @@ import {
   Stack,
   Card,
   CardContent,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import EditIcon from "@mui/icons-material/Edit";
 
 import { BookWithReviews, Review, toJapanese } from "../../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/image";
@@ -21,13 +23,21 @@ export type BookReviewDialogProps = {
   open: boolean;
   book?: BookWithReviews;
   onClose: () => void;
+  onBookEdit?: () => void;
+  isBookEditEnabled?: boolean;
 };
 
 export default function BookReviewDialog(props: BookReviewDialogProps) {
-  const { onClose, open, book } = props;
+  const { onClose, open, book, onBookEdit, isBookEditEnabled } = props;
 
   const handleClose = () => {
     onClose();
+  };
+  const handleBookEdit = () => {
+    if (!onBookEdit) {
+      return;
+    }
+    onBookEdit();
   };
 
   if (!book) {
@@ -42,7 +52,25 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
       onClose={handleClose}
       open={open}
     >
-      <DialogTitle textAlign="center">{book.title}</DialogTitle>
+      <DialogTitle textAlign="center">
+        {book.title}
+        {isBookEditEnabled ? (
+          <Tooltip title="書籍マスタ編集">
+            <Button
+              aria-label="book-edit"
+              onClick={handleBookEdit}
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              sx={{ position: "absolute", right: 8, top: 8 }}
+            >
+              書籍マスタ
+            </Button>
+          </Tooltip>
+        ) : (
+          <></>
+        )}
+      </DialogTitle>
       <DialogContent>
         <Stack
           alignItems={{ xs: "center", md: "stretch" }}

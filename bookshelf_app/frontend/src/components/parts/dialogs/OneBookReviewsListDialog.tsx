@@ -3,10 +3,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Button,
   IconButton,
+  Stack,
+  Tooltip,
 } from "@mui/material";
 import { GenericBookInfoWithReviews, Review } from "../../../types/data";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import OneBookReviewsDataGrid from "../OneBookReviewsDataGrid";
 
 export type OneBookReviewsListDialogProps = {
@@ -16,12 +20,23 @@ export type OneBookReviewsListDialogProps = {
   onEdit?: (review: Review) => void;
   onDelete?: (review: Review) => void;
   onAdd?: () => void;
+  onBookEdit?: () => void;
+  isBookEditEnabled?: boolean;
 };
 
 export default function OneBookReviewsListDialog(
   props: OneBookReviewsListDialogProps
 ) {
-  const { open, bookWithReviews, onClose, onEdit, onDelete, onAdd } = props;
+  const {
+    open,
+    bookWithReviews,
+    onClose,
+    onEdit,
+    onDelete,
+    onAdd,
+    onBookEdit,
+    isBookEditEnabled,
+  } = props;
   if (!bookWithReviews) {
     return <></>;
   }
@@ -53,22 +68,47 @@ export default function OneBookReviewsListDialog(
     }
     onAdd();
   };
+  const handleBookEdit = () => {
+    if (!onBookEdit) {
+      return;
+    }
+    onBookEdit();
+  };
 
   return (
     <>
       <Dialog open={open} onClose={handleClose} fullScreen>
         <DialogTitle>レビュー 一覧</DialogTitle>
-        <IconButton
-          aria-label="close"
-          onClick={handleClose}
+        <Stack
+          direction="row"
+          spacing={1}
           sx={() => ({
             position: "absolute",
             right: 8,
             top: 8,
           })}
         >
-          <CloseIcon />
-        </IconButton>
+          {isBookEditEnabled ? (
+            <Tooltip title="書籍マスタ編集">
+              <Button
+                aria-label="book-edit"
+                variant="outlined"
+                size="small"
+                startIcon={<EditIcon />}
+                onClick={handleBookEdit}
+              >
+                書籍マスタ
+              </Button>
+            </Tooltip>
+          ) : (
+            <></>
+          )}
+          <Tooltip title="閉じる">
+            <IconButton aria-label="close" onClick={handleClose}>
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </Stack>
         <DialogContent>
           <OneBookReviewsDataGrid
             bookWithReviews={bookWithReviews}

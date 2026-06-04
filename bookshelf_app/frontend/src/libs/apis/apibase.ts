@@ -134,6 +134,21 @@ export default class ApiBase {
     });
   }
 
+  putAsyncWithResponse<T>(url: string, param: any): Promise<ApiResponse<T>> {
+    const json = JSON.stringify(param);
+    return new Promise((resolve, reject) => {
+      const reqUrl = this._baseUrl + url;
+      this._api
+        .put(reqUrl, json)
+        .then((r) => {
+          resolve({ data: r.data });
+        })
+        .catch((error) => {
+          reject(convertError(error));
+        });
+    });
+  }
+
   deleteAsync(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;

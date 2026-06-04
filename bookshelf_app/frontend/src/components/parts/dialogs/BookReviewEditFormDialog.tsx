@@ -11,6 +11,8 @@ type BookReviewEditFormDialogProps = {
   editItem: ReviewEditInfo | null;
   open: boolean;
   onClose: (item: ReviewEditInfo | null) => void;
+  onBookEdit?: () => void;
+  isBookEditEnabled?: boolean;
 };
 
 export default function BookReviewEditFormDialog(
@@ -36,6 +38,8 @@ export default function BookReviewEditFormDialog(
             bookInfo={props.bookInfo}
             onSubmit={onSubmit}
             onCancel={onCancel}
+            onBookEdit={props.onBookEdit}
+            isBookEditEnabled={props.isBookEditEnabled}
           ></BookReviewEditForm>
         </DialogContent>
         <DialogActions></DialogActions>

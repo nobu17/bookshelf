@@ -26,3 +26,24 @@ def test_convert_google_volume_ignores_item_without_isbn():
     actual = target.convert_google_volume({"volumeInfo": {"title": "No ISBN"}})
 
     assert actual is None
+
+
+def test_convert_google_volume_converts_image_url_to_https():
+    actual = target.convert_google_volume(
+        {
+            "id": "google-id",
+            "volumeInfo": {
+                "title": "HTTPS cover book",
+                "authors": ["著者"],
+                "publisher": "出版社",
+                "publishedDate": "2011-04",
+                "industryIdentifiers": [{"type": "ISBN_13", "identifier": "9784798121963"}],
+                "imageLinks": {
+                    "thumbnail": "http://books.google.com/books/content?id=abc&printsec=frontcover"
+                },
+            },
+        }
+    )
+
+    assert actual is not None
+    assert actual.image_url == "https://books.google.com/books/content?id=abc&printsec=frontcover"

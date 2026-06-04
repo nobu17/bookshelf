@@ -7,6 +7,7 @@ from bookshelf_app import main
 from bookshelf_app.infra.db.database import truncate_tables
 from tests.integration.helper import (
     assert_book_response,
+    auth_as_admin,
     auth_as_user,
     auth_headers,
     create_book,
@@ -15,6 +16,7 @@ from tests.integration.helper import (
     default_book_request,
     get_book_by_id,
     get_books_by_isbn13,
+    update_book,
     update_book_tags,
 )
 
@@ -159,6 +161,107 @@ def test_books_create_same_isbn(database_service):
 
     assert_book_response(book1, request_json1)
     assert_book_response(book2, request_json2)
+
+
+def test_books_update_master_by_book_id(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    book_id = create_book(client, user_token, image_url="https://example.com/original.jpg")["book_id"]
+    tag_ids = create_tags(client, user_token)
+    update_book_tags(client, user_token, book_id, tag_ids)
+
+    request_json = default_book_request(
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        publisher="オライリージャパン",
+        authors=["著者A", "著者B"],
+        published_at="2024-01-10",
+        image_url="https://example.com/updated.jpg",
+    )
+
+    updated = update_book(client, admin_token, book_id, **request_json)
+
+    assert_book_response(updated, request_json)
+    assert {tag["name"] for tag in updated["tags"]} == {"Tag1", "Tag2", "Tag3"}
+    assert_book_response(get_book_by_id(client, book_id), request_json)
+
+
+def test_books_update_master_no_authorization(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+
+    response = client.put(url=URL_BASE + "/" + book_id, json=default_book_request(title="更新"))
+
+    assert response.status_code == 401
+
+
+def test_books_update_master_denied_as_user(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+
+    response = client.put(
+        url=URL_BASE + "/" + book_id,
+        json=default_book_request(title="更新"),
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 403
+
+
+def test_books_update_master_not_exists(database_service):
+    admin_token = auth_as_admin(client)
+    not_existed_book_id = "50f65802-a5db-43cf-9dfc-3d5aea11d5dc"
+
+    response = client.put(
+        url=URL_BASE + "/" + not_existed_book_id,
+        json=default_book_request(title="更新"),
+        headers=auth_headers(admin_token),
+    )
+
+    assert response.status_code == 404
+
+
+def test_books_update_master_allows_same_isbn_and_same_year_as_another_book(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    book1 = create_book(client, user_token)
+    book2 = create_book(
+        client,
+        user_token,
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )
+
+    request_json = default_book_request(title="別レコードだが同じISBN年")
+
+    updated = update_book(client, admin_token, book2["book_id"], **request_json)
+
+    assert updated["book_id"] == book2["book_id"]
+    assert updated["book_id"] != book1["book_id"]
+    assert_book_response(updated, request_json)
+
+
+@pytest.mark.parametrize(
+    ["body"],
+    [
+        pytest.param(default_book_request(isbn13="1234"), id="invalid isbn13"),
+        pytest.param(default_book_request(title=""), id="empty title"),
+        pytest.param(default_book_request(title="x" * 101), id="too long title"),
+        pytest.param(default_book_request(publisher=""), id="empty publisher"),
+        pytest.param(default_book_request(authors=[]), id="empty authors"),
+        pytest.param(default_book_request(image_url="x" * 1001), id="too long image url"),
+    ],
+)
+def test_books_update_master_unprocessable(database_service, body: dict):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    book_id = create_book(client, user_token)["book_id"]
+
+    response = client.put(url=URL_BASE + "/" + book_id, json=body, headers=auth_headers(admin_token))
+
+    assert response.status_code == 422
 
 
 def test_books_update_tags(database_service):

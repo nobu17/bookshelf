@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from bookshelf_app.api.books.domain import ISBN13, Book, BookFactory, IBookRepository
+from bookshelf_app.api.books.domain import Author, Authors, BookImageUrl, BookTitle, Publisher
 from bookshelf_app.api.shared.errors import DataNotFoundError
 from bookshelf_app.api.tags.domain import ITagRepository
 from bookshelf_app.api.tags.service import TagAppModel
@@ -58,6 +59,7 @@ class BookUpdateAppModel:
     publisher: str
     authors: list[str]
     published_at: date
+    image_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -109,15 +111,33 @@ class BookService:
         book = self._book_repos.create(book)
         return BookAppModel(book)
 
+    def update(self, model: BookUpdateAppModel) -> BookAppModel:
+        current = self._book_repos.find_by_id(model.book_id)
+        if not current:
+            raise DataNotFoundError(str(model.book_id), self.ENTITY_NAME, "update")
+
+        book = Book.create_for_orm(
+            model.book_id,
+            ISBN13(model.isbn13),
+            BookTitle(model.title),
+            Publisher(model.publisher),
+            Authors([Author(author) for author in model.authors]),
+            model.published_at,
+            current.tags,
+            BookImageUrl(model.image_url),
+        )
+        updated = self._book_repos.update(book)
+        return BookAppModel(updated)
+
     def update_tags(self, model: BookTagsUpdateAppModel) -> None:
         current = self._book_repos.find_by_id(model.book_id)
         if not current:
-            raise DataNotFoundError(str(id), self.ENTITY_NAME, "update")
+            raise DataNotFoundError(str(model.book_id), self.ENTITY_NAME, "update")
 
         tags = []
         if len(model.tag_ids) > 0:
             tags = self._tag_repos.find_by_ids(model.tag_ids)
             if len(tags) != len(model.tag_ids):
-                raise DataNotFoundError(str(id), self.ENTITY_NAME, "update_tags")
+                raise DataNotFoundError(str(model.book_id), self.ENTITY_NAME, "update_tags")
 
         self._book_repos.update_tags(current.book_id, model.tag_ids)

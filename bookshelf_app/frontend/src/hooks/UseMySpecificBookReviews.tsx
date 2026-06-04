@@ -145,5 +145,6 @@ export default function useMySpecificBookReviews() {
     updateAsync,
     deleteAsync,
     createAsync,
+    loadAsync,
   };
 }

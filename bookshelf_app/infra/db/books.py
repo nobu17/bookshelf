@@ -166,20 +166,7 @@ class SqlBookRepository(IBookRepository):
     def create(self, item: Book) -> Book:
         try:
             add_dto = BookDTO.from_domain_model_as_create(item)
-            # already exists data is need to remove before add.
-            select_pub_stmt = select(PublisherDTO).where(PublisherDTO.name == add_dto.publisher.name)
-            publisher = self._session.scalars(select_pub_stmt).first()
-            if publisher is not None:
-                add_dto.publisher = publisher
-
-            originals = add_dto.authors
-            add_dto.authors = (
-                self._session.query(AuthorDTO).filter(AuthorDTO.name.in_([x.name for x in add_dto.authors])).all()
-            )
-            for original in originals:
-                matched = next((f for f in add_dto.authors if f.name == original.name), None)
-                if matched is None:
-                    add_dto.authors.append(original)
+            self._reuse_existing_master_relations(add_dto)
 
             self._session.add(add_dto)
             self._session.commit()
@@ -190,7 +177,29 @@ class SqlBookRepository(IBookRepository):
             raise
 
     def update(self, item: Book) -> Book:
-        raise NotImplementedError()
+        try:
+            stmt = (
+                select(BookDTO)
+                .where(BookDTO.book_id == item.book_id)
+                .options(joinedload(BookDTO.authors), joinedload(BookDTO.publisher), joinedload(BookDTO.tags))
+            )
+            book = self._session.scalars(stmt).first()
+            if book is None:
+                raise ValueError(f"book is not found. id:{item.book_id}")
+
+            book.isbn13 = item.isbn13.value
+            book.title = item.title.get_value()
+            book.image_url = item.image_url.get_value()
+            book.published_at = item.published_at
+            book.publisher = self._resolve_publisher(PublisherDTO.from_domain_model(item.publisher))
+            book.authors = self._resolve_authors(AuthorDTO.from_domain_models(item.authors))
+
+            self._session.commit()
+            self._session.refresh(book)
+            return book.to_domain_model()
+        except Exception:
+            self._session.rollback()
+            raise
 
     def update_tags(self, id: UUID, tag_ids: list[UUID]) -> None:
         try:
@@ -219,3 +228,20 @@ class SqlBookRepository(IBookRepository):
 
     def delete(self, id: UUID) -> None:
         raise NotImplementedError()
+
+    def _reuse_existing_master_relations(self, book: BookDTO) -> None:
+        book.publisher = self._resolve_publisher(book.publisher)
+        book.authors = self._resolve_authors(book.authors)
+
+    def _resolve_publisher(self, original: PublisherDTO) -> PublisherDTO:
+        select_pub_stmt = select(PublisherDTO).where(PublisherDTO.name == original.name)
+        publisher = self._session.scalars(select_pub_stmt).first()
+        return publisher if publisher is not None else original
+
+    def _resolve_authors(self, originals: list[AuthorDTO]) -> list[AuthorDTO]:
+        authors = self._session.query(AuthorDTO).filter(AuthorDTO.name.in_([x.name for x in originals])).all()
+        for original in originals:
+            matched = next((author for author in authors if author.name == original.name), None)
+            if matched is None:
+                authors.append(original)
+        return authors

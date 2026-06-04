@@ -129,6 +129,7 @@ def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:
         return None
 
     image_links = volume_info.get("imageLinks") or {}
+    image_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
     return BookSearchResultAppModel(
         source="google-books",
         source_id=item.get("id") or isbn13,
@@ -137,7 +138,7 @@ def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:
         publisher=volume_info.get("publisher") or "不明",
         isbn13=isbn13,
         published_at=parse_published_date(volume_info.get("publishedDate")),
-        image_url=image_links.get("thumbnail") or image_links.get("smallThumbnail"),
+        image_url=normalize_cover_url(image_url),
         description=volume_info.get("description"),
     )
 

@@ -8,7 +8,9 @@ import {
   Divider,
   Typography,
   Box,
+  Button,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 
 import { ReviewState, ReviewStateDef } from "../../types/data";
 import SubmitButtons from "./SubmitButtons";
@@ -38,6 +40,8 @@ type BookReviewEditFormProps = {
   editItem: ReviewEditInfo;
   onSubmit: (review: ReviewEditInfo) => void;
   onCancel: () => void;
+  onBookEdit?: () => void;
+  isBookEditEnabled?: boolean;
 };
 
 export type ReviewEditInfo = {
@@ -48,7 +52,14 @@ export type ReviewEditInfo = {
 };
 
 export default function BookReviewEditForm(props: BookReviewEditFormProps) {
-  const { editItem, bookInfo, onSubmit, onCancel } = props;
+  const {
+    editItem,
+    bookInfo,
+    onSubmit,
+    onCancel,
+    onBookEdit,
+    isBookEditEnabled,
+  } = props;
   const {
     register,
     handleSubmit,
@@ -75,6 +86,12 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
     }
     onSubmit(data);
   };
+  const handleBookEdit = () => {
+    if (!onBookEdit) {
+      return;
+    }
+    onBookEdit();
+  };
 
   return (
     <>
@@ -90,6 +107,17 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
             <br />
             出版年：{dateToString(bookInfo.publishedAt)}
           </Typography>
+          {isBookEditEnabled ? (
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={handleBookEdit}
+            >
+              書籍マスタ
+            </Button>
+          ) : (
+            <></>
+          )}
           <Box
             component="img"
             sx={{ height: "150px", width: "auto", objectFit: "contain" }}

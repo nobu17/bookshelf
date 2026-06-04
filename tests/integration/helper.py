@@ -119,6 +119,18 @@ def create_book(client: TestClient, token: str, **overrides) -> dict:
     return body
 
 
+def update_book(client: TestClient, token: str, book_id: str, **overrides) -> dict:
+    response = client.put(
+        url=BOOKS_URL + f"/{book_id}",
+        json=default_book_request(**overrides),
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["book_id"] == book_id
+    return body
+
+
 def get_books_by_isbn13(client: TestClient, isbn13: str) -> list[dict]:
     response = client.get(BOOKS_URL + f"/isbn13/{isbn13}")
     assert response.status_code == 200

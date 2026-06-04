@@ -98,14 +98,15 @@ test_env/                         pytest-docker 用 PostgreSQL
 - ISBN13 は 13桁、`978` または `979` 開始、数値のみ、チェックディジット検証あり。
 - title, publisher, author は最大 100 文字。
 - authors は 1 件以上必須。
-- 同一書籍判定は「ISBN13 が同じ、かつ出版年が同じ」。
-- 同一書籍は登録不可。ただし同じ ISBN13 でも出版年が異なれば登録可能。
-- 書籍作成時の tags は空。タグ付けは `/api/books/tags/{id}` で更新する。
+- 書籍マスタの実体識別子は `book_id`。更新・レビュー紐付けでは `book_id` を正とする。
+- 書籍作成時のみ、重複登録防止として「ISBN13 が同じ、かつ出版年が同じ」本は登録不可。ただし同じ ISBN13 でも出版年が異なれば登録可能。
+- 書籍更新時は `book_id` で対象が確定しているため、検索結果用の同一扱いや作成時の重複登録防止ロジックを流用しない。
+- 書籍作成時の tags は空。タグ付けは `/api/books/tags/{book_id}` で更新する。
+- 書籍マスタ更新は `/api/books/{book_id}` で行う。現状は admin 権限必須。レビュー編集フローでは書籍マスタを変更しない。
 
 注意:
 
-- `BookService.update_tags` の not found エラーでは Python 組み込みの `id` が文字列化されている箇所がある。修正時は `model.book_id` を使うのが自然。
-- `PUT /api/books/tags/{id}` は path の `id` を受けているが、実際は body の `book_id` を使っている。
+- 検索結果の「同一書籍扱い」は候補表示を整理するための UI/API 表示最適化であり、書籍マスタの同一性とは別の概念として扱う。
 
 ### Tags
 
@@ -195,7 +196,8 @@ Books:
 - `POST /api/books` auth required
 - `GET /api/books/isbn13/{isbn13}`
 - `GET /api/books/book_id/{book_id}`
-- `PUT /api/books/tags/{id}` auth required
+- `PUT /api/books/{book_id}` admin auth required
+- `PUT /api/books/tags/{book_id}` auth required
 
 Tags:
 
@@ -265,6 +267,8 @@ Book with reviews:
 - `src/pages/*`: ページ単位
 - `src/components/containers/*`: API hook と画面部品の接続
 - `src/components/parts/*`: 表示部品、フォーム、ダイアログなど
+- 書籍マスタ編集UIはレビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
+- 書籍マスタ編集フォームには ISBN13 で `/api/book_search` を呼ぶ補助検索があり、候補を選ぶとタイトル・著者・出版社・出版日・書影URLをフォームへ反映する。保存はユーザーが確定ボタンを押すまで行わない。
 
 ルーティング:
 
@@ -292,9 +296,12 @@ API設定:
 - ISBN検索では Google Books と openBD の両方を試し、両方取れた場合は openBD の有効な項目を優先する。ただし書影などは値がある方を使う。
 - キーワード検索では Google Books の同名・別ISBN候補を近似重複排除する。ISBN13 重複を除いた後、正規化タイトル + 正規化著者でグルーピングし、情報量スコアが高い候補を残す。
 - また、オンデマンド印刷版など内容が同一でISBNだけ異なる候補を抑えるため、書籍名と出版社が完全一致し、出版年も同じ候補は同一扱いにする。
+- ここでの同一扱いは検索候補の表示最適化専用。書籍マスタ更新やレビュー紐付けの同一性判断には使わず、マスタ側は `book_id` を正とする。
 - 情報量スコアは publisher が不明でないこと、image_url があること、description があること、authors が不明でないこと、published_at が 1970-01-01 でないことを加点する。
 - 著者名の正規化では空白を除去し、現状 `WINGSプロジェクト` のような著者接頭辞も取り除く。重複排除の調整は `bookshelf_app/api/book_search/service.py` の `create_same_publish_duplicate_key` / `create_near_duplicate_key` / `score_book` 周辺を見る。
 - Google Books が 429 を返した場合、ISBN検索では openBD fallback を試す。通常キーワード検索では「しばらく時間を置いてから再度お試しください」というメッセージに正規化する。
+- 書影URLは backend の book search service で `http://` から `https://` に正規化する。
+- 将来課題: Google Books の `imageLinks` は `smallThumbnail` / `thumbnail` / `small` / `medium` / `large` / `extraLarge` が返る場合がある。現状は `thumbnail` / `smallThumbnail` のみ利用しているが、必要になったら大きいサイズを優先する方針を検討する。
 
 注意:
 
