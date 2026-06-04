@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import Self
 
-from bookshelf_app.api.shared.domain import StringLimitValueObject
+from bookshelf_app.api.shared.domain import StringAllowEmptyLimitValueObject, StringLimitValueObject
 from bookshelf_app.api.shared.errors import DomainValidationError
 from bookshelf_app.api.tags.domain import Tag
 
@@ -74,6 +74,11 @@ class Author(StringLimitValueObject):
         super().__init__(100, value)
 
 
+class BookImageUrl(StringAllowEmptyLimitValueObject):
+    def __init__(self, value: str):
+        super().__init__(1000, value)
+
+
 class Authors:
     _values: list[Author]
 
@@ -111,6 +116,7 @@ class Book:
     authors: Authors
     published_at: date
     tags: Tags
+    image_url: BookImageUrl
 
     def __init__(
         self,
@@ -120,6 +126,7 @@ class Book:
         authors: Authors,
         published_at: date,
         tags: Tags,
+        image_url: BookImageUrl | None = None,
     ):
         self.book_id = uuid.uuid4()
         self.isbn13 = isbn13
@@ -128,6 +135,7 @@ class Book:
         self.authors = authors
         self.published_at = published_at
         self.tags = tags
+        self.image_url = image_url if image_url is not None else BookImageUrl("")
 
     @classmethod
     def create_for_orm(
@@ -139,8 +147,9 @@ class Book:
         authors: Authors,
         published_at: date,
         tags: Tags,
+        image_url: BookImageUrl | None = None,
     ) -> Self:
-        instance = cls(isbn13, title, publisher, authors, published_at, tags)
+        instance = cls(isbn13, title, publisher, authors, published_at, tags, image_url)
         instance.book_id = book_id
         return instance
 
@@ -183,7 +192,15 @@ class BookFactory:
     def __init__(self, book_repos: IBookRepository):
         self._book_repos = book_repos
 
-    def create_new_book(self, isbn13: str, title: str, publisher: str, authors: list[str], published_at: date) -> Book:
+    def create_new_book(
+        self,
+        isbn13: str,
+        title: str,
+        publisher: str,
+        authors: list[str],
+        published_at: date,
+        image_url: str = "",
+    ) -> Book:
         isbn13_d = ISBN13(isbn13)
         title_d = BookTitle(title)
         publisher_d = Publisher(publisher)
@@ -191,7 +208,7 @@ class BookFactory:
         auth_list = [Author(au) for au in authors]
         authors_d = Authors(auth_list)
 
-        book = Book(isbn13_d, title_d, publisher_d, authors_d, published_at, Tags([]))
+        book = Book(isbn13_d, title_d, publisher_d, authors_d, published_at, Tags([]), BookImageUrl(image_url))
 
         if self.is_same_book_existed(book):
             raise DomainValidationError(

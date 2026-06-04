@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     crypt_secret_key: str = ""
     crypt_algorithm: str = ""
     db_connection: str = ""
+    google_books_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=(os.getenv("ENV_FILE", ".env"), ".env.prod"), env_file_encoding="utf-8")
 

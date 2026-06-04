@@ -17,6 +17,7 @@ class BookAppModel:
     authors: list[str]
     published_at: date
     tags: list[TagAppModel]
+    image_url: str
 
     def __init__(self, book_domain: Book):
         self.book_id = book_domain.book_id
@@ -26,6 +27,7 @@ class BookAppModel:
         self.authors = [au.get_value() for au in book_domain.authors.get_values()]
         self.published_at = book_domain.published_at
         self.tags = [TagAppModel(**vars(tag)) for tag in book_domain.tags.get_values()]
+        self.image_url = book_domain.image_url.get_value()
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ class BookCreateAppModel:
     publisher: str
     authors: list[str]
     published_at: date
+    image_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -101,6 +104,7 @@ class BookService:
             model.publisher,
             model.authors,
             model.published_at,
+            model.image_url,
         )
         book = self._book_repos.create(book)
         return BookAppModel(book)

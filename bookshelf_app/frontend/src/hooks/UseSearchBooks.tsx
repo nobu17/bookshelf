@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { searchBooks } from "../libs/bookSearch";
 import {
   BookSearchResult,
   BookSearchResultWithReviews,
@@ -7,8 +6,10 @@ import {
 import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import useAuthApi from "./UseAuthApi";
 import { BookWithReviews } from "../types/data";
+import BookSearchApi from "../libs/apis/bookSearch";
 
 const api = new BookWithMyReviewsApi();
+const bookSearchApi = new BookSearchApi();
 
 export default function useSearchBooks() {
   useAuthApi(api);
@@ -26,7 +27,7 @@ export default function useSearchBooks() {
         myReviews = (await api.getMyReviewsForEdit()).data.books_with_reviews;
         setReviews(myReviews);
       }
-      const res = await searchBooks(searchWord);
+      const res = (await bookSearchApi.search(searchWord)).data.books;
       const aggregated = aggregateReview(res, myReviews);
       aggregated.sort(
         (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
@@ -49,7 +50,7 @@ export default function useSearchBooks() {
       setLoading(true);
       const myReviews = (await api.getMyReviews()).data.books_with_reviews;
       setReviews(myReviews);
-      const res = await searchBooks(searchWord);
+      const res = (await bookSearchApi.search(searchWord)).data.books;
       const aggregated = aggregateReview(res, myReviews);
       aggregated.sort(
         (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()

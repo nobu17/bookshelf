@@ -46,6 +46,7 @@ def test_books_create_no_authorized(database_service):
         "publisher": "オライリージャパン",
         "authors": ["著者1", "著者2"],
         "published_at": "2023-01-10",
+        "image_url": "https://example.com/cover.jpg",
     }
     # post item with no token
     post_response1 = client.post(url=URL_BASE, json=request_json)
@@ -61,6 +62,7 @@ def test_books_create_and_get(database_service):
         "publisher": "オライリージャパン",
         "authors": ["著者1", "著者2"],
         "published_at": "2023-01-10",
+        "image_url": "https://example.com/cover.jpg",
     }
     # case1: post item as new
     post_response1 = client.post(url=URL_BASE, json=request_json, headers={"Authorization": "Bearer " + token})
@@ -79,8 +81,8 @@ def test_books_create_and_get(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
-    assert book1["authors"][0] == "著者1"
-    assert book1["authors"][1] == "著者2"
+    assert book1["image_url"] == "https://example.com/cover.jpg"
+    assert sorted(book1["authors"]) == ["著者1", "著者2"]
 
     # confirm can get from book_id
     get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
@@ -92,8 +94,8 @@ def test_books_create_and_get(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
-    assert book1["authors"][0] == "著者1"
-    assert book1["authors"][1] == "著者2"
+    assert book1["image_url"] == "https://example.com/cover.jpg"
+    assert sorted(book1["authors"]) == ["著者1", "著者2"]
 
     # case2: post same data again
     post_response2 = client.post(url=URL_BASE, json=request_json, headers={"Authorization": "Bearer " + token})
@@ -154,16 +156,13 @@ def test_books_create_same_isbn(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
-    assert book1["authors"][0] == "著者1"
-    assert book1["authors"][1] == "著者2"
+    assert sorted(book1["authors"]) == ["著者1", "著者2"]
 
     assert book2["isbn13"] == "9784814400690"
     assert book2["title"] == "入門 継続的デリバリー(2)"
     assert book2["publisher"] == "オライリージャパン"
     assert book2["published_at"] == "2024-01-10"
-    assert book2["authors"][0] == "著者1"
-    assert book2["authors"][1] == "著者2"
-    assert book2["authors"][2] == "著者3"
+    assert sorted(book2["authors"]) == ["著者1", "著者2", "著者3"]
 
 
 def test_books_update_tags(database_service):

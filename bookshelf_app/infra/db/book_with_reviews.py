@@ -48,6 +48,7 @@ class BookExtendDTO(BookDTO):
             self.publisher.name,
             [x.name for x in self.authors],
             self.published_at,
+            self.image_url,
             tag_list,
             [x.to_response() for x in self.ex_reviews],
         )

@@ -25,6 +25,7 @@ class BookBaseModel(BaseModel):
     publisher: str
     authors: list[str]
     published_at: date
+    image_url: str = ""
 
 
 class BookResponse(BookBaseModel):
@@ -164,6 +165,7 @@ def create_from_model(model: BookAppModel) -> BookResponse:
         title=model.title,
         publisher=model.publisher,
         published_at=model.published_at,
+        image_url=model.image_url,
         authors=model.authors,
         tags=tags,
     )

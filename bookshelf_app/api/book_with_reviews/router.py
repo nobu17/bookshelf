@@ -49,6 +49,7 @@ class BookWithReviewsResponse(BaseModel):
     publisher: str
     authors: list[str]
     published_at: date
+    image_url: str
     tags: list[TagResponse]
     reviews: list[ReviewResponse]
 
@@ -273,6 +274,7 @@ def _convert_book_with_review(model: BookWithReviewsAppModel) -> BookWithReviews
         publisher=model.publisher,
         authors=model.authors,
         published_at=model.published_at,
+        image_url=model.image_url,
         tags=tags,
         reviews=reviews,
     )

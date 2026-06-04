@@ -11,6 +11,7 @@ from bookshelf_app.api.books.domain import (
     Author,
     Authors,
     Book,
+    BookImageUrl,
     BookTitle,
     IBookRepository,
     Publisher,
@@ -96,6 +97,7 @@ class BookDTO(Base):
     book_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, comment="主キー")
     isbn13: Mapped[str] = mapped_column(String(length=13), nullable=False, index=True, comment="ISBN13")
     title: Mapped[str] = mapped_column(String(length=100), nullable=False, index=True, comment="書籍名")
+    image_url: Mapped[str] = mapped_column(String(length=1000), nullable=False, default="", comment="書影URL")
     published_at: Mapped[date] = mapped_column(Date, nullable=False, index=True, comment="出版日時")
     publisher: Mapped[PublisherDTO] = relationship(secondary=books_publishers_association_table)
     authors: Mapped[list[AuthorDTO]] = relationship(secondary=books_authors_association_table)
@@ -108,7 +110,9 @@ class BookDTO(Base):
         authors = Authors([auth.to_domain_model() for auth in self.authors])
         tags = Tags([tag.to_domain_model() for tag in self.filter_deleted_tags()])
 
-        return Book.create_for_orm(self.book_id, isbn13, title, publisher, authors, self.published_at, tags)
+        return Book.create_for_orm(
+            self.book_id, isbn13, title, publisher, authors, self.published_at, tags, BookImageUrl(self.image_url)
+        )
 
     def filter_deleted_tags(self) -> list[TagDTO]:
         tags_filtered = []
@@ -124,6 +128,7 @@ class BookDTO(Base):
         model.book_id = domain.book_id
         model.isbn13 = domain.isbn13.value
         model.title = domain.title.get_value()
+        model.image_url = domain.image_url.get_value()
         model.published_at = domain.published_at
         model.publisher = PublisherDTO.from_domain_model(domain.publisher)
         model.authors = AuthorDTO.from_domain_models(domain.authors)

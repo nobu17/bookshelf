@@ -1,6 +1,6 @@
 import pytest
 
-from bookshelf_app.api.books.domain import Author, Authors, BookTitle, Publisher, Tags
+from bookshelf_app.api.books.domain import Author, Authors, BookImageUrl, BookTitle, Publisher, Tags
 from bookshelf_app.api.shared.errors import DomainValidationError
 from bookshelf_app.api.tags.domain import Tag
 
@@ -162,6 +162,33 @@ def test_author_correct(value: str):
     title = Author(value)
 
     assert title.get_value() == value
+
+
+# BookImageUrl
+def test_book_image_url_allow_empty():
+    url = BookImageUrl("")
+
+    assert url.get_value() == ""
+
+
+@pytest.mark.parametrize(
+    ["value"],
+    [
+        pytest.param("https://example.com/cover.jpg", id="normal url"),
+        pytest.param("x" * 1000, id="1000 length"),
+    ],
+)
+def test_book_image_url_correct(value: str):
+    url = BookImageUrl(value)
+
+    assert url.get_value() == value
+
+
+def test_book_image_url_error_over_limit():
+    with pytest.raises(DomainValidationError) as e:
+        BookImageUrl("x" * 1001)
+
+    assert str(e.value.detail) == "value length is over limit(1000)"
 
 
 # Authors

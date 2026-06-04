@@ -5,6 +5,7 @@ export type BookInfo = {
   publisher: string;
   authors: string[];
   publishedAt: Date;
+  imageUrl: string | null;
   tags: BookTag[];
 };
 
@@ -145,5 +146,6 @@ export type GenericBookInfoWithReviews = {
   publisher: string;
   isbn13: string;
   publishedAt: Date;
+  imageUrl?: string | null;
   reviews: Review[];
 };

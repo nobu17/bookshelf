@@ -37,6 +37,7 @@ type ApiBookInfo = {
   publisher: string;
   authors: string[];
   published_at: string;
+  image_url: string;
   tags: BookTag[];
 };
 
@@ -58,6 +59,7 @@ const convertTotBookInfo = (info: ApiBookInfo): BookInfo => {
     publisher: info.publisher,
     authors: info.authors,
     publishedAt: toDate(info.published_at),
+    imageUrl: info.image_url || null,
     tags: info.tags,
   };
 };
@@ -68,6 +70,7 @@ export type BookCreateParameter = {
   publisher: string;
   authors: string[];
   publishedAt: Date;
+  imageUrl?: string | null;
 };
 
 type ApiBookCreateParameter = {
@@ -76,6 +79,7 @@ type ApiBookCreateParameter = {
   publisher: string;
   authors: string[];
   published_at: string;
+  image_url: string;
 };
 
 const convertToApiBookCreateParameter = (
@@ -87,5 +91,6 @@ const convertToApiBookCreateParameter = (
     publisher: param.publisher,
     authors: param.authors,
     published_at: dateToString(param.publishedAt),
+    image_url: param.imageUrl || "",
   };
 };

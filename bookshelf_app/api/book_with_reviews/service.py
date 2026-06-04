@@ -44,6 +44,7 @@ class BookWithReviewsAppModel:
     publisher: str
     authors: list[str]
     published_at: date
+    image_url: str
     tags: list[TagAppModel]
     reviews: list[ReviewAppModel]
 

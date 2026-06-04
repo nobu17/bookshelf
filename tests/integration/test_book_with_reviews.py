@@ -45,6 +45,7 @@ def test_books_list_with_reviews(database_service):
         "publisher": "オライリージャパン",
         "authors": ["著者1", "著者2"],
         "published_at": "2023-01-10",
+        "image_url": "https://example.com/cover.jpg",
     }
     # post item as new as pre condition
     post_response1 = client.post(url=URL_BASE, json=request_json, headers={"Authorization": "Bearer " + token})
@@ -83,6 +84,7 @@ def test_books_list_with_reviews(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
+    assert book1["image_url"] == "https://example.com/cover.jpg"
     assert book1["authors"][0] == "著者1"
     assert book1["authors"][1] == "著者2"
 
@@ -100,6 +102,7 @@ def test_books_list_with_reviews(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
+    assert book1["image_url"] == "https://example.com/cover.jpg"
     assert book1["authors"][0] == "著者1"
     assert book1["authors"][1] == "著者2"
 
@@ -116,6 +119,7 @@ def test_books_list_with_reviews(database_service):
     assert book1["title"] == "入門 継続的デリバリー"
     assert book1["publisher"] == "オライリージャパン"
     assert book1["published_at"] == "2023-01-10"
+    assert book1["image_url"] == "https://example.com/cover.jpg"
     assert book1["authors"][0] == "著者1"
     assert book1["authors"][1] == "著者2"
 

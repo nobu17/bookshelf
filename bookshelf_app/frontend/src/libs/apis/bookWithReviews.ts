@@ -75,6 +75,7 @@ const adjust = (data: ApiBookWithReviews): BookWithReviews => {
   const adjusted: BookWithReviews = { ...data };
   adjusted.bookId = data.book_id;
   adjusted.publishedAt = toDate(data.published_at);
+  adjusted.imageUrl = data.image_url || null;
   adjusted.reviews = data.reviews.map((x) => {
     const rev: Review = { ...x };
     rev.reviewId = x.review_id;
@@ -94,6 +95,7 @@ const adjust = (data: ApiBookWithReviews): BookWithReviews => {
 type ApiBookInfo = BookInfo & {
   book_id: string;
   published_at: string;
+  image_url: string;
 };
 
 type ApiReview = Review & {

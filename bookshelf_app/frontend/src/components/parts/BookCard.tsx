@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 
 import styles from "./BookCard.module.css";
 import { BookWithReviews } from "../../types/data";
-import { getFallbackImageUrl, getImageUrl } from "../../libs/utils/image";
+import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import BookCardRibbon from "./BookCardRibbon";
 
 type BookCardProps = {
@@ -15,7 +15,7 @@ type BookCardProps = {
 };
 
 export default function BookCard(props: BookCardProps) {
-  const { bookId, title, isbn13 } = props.book;
+  const { bookId, title } = props.book;
   const { book, isRibbonRender } = props;
   const { onSelect } = props;
   return (
@@ -35,7 +35,7 @@ export default function BookCard(props: BookCardProps) {
           component="img"
           height="200"
           sx={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
-          image={getImageUrl(isbn13)}
+          image={getBookInfoImageUrl(book)}
           onError={(e) => {
             e.currentTarget.src = getFallbackImageUrl();
           }}

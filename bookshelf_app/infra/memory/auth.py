@@ -1,5 +1,6 @@
 import copy
 from typing import Dict
+from uuid import UUID
 
 from bookshelf_app.api.auth.domain import (
     Email,
@@ -44,6 +45,12 @@ class MemoryUserRepository(IUserRepository):
         if email.value not in MemoryUserRepository._data:
             return None
         return copy.deepcopy(MemoryUserRepository._data[email.value])
+
+    def find_by_user_id(self, user_id: UUID) -> UserHashed | None:
+        for user in MemoryUserRepository._data.values():
+            if user.user_id == user_id:
+                return copy.deepcopy(user)
+        return None
 
     def create(self, user: UserHashed) -> UserHashed:
         MemoryUserRepository._data[user.email.value] = user
