@@ -7,6 +7,8 @@ from bookshelf_app.infra.other.crypt import CryptService
 
 AUTH_URL = "/api/auth/token"
 ME_URL = "/api/users/me"
+BOOKS_URL = "/api/books"
+TAGS_URL = "/api/tags"
 
 
 def create_initial_admin():
@@ -89,3 +91,47 @@ def get_user_id(client: TestClient, token: str) -> str:
     assert json["user_id"] is not None
 
     return json["user_id"]
+
+
+def auth_headers(token: str) -> dict[str, str]:
+    return {"Authorization": "Bearer " + token}
+
+
+def default_book_request(**overrides) -> dict:
+    request = {
+        "isbn13": "9784814400690",
+        "title": "入門 継続的デリバリー",
+        "publisher": "オライリージャパン",
+        "authors": ["著者1", "著者2"],
+        "published_at": "2023-01-10",
+        "image_url": "",
+    }
+    request.update(overrides)
+    return request
+
+
+def create_book(client: TestClient, token: str, **overrides) -> dict:
+    response = client.post(url=BOOKS_URL, json=default_book_request(**overrides), headers=auth_headers(token))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["book_id"] is not None
+    return body
+
+
+def create_tags(client: TestClient, token: str, names: list[str] | None = None) -> list[str]:
+    tag_ids: list[str] = []
+    for name in names or ["Tag1", "Tag2", "Tag3"]:
+        response = client.post(url=TAGS_URL, json={"name": name}, headers=auth_headers(token))
+        assert response.status_code == 200
+        tag_ids.append(str(response.json()["tag_id"]))
+    return tag_ids
+
+
+def assert_book_response(book: dict, expected: dict) -> None:
+    assert book["book_id"] is not None
+    assert book["isbn13"] == expected["isbn13"]
+    assert book["title"] == expected["title"]
+    assert book["publisher"] == expected["publisher"]
+    assert book["published_at"] == expected["published_at"]
+    assert book["image_url"] == expected.get("image_url", "")
+    assert sorted(book["authors"]) == sorted(expected["authors"])
