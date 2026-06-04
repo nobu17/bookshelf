@@ -15,7 +15,7 @@ from bookshelf_app.infra.memory.dependencies import (
     get_user_memory_dependency,
 )
 from bookshelf_app.infra.memory.tags import clear_tags
-from tests.unit.helper import auth_as_admin, auth_as_user
+from tests.unit.helper import auth_as_admin, auth_as_user, auth_headers
 
 client = TestClient(main.app)
 
@@ -52,7 +52,7 @@ def test_tags_post_put_delete_successfully_as_admin():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # case1: post new item
-    post_response = client.post(url=URL_BASE, json={"name": "Test01"}, headers={"Authorization": "Bearer " + token})
+    post_response = client.post(url=URL_BASE, json={"name": "Test01"}, headers=auth_headers(token))
     assert post_response.status_code == 200
     resp_json = post_response.json()
 
@@ -65,7 +65,7 @@ def test_tags_post_put_delete_successfully_as_admin():
 
     # case2: put item
     put_response = client.put(
-        url=URL_BASE + f"/{resp_json['tag_id']}", json={"name": "Test02"}, headers={"Authorization": "Bearer " + token}
+        url=URL_BASE + f"/{resp_json['tag_id']}", json={"name": "Test02"}, headers=auth_headers(token)
     )
     assert put_response.status_code == 200
 
@@ -75,7 +75,7 @@ def test_tags_post_put_delete_successfully_as_admin():
     assert get_response.json() == [{"tag_id": resp_json["tag_id"], "name": "Test02"}]
 
     # delete item
-    get_response = client.delete(URL_BASE + f"/{resp_json['tag_id']}", headers={"Authorization": "Bearer " + token})
+    get_response = client.delete(URL_BASE + f"/{resp_json['tag_id']}", headers=auth_headers(token))
     assert get_response.status_code == 204
 
     # confirm empty
@@ -85,7 +85,7 @@ def test_tags_post_put_delete_successfully_as_admin():
 
     # case4: post new limit(15char)
     post_response = client.post(
-        url=URL_BASE, json={"name": "123456789012345"}, headers={"Authorization": "Bearer " + token}
+        url=URL_BASE, json={"name": "123456789012345"}, headers=auth_headers(token)
     )
     assert post_response.status_code == 200
     resp_json = post_response.json()
@@ -101,7 +101,7 @@ def test_tags_post_successfully_as_user():
     token = auth_as_user(client)
     # case1: post new item
     post_response = client.post(
-        url=URL_BASE, json={"name": "123456789012345"}, headers={"Authorization": "Bearer " + token}
+        url=URL_BASE, json={"name": "123456789012345"}, headers=auth_headers(token)
     )
     assert post_response.status_code == 200
     resp_json = post_response.json()
@@ -118,7 +118,7 @@ def test_tags_put_delete_denied_as_user():
     # precondition auth as normal user
     token = auth_as_user(client)
     # post new item as preparation
-    post_response = client.post(url=URL_BASE, json={"name": "Test01"}, headers={"Authorization": "Bearer " + token})
+    post_response = client.post(url=URL_BASE, json={"name": "Test01"}, headers=auth_headers(token))
     assert post_response.status_code == 200
     resp_json = post_response.json()
 
@@ -131,7 +131,7 @@ def test_tags_put_delete_denied_as_user():
 
     # case1: try put item and denied
     put_response = client.put(
-        url=URL_BASE + f"/{resp_json['tag_id']}", json={"name": "Test02"}, headers={"Authorization": "Bearer " + token}
+        url=URL_BASE + f"/{resp_json['tag_id']}", json={"name": "Test02"}, headers=auth_headers(token)
     )
     assert put_response.status_code == 403
 
@@ -143,7 +143,7 @@ def test_tags_put_delete_denied_as_user():
     ]
 
     # case2: try put item and denied
-    get_response = client.delete(URL_BASE + f"/{resp_json['tag_id']}", headers={"Authorization": "Bearer " + token})
+    get_response = client.delete(URL_BASE + f"/{resp_json['tag_id']}", headers=auth_headers(token))
     assert get_response.status_code == 403
 
     # confirm item is not deleted
@@ -158,14 +158,14 @@ def test_tags_post_unprocessable():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # incorrect field
-    post_response = client.post(url=URL_BASE, json={"nam": "Test01"}, headers={"Authorization": "Bearer " + token})
+    post_response = client.post(url=URL_BASE, json={"nam": "Test01"}, headers=auth_headers(token))
     assert post_response.status_code == 422
     # empty name
-    post_response = client.post(url=URL_BASE, json={"name": ""}, headers={"Authorization": "Bearer " + token})
+    post_response = client.post(url=URL_BASE, json={"name": ""}, headers=auth_headers(token))
     assert post_response.status_code == 422
     # more than 16
     post_response = client.post(
-        url=URL_BASE, json={"name": "1234567890123456"}, headers={"Authorization": "Bearer " + token}
+        url=URL_BASE, json={"name": "1234567890123456"}, headers=auth_headers(token)
     )
     assert post_response.status_code == 422
 
@@ -174,12 +174,12 @@ def test_tags_post_conflict_duplicate_name():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers={"Authorization": "Bearer " + token})
+    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
     assert post_response1.status_code == 200
     post_json1 = post_response1.json()
 
     # post duplicated name item
-    post_response2 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers={"Authorization": "Bearer " + token})
+    post_response2 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
     assert post_response2.status_code == 409
 
     # confirm only 1 record
@@ -192,11 +192,11 @@ def test_tags_put_conflict_duplicate_name():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post 2 new items
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test01"}, headers={"Authorization": "Bearer " + token})
+    post_response1 = client.post(url=URL_BASE, json={"name": "Test01"}, headers=auth_headers(token))
     assert post_response1.status_code == 200
     post_json1 = post_response1.json()
 
-    post_response2 = client.post(url=URL_BASE, json={"name": "Test02"}, headers={"Authorization": "Bearer " + token})
+    post_response2 = client.post(url=URL_BASE, json={"name": "Test02"}, headers=auth_headers(token))
     assert post_response2.status_code == 200
     post_json2 = post_response2.json()
 
@@ -212,7 +212,7 @@ def test_tags_put_conflict_duplicate_name():
     put_response = client.put(
         url=URL_BASE + f"/{post_json2['tag_id']}",
         json={"name": "Test01"},
-        headers={"Authorization": "Bearer " + token},
+        headers=auth_headers(token),
     )
     assert put_response.status_code == 409
 
@@ -229,7 +229,7 @@ def test_tags_put_not_exists_id():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers={"Authorization": "Bearer " + token})
+    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
     assert post_response1.status_code == 200
     post_json1 = post_response1.json()
 
@@ -237,7 +237,7 @@ def test_tags_put_not_exists_id():
     get_response = client.put(
         URL_BASE + "/50f65802-a5db-43cf-9dfc-3d5aea11d5dc",
         json={"name": "Test"},
-        headers={"Authorization": "Bearer " + token},
+        headers=auth_headers(token),
     )
     assert get_response.status_code == 404
 
@@ -251,13 +251,13 @@ def test_tags_delete_not_exists_id():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers={"Authorization": "Bearer " + token})
+    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
     assert post_response1.status_code == 200
     post_json1 = post_response1.json()
 
     # try to put another id
     get_response = client.delete(
-        URL_BASE + "/50f65802-a5db-43cf-9dfc-3d5aea11d5dc", headers={"Authorization": "Bearer " + token}
+        URL_BASE + "/50f65802-a5db-43cf-9dfc-3d5aea11d5dc", headers=auth_headers(token)
     )
     assert get_response.status_code == 404
 

@@ -166,7 +166,6 @@ def test_books_update_tags(database_service):
     get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
     assert get_response1.status_code == 200
     book1 = get_response1.json()
-    print(book1)
     tags = book1["tags"]
     assert len(tags) == 3
 

@@ -31,3 +31,7 @@ def auth_as_user(client: TestClient) -> str:
     assert json["token_type"] == "bearer"
 
     return json["access_token"]
+
+
+def auth_headers(token: str) -> dict[str, str]:
+    return {"Authorization": "Bearer " + token}
