@@ -7,6 +7,7 @@ from bookshelf_app import main
 from bookshelf_app.infra.db.database import truncate_tables
 from tests.integration.helper import (
     assert_book_response,
+    auth_as_admin,
     auth_as_user,
     auth_headers,
     create_book,
@@ -96,6 +97,62 @@ def test_book_with_reviews_public_endpoints_exclude_draft_and_for_edit_includes_
     assert response.status_code == 200
     assert_book_response(response.json(), request_json)
     assert response.json()["reviews"][0]["is_draft"] is True
+
+
+def test_book_with_reviews_for_edit_book_id_includes_only_my_reviews(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    request_json = default_book_request(
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )
+    book_id = create_book(
+        client,
+        user_token,
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )["book_id"]
+    user_review = create_review(client, user_token, book_id, content="user review")
+    create_review(client, admin_token, book_id, content="admin review")
+
+    response = client.get(URL_WITH_REVIEW_FOR_EDIT_BOOK_ID + "/" + book_id, headers=auth_headers(user_token))
+
+    assert response.status_code == 200
+    assert_book_response(response.json(), request_json)
+    assert [review["review_id"] for review in response.json()["reviews"]] == [user_review["review_id"]]
+
+
+def test_book_with_reviews_me_does_not_include_other_user_reviews(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    user_book = create_book(
+        client,
+        user_token,
+        isbn13="9784297143176",
+        title="[入門]ドメイン駆動設計",
+        authors=["著者B"],
+        published_at="2024-07-01",
+    )
+    create_review(client, user_token, user_book["book_id"], content="user review")
+    admin_book = create_book(
+        client,
+        admin_token,
+        isbn13="9784798121963",
+        title="エリック・エヴァンスのドメイン駆動設計",
+        authors=["著者C"],
+        published_at="2011-04-01",
+    )
+    create_review(client, admin_token, admin_book["book_id"], content="admin review")
+
+    response = client.get(URL_WITH_REVIEW_ME, headers=auth_headers(user_token))
+
+    assert response.status_code == 200
+    books = response.json()["books_with_reviews"]
+    assert [book["book_id"] for book in books] == [user_book["book_id"]]
 
 
 def _assert_books_with_reviews_response(body: dict, expected_book: dict) -> None:

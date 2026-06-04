@@ -5,10 +5,12 @@ import os
 
 import alembic.config
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 os.environ.setdefault("ENV_FILE", ".env.test")
 
+from bookshelf_app import main
 from bookshelf_app.infra.db.database import get_session
 
 alembicArgs = [
@@ -45,6 +47,11 @@ def docker_compose_file(pytestconfig):
 def database_service(docker_ip, docker_services):
     """Docker database service 起動待ち"""
     docker_services.wait_until_responsive(timeout=40.0, pause=0.5, check=lambda: is_database_ready(docker_ip))
+
+
+@pytest.fixture(scope="session")
+def integration_client():
+    return TestClient(main.app)
 
 
 @pytest.fixture(scope="session")

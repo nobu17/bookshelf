@@ -190,6 +190,8 @@ class BookReviewService:
             raise AppValidationError(
                 "book review update", f"review is not exists. review_id:{update_data.detail.review_id}"
             )
+        if not review.is_same_user(update_data.user_id):
+            raise InvalidAuthError("try to update another user data.")
 
         updated_review = review.update(update_parameter)
         user_reviews = self._review_repos.find_by_user_id_and_book_id(updated_review.user_id, updated_review.book_id)

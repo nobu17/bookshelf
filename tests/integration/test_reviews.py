@@ -392,6 +392,21 @@ def test_review_put_update_invalid_state_in_progress(database_service):
     assert put_response1.status_code == 422
 
 
+def test_review_put_update_denies_another_user_data(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    book_id = create_book(client, admin_token)["book_id"]
+    review_id = create_review(client, admin_token, book_id)["review_id"]
+
+    response = client.put(
+        url=URL_BASE + "/" + review_id,
+        json=default_review_update_request(content="try to update another user review"),
+        headers=auth_headers(user_token),
+    )
+
+    assert response.status_code == 401
+
+
 def test_review_delete_no_authorization(database_service):
     # precondition auth as normal user
     token = auth_as_user(client)
