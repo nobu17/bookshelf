@@ -7,6 +7,8 @@ import alembic.config
 import pytest
 from sqlalchemy import text
 
+os.environ.setdefault("ENV_FILE", ".env.test")
+
 from bookshelf_app.infra.db.database import get_session
 
 alembicArgs = [

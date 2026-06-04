@@ -61,16 +61,21 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
     def __init__(self, session: Session):
         self._session = session
 
+    @staticmethod
+    def _book_with_review_options():
+        return (
+            joinedload(BookExtendDTO.authors),
+            joinedload(BookExtendDTO.publisher),
+            joinedload(BookExtendDTO.tags),
+            contains_eager(BookExtendDTO.ex_reviews).contains_eager(BookReviewExtendDTO.ex_user),
+        )
+
     def find_active_latest(self, max_count: int) -> BooksWithReviewsAppModel:
         stmt = (
             select(BookExtendDTO)
             .join(BookReviewExtendDTO)
-            .options(
-                joinedload(BookExtendDTO.authors),
-                joinedload(BookExtendDTO.publisher),
-                joinedload(BookExtendDTO.tags),
-                contains_eager(BookExtendDTO.ex_reviews, BookReviewExtendDTO.ex_user),
-            )
+            .join(BookReviewExtendDTO.ex_user)
+            .options(*self._book_with_review_options())
             .where(
                 and_(BookReviewExtendDTO.is_deleted == false(), BookReviewExtendDTO.is_draft == false())
             )  # draft is not target
@@ -88,12 +93,8 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
         stmt = (
             select(BookExtendDTO)
             .join(BookReviewExtendDTO)
-            .options(
-                joinedload(BookExtendDTO.authors),
-                joinedload(BookExtendDTO.publisher),
-                joinedload(BookExtendDTO.tags),
-                contains_eager(BookExtendDTO.ex_reviews, BookReviewExtendDTO.ex_user),
-            )
+            .join(BookReviewExtendDTO.ex_user)
+            .options(*self._book_with_review_options())
             .where(
                 and_(
                     BookReviewExtendDTO.user_id == user_id,
@@ -114,12 +115,8 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
         stmt = (
             select(BookExtendDTO)
             .join(BookReviewExtendDTO)
-            .options(
-                joinedload(BookExtendDTO.authors),
-                joinedload(BookExtendDTO.publisher),
-                joinedload(BookExtendDTO.tags),
-                contains_eager(BookExtendDTO.ex_reviews, BookReviewExtendDTO.ex_user),
-            )
+            .join(BookReviewExtendDTO.ex_user)
+            .options(*self._book_with_review_options())
             .where(
                 and_(
                     BookReviewExtendDTO.user_id == user_id,
@@ -139,12 +136,8 @@ class SqlBookWithQueryService(IBookWithReviewsQueryService):
         stmt = (
             select(BookExtendDTO)
             .outerjoin(BookReviewExtendDTO)
-            .options(
-                joinedload(BookExtendDTO.authors),
-                joinedload(BookExtendDTO.publisher),
-                joinedload(BookExtendDTO.tags),
-                contains_eager(BookExtendDTO.ex_reviews, BookReviewExtendDTO.ex_user),
-            )
+            .outerjoin(BookReviewExtendDTO.ex_user)
+            .options(*self._book_with_review_options())
             .where(
                 and_(
                     BookExtendDTO.book_id == book_id,

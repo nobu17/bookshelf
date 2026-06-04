@@ -119,6 +119,27 @@ def create_book(client: TestClient, token: str, **overrides) -> dict:
     return body
 
 
+def get_books_by_isbn13(client: TestClient, isbn13: str) -> list[dict]:
+    response = client.get(BOOKS_URL + f"/isbn13/{isbn13}")
+    assert response.status_code == 200
+    return response.json()["books"]
+
+
+def get_book_by_id(client: TestClient, book_id: str) -> dict:
+    response = client.get(BOOKS_URL + f"/book_id/{book_id}")
+    assert response.status_code == 200
+    return response.json()
+
+
+def update_book_tags(client: TestClient, token: str, book_id: str, tag_ids: list[str]) -> None:
+    response = client.put(
+        url=BOOKS_URL + f"/tags/{book_id}",
+        json={"book_id": book_id, "tag_ids": tag_ids},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+
+
 def create_book_ids(client: TestClient, token: str) -> list[str]:
     books = [
         create_book(client, token),
@@ -214,6 +235,31 @@ def get_latest_reviews(client: TestClient, token: str, max_count: int) -> list[d
     response = client.get(REVIEWS_URL + f"/latest/{max_count}", headers=auth_headers(token))
     assert response.status_code == 200
     return response.json()["reviews"]
+
+
+def update_review(client: TestClient, token: str, review_id: str, **overrides) -> dict:
+    response = client.put(
+        url=REVIEWS_URL + f"/{review_id}",
+        json=default_review_update_request(**overrides),
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def default_review_update_request(**overrides) -> dict:
+    request = {
+        "content": "update a content",
+        "is_draft": True,
+        "state": 0,
+    }
+    request.update(overrides)
+    return request
+
+
+def delete_review(client: TestClient, token: str, review_id: str) -> None:
+    response = client.delete(url=REVIEWS_URL + f"/{review_id}", headers=auth_headers(token))
+    assert response.status_code == 204
 
 
 def assert_review_response(review: dict, expected: dict) -> None:

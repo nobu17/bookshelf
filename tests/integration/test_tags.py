@@ -113,56 +113,87 @@ def test_tags_put_delete_denied_as_user():
     ]
 
 
-def test_tags_post_unprocessable():
+def test_tags_post_update_delete_no_authorization():
+    token = auth_as_user(client)
+    resp_json = create_tag(client, token, "Test01")
+
+    post_response = client.post(url=URL_BASE, json={"name": "Test02"})
+    assert post_response.status_code == 401
+
+    put_response = client.put(url=URL_BASE + f"/{resp_json['tag_id']}", json={"name": "Test02"})
+    assert put_response.status_code == 401
+
+    delete_response = client.delete(URL_BASE + f"/{resp_json['tag_id']}")
+    assert delete_response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ["body"],
+    [
+        pytest.param({"nam": "Test01"}, id="incorrect field"),
+        pytest.param({"name": ""}, id="empty name"),
+        pytest.param({"name": "1234567890123456"}, id="over limit"),
+    ],
+)
+def test_tags_post_unprocessable(body: dict):
     # precondition auth as admin user
     token = auth_as_admin(client)
-    # incorrect field
-    post_response = client.post(url=URL_BASE, json={"nam": "Test01"}, headers=auth_headers(token))
+
+    post_response = client.post(url=URL_BASE, json=body, headers=auth_headers(token))
+
     assert post_response.status_code == 422
-    # empty name
-    post_response = client.post(url=URL_BASE, json={"name": ""}, headers=auth_headers(token))
-    assert post_response.status_code == 422
-    # more than 16
-    post_response = client.post(
-        url=URL_BASE, json={"name": "1234567890123456"}, headers=auth_headers(token)
-    )
-    assert post_response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ["body"],
+    [
+        pytest.param({"name": ""}, id="empty name"),
+        pytest.param({"name": "1234567890123456"}, id="over limit"),
+    ],
+)
+def test_tags_put_unprocessable(body: dict):
+    token = auth_as_admin(client)
+    resp_json = create_tag(client, token, "Test01")
+
+    put_response = client.put(url=URL_BASE + f"/{resp_json['tag_id']}", json=body, headers=auth_headers(token))
+
+    assert put_response.status_code == 422
+
+
+def test_tags_deleted_tag_is_hidden_and_same_name_can_be_created_again():
+    token = auth_as_admin(client)
+    first = create_tag(client, token, "Test01")
+    delete_tag(client, token, first["tag_id"])
+
+    second = create_tag(client, token, "Test01")
+
+    assert second["tag_id"] != first["tag_id"]
+    assert get_tags(client) == [{"tag_id": second["tag_id"], "name": "Test01"}]
 
 
 def test_tags_post_conflict_duplicate_name():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
+    post_json1 = create_tag(client, token, "Test0X")
 
     # post duplicated name item
     post_response2 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
     assert post_response2.status_code == 409
 
     # confirm only 1 record
-    get_response = client.get(URL_BASE)
-    assert get_response.status_code == 200
-    assert get_response.json() == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]
+    assert get_tags(client) == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]
 
 
 def test_tags_put_conflict_duplicate_name():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post 2 new items
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test01"}, headers=auth_headers(token))
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
-
-    post_response2 = client.post(url=URL_BASE, json={"name": "Test02"}, headers=auth_headers(token))
-    assert post_response2.status_code == 200
-    post_json2 = post_response2.json()
+    post_json1 = create_tag(client, token, "Test01")
+    post_json2 = create_tag(client, token, "Test02")
 
     # confirm 2 records
-    get_response = client.get(URL_BASE)
-    assert get_response.status_code == 200
-    assert get_response.json() == [
+    assert get_tags(client) == [
         {"tag_id": post_json1["tag_id"], "name": "Test01"},
         {"tag_id": post_json2["tag_id"], "name": "Test02"},
     ]
@@ -176,9 +207,7 @@ def test_tags_put_conflict_duplicate_name():
     assert put_response.status_code == 409
 
     # confirm 2 records are not changed
-    get_response = client.get(URL_BASE)
-    assert get_response.status_code == 200
-    assert get_response.json() == [
+    assert get_tags(client) == [
         {"tag_id": post_json1["tag_id"], "name": "Test01"},
         {"tag_id": post_json2["tag_id"], "name": "Test02"},
     ]
@@ -188,9 +217,7 @@ def test_tags_put_not_exists_id():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
+    post_json1 = create_tag(client, token, "Test0X")
 
     # try to delete another id
     get_response = client.put(
@@ -201,18 +228,14 @@ def test_tags_put_not_exists_id():
     assert get_response.status_code == 404
 
     # confirm only 1 record
-    get_response = client.get(URL_BASE)
-    assert get_response.status_code == 200
-    assert get_response.json() == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]
+    assert get_tags(client) == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]
 
 
 def test_tags_delete_not_exists_id():
     # precondition auth as admin user
     token = auth_as_admin(client)
     # post new item
-    post_response1 = client.post(url=URL_BASE, json={"name": "Test0X"}, headers=auth_headers(token))
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
+    post_json1 = create_tag(client, token, "Test0X")
 
     # try to put another id
     get_response = client.delete(
@@ -221,6 +244,4 @@ def test_tags_delete_not_exists_id():
     assert get_response.status_code == 404
 
     # confirm only 1 record
-    get_response = client.get(URL_BASE)
-    assert get_response.status_code == 200
-    assert get_response.json() == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]
+    assert get_tags(client) == [{"tag_id": post_json1["tag_id"], "name": "Test0X"}]

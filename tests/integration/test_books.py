@@ -13,6 +13,9 @@ from tests.integration.helper import (
     create_initial_accounts,
     create_tags,
     default_book_request,
+    get_book_by_id,
+    get_books_by_isbn13,
+    update_book_tags,
 )
 
 client = TestClient(main.app)
@@ -47,10 +50,41 @@ def test_books_list_isb13_not_exists(database_service):
     assert response.status_code == 404
 
 
+def test_books_get_by_book_id_invalid_id(database_service):
+    response = client.get(URL_BOOK_ID + "/invalid-book-id")
+
+    assert response.status_code == 422
+
+
+def test_books_get_by_book_id_not_exists(database_service):
+    response = client.get(URL_BOOK_ID + "/50f65802-a5db-43cf-9dfc-3d5aea11d5dc")
+
+    assert response.status_code == 404
+
+
 def test_books_create_no_authorized(database_service):
     # post item with no token
     post_response1 = client.post(url=URL_BASE, json=default_book_request(image_url="https://example.com/cover.jpg"))
     assert post_response1.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ["body"],
+    [
+        pytest.param(default_book_request(isbn13="1234"), id="invalid isbn13"),
+        pytest.param(default_book_request(title=""), id="empty title"),
+        pytest.param(default_book_request(title="x" * 101), id="too long title"),
+        pytest.param(default_book_request(publisher=""), id="empty publisher"),
+        pytest.param(default_book_request(authors=[]), id="empty authors"),
+        pytest.param(default_book_request(image_url="x" * 1001), id="too long image url"),
+    ],
+)
+def test_books_create_unprocessable(database_service, body: dict):
+    token = auth_as_user(client)
+
+    response = client.post(url=URL_BASE, json=body, headers=auth_headers(token))
+
+    assert response.status_code == 422
 
 
 def test_books_create_and_get(database_service):
@@ -58,23 +92,17 @@ def test_books_create_and_get(database_service):
     token = auth_as_user(client)
     request_json = default_book_request(image_url="https://example.com/cover.jpg")
     # case1: post item as new
-    post_response1 = client.post(url=URL_BASE, json=request_json, headers=auth_headers(token))
-    assert post_response1.status_code == 200
-    post_json1 = post_response1.json()
+    post_json1 = create_book(client, token, image_url="https://example.com/cover.jpg")
 
     # confirm can get from isbn13
-    get_response1 = client.get(URL_ISBN13 + "/" + post_json1["isbn13"])
-    assert get_response1.status_code == 200
-    get_json1 = get_response1.json()
-    assert len(get_json1["books"]) == 1
-    book1 = get_json1["books"][0]
+    books = get_books_by_isbn13(client, post_json1["isbn13"])
+    assert len(books) == 1
+    book1 = books[0]
     book1_id = book1["book_id"]
     assert_book_response(book1, request_json)
 
     # confirm can get from book_id
-    get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
-    assert get_response1.status_code == 200
-    book1 = get_response1.json()
+    book1 = get_book_by_id(client, book1_id)
     assert_book_response(book1, request_json)
 
     # case2: post same data again
@@ -91,25 +119,12 @@ def test_books_create_defaults_image_url_to_empty(database_service):
     assert book["image_url"] == ""
 
 
-def test_books_create_rejects_too_long_image_url(database_service):
-    token = auth_as_user(client)
-
-    response = client.post(
-        url=URL_BASE,
-        json=default_book_request(image_url="x" * 1001),
-        headers=auth_headers(token),
-    )
-
-    assert response.status_code == 422
-
-
 def test_books_create_same_isbn(database_service):
     # precondition auth as normal user
     token = auth_as_user(client)
     request_json1 = default_book_request()
     # precondition: post item as new
-    post_response1 = client.post(url=URL_BASE, json=request_json1, headers=auth_headers(token))
-    assert post_response1.status_code == 200
+    create_book(client, token)
 
     # create same isbn item with other year publish date
     request_json2 = default_book_request(
@@ -122,25 +137,23 @@ def test_books_create_same_isbn(database_service):
     assert post_response1.status_code == 200
 
     # confirm can get from isbn13
-    get_response1 = client.get(URL_ISBN13 + "/" + "9784814400690")
-    assert get_response1.status_code == 200
-    get_json1 = get_response1.json()
+    books = get_books_by_isbn13(client, "9784814400690")
     # at first assert id exists
-    assert len(get_json1["books"]) == 2
-    book1_id = get_json1["books"][0]["book_id"]
+    assert len(books) == 2
+    book1_id = books[0]["book_id"]
     assert book1_id is not None
 
-    book2_id = get_json1["books"][1]["book_id"]
+    book2_id = books[1]["book_id"]
     assert book2_id is not None
-    assert book1_id is not book2_id
+    assert book1_id != book2_id
 
     # match the data by title due to not ensure the order
-    if get_json1["books"][0]["title"] == "入門 継続的デリバリー":
-        book1 = get_json1["books"][0]
-        book2 = get_json1["books"][1]
-    elif get_json1["books"][0]["title"] == "入門 継続的デリバリー(2)":
-        book2 = get_json1["books"][0]
-        book1 = get_json1["books"][1]
+    if books[0]["title"] == "入門 継続的デリバリー":
+        book1 = books[0]
+        book2 = books[1]
+    elif books[0]["title"] == "入門 継続的デリバリー(2)":
+        book2 = books[0]
+        book1 = books[1]
     else:
         raise ValueError("not expected book response.")
 
@@ -158,52 +171,85 @@ def test_books_update_tags(database_service):
     book1_id = create_book(client, token)["book_id"]
 
     # case1: add tags from 0 tags
-    tag_req = {"book_id": book1_id, "tag_ids": tag_ids}
-    put_response1 = client.put(url=URL_TAGS + "/" + book1_id, json=tag_req, headers=auth_headers(token))
-    assert put_response1.status_code == 200
+    update_book_tags(client, token, book1_id, tag_ids)
 
     # confirm by get from book_id
-    get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
-    assert get_response1.status_code == 200
-    book1 = get_response1.json()
+    book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 3
 
     # case2: remove tags (2 items)
-    tag_req = {"book_id": book1_id, "tag_ids": [tag_ids[0], tag_ids[2]]}
-    put_response1 = client.put(url=URL_TAGS + "/" + book1_id, json=tag_req, headers=auth_headers(token))
-    assert put_response1.status_code == 200
+    update_book_tags(client, token, book1_id, [tag_ids[0], tag_ids[2]])
 
     # confirm by get from book_id
-    get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
-    assert get_response1.status_code == 200
-    book1 = get_response1.json()
+    book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 2
 
     # case3: add tag
-    tag_req = {"book_id": book1_id, "tag_ids": tag_ids}
-    put_response1 = client.put(url=URL_TAGS + "/" + book1_id, json=tag_req, headers=auth_headers(token))
-    assert put_response1.status_code == 200
+    update_book_tags(client, token, book1_id, tag_ids)
 
     # confirm by get from book_id
-    get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
-    assert get_response1.status_code == 200
-    book1 = get_response1.json()
+    book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 3
 
     # case4: remove all
-    tag_req = {"book_id": book1_id, "tag_ids": []}
-    put_response1 = client.put(url=URL_TAGS + "/" + book1_id, json=tag_req, headers=auth_headers(token))
-    assert put_response1.status_code == 200
+    update_book_tags(client, token, book1_id, [])
 
     # confirm by get from book_id
-    get_response1 = client.get(URL_BOOK_ID + "/" + book1_id)
-    assert get_response1.status_code == 200
-    book1 = get_response1.json()
+    book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 0
 
 
-# todo: error parameter case test
+def test_books_update_tags_no_authorization(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+    tag_ids = create_tags(client, token)
+
+    response = client.put(url=URL_TAGS + "/" + book_id, json={"book_id": book_id, "tag_ids": tag_ids})
+
+    assert response.status_code == 401
+
+
+def test_books_update_tags_book_not_exists(database_service):
+    token = auth_as_user(client)
+    tag_ids = create_tags(client, token)
+    not_existed_book_id = "50f65802-a5db-43cf-9dfc-3d5aea11d5dc"
+
+    response = client.put(
+        url=URL_TAGS + "/" + not_existed_book_id,
+        json={"book_id": not_existed_book_id, "tag_ids": tag_ids},
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 404
+
+
+def test_books_update_tags_tag_not_exists(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+
+    response = client.put(
+        url=URL_TAGS + "/" + book_id,
+        json={"book_id": book_id, "tag_ids": ["50f65802-a5db-43cf-9dfc-3d5aea11d5dc"]},
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ["body"],
+    [
+        pytest.param({"book_id": "invalid-book-id", "tag_ids": []}, id="invalid book id"),
+        pytest.param({"book_id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc", "tag_ids": ["invalid-tag-id"]}, id="invalid tag id"),
+    ],
+)
+def test_books_update_tags_unprocessable(database_service, body: dict):
+    token = auth_as_user(client)
+
+    response = client.put(url=URL_TAGS + "/" + body["book_id"], json=body, headers=auth_headers(token))
+
+    assert response.status_code == 422
