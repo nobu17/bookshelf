@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import Depends
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, ConfigDict
 
 from bookshelf_app.api.shared.custom_router import CustomRouter
 from bookshelf_app.api.tags.router import TagResponse
@@ -100,22 +100,21 @@ class BookCreateModel(BookBaseModel):
 
 
 class BookTagUpdateModel(BaseModel):
-    book_id: UUID4
     tag_ids: list[UUID4]
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
             "examples": [
                 {
-                    "book_id": "4b4b6c77-6825-4a2d-8ae9-0d431e8d8d83",
                     "tag_ids": [
                         "4b4b6c77-6825-4a2d-8ae9-0d431e8d8d83",
                         "4b4b6c77-6825-4a2d-8ae9-0d431e8d8d85",
                     ],
                 }
             ]
-        }
-    }
+        },
+    )
 
 
 @router.post("/books", response_model=BookResponse, dependencies=[Depends(get_user_dependency)])
@@ -147,12 +146,13 @@ async def find_book_by_book_id(
     return create_from_model(result)
 
 
-@router.put("/books/tags/{id}", response_model=None, dependencies=[Depends(get_user_dependency)])
+@router.put("/books/tags/{book_id}", response_model=None, dependencies=[Depends(get_user_dependency)])
 async def update_book_tags(
+    book_id: UUID4,
     body: BookTagUpdateModel,
     book_service: BookService = Depends(get_book_service),
 ) -> None:
-    book_service.update_tags(BookTagsUpdateAppModel(**vars(body)))
+    book_service.update_tags(BookTagsUpdateAppModel(book_id=book_id, **vars(body)))
 
 
 def create_from_model(model: BookAppModel) -> BookResponse:

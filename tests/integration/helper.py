@@ -134,7 +134,7 @@ def get_book_by_id(client: TestClient, book_id: str) -> dict:
 def update_book_tags(client: TestClient, token: str, book_id: str, tag_ids: list[str]) -> None:
     response = client.put(
         url=BOOKS_URL + f"/tags/{book_id}",
-        json={"book_id": book_id, "tag_ids": tag_ids},
+        json={"tag_ids": tag_ids},
         headers=auth_headers(token),
     )
     assert response.status_code == 200

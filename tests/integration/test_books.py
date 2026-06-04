@@ -208,7 +208,7 @@ def test_books_update_tags_no_authorization(database_service):
     book_id = create_book(client, token)["book_id"]
     tag_ids = create_tags(client, token)
 
-    response = client.put(url=URL_TAGS + "/" + book_id, json={"book_id": book_id, "tag_ids": tag_ids})
+    response = client.put(url=URL_TAGS + "/" + book_id, json={"tag_ids": tag_ids})
 
     assert response.status_code == 401
 
@@ -220,7 +220,7 @@ def test_books_update_tags_book_not_exists(database_service):
 
     response = client.put(
         url=URL_TAGS + "/" + not_existed_book_id,
-        json={"book_id": not_existed_book_id, "tag_ids": tag_ids},
+        json={"tag_ids": tag_ids},
         headers=auth_headers(token),
     )
 
@@ -233,7 +233,7 @@ def test_books_update_tags_tag_not_exists(database_service):
 
     response = client.put(
         url=URL_TAGS + "/" + book_id,
-        json={"book_id": book_id, "tag_ids": ["50f65802-a5db-43cf-9dfc-3d5aea11d5dc"]},
+        json={"tag_ids": ["50f65802-a5db-43cf-9dfc-3d5aea11d5dc"]},
         headers=auth_headers(token),
     )
 
@@ -243,13 +243,38 @@ def test_books_update_tags_tag_not_exists(database_service):
 @pytest.mark.parametrize(
     ["body"],
     [
-        pytest.param({"book_id": "invalid-book-id", "tag_ids": []}, id="invalid book id"),
-        pytest.param({"book_id": "50f65802-a5db-43cf-9dfc-3d5aea11d5dc", "tag_ids": ["invalid-tag-id"]}, id="invalid tag id"),
+        pytest.param({"tag_ids": ["invalid-tag-id"]}, id="invalid tag id"),
+        pytest.param({"tag_ids": []}, id="invalid path book id"),
     ],
 )
 def test_books_update_tags_unprocessable(database_service, body: dict):
     token = auth_as_user(client)
+    book_id = "invalid-book-id" if body["tag_ids"] == [] else "50f65802-a5db-43cf-9dfc-3d5aea11d5dc"
 
-    response = client.put(url=URL_TAGS + "/" + body["book_id"], json=body, headers=auth_headers(token))
+    response = client.put(url=URL_TAGS + "/" + book_id, json=body, headers=auth_headers(token))
 
     assert response.status_code == 422
+
+
+def test_books_update_tags_rejects_legacy_body_book_id(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+    other_book_id = create_book(
+        client,
+        token,
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )["book_id"]
+    tag_ids = create_tags(client, token)
+
+    response = client.put(
+        url=URL_TAGS + "/" + book_id,
+        json={"book_id": other_book_id, "tag_ids": tag_ids},
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 422
+    assert get_book_by_id(client, book_id)["tags"] == []
+    assert get_book_by_id(client, other_book_id)["tags"] == []
