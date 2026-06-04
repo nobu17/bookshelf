@@ -1,3 +1,10 @@
+// quick dev start / stop
+./scripts/dev.sh
+# stop: Ctrl+C
+
+// DB only stop
+./scripts/down.sh
+
 // activate
 . venv_webapp/bin/activate
 
