@@ -10,13 +10,7 @@ import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import BookReviewCreateFormDialog from "../parts/dialogs/BookReviewCreateFormDialog";
 import { ValidationError } from "../../types/errors";
 import { useAuth } from "../contexts/AuthContext";
-import BooksApi from "../../libs/apis/books";
-import useAuthApi from "../../hooks/UseAuthApi";
-import BookMasterEditFormDialog from "../parts/dialogs/BookMasterEditFormDialog";
-import {
-  BookMasterEditInfo,
-  toBookUpdateParameter,
-} from "../parts/BookMasterEditForm";
+import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
 
 type OneBookReviewsListDialogContainerProps = {
   open: boolean;
@@ -25,8 +19,6 @@ type OneBookReviewsListDialogContainerProps = {
   onEditError?: (error: Error | undefined) => void;
   onError?: (error: Error | undefined) => void;
 };
-
-const bookApi = new BooksApi();
 
 export default function OneBookReviewsListDialogContainer(
   props: OneBookReviewsListDialogContainerProps
@@ -42,7 +34,6 @@ export default function OneBookReviewsListDialogContainer(
     error,
     loadAsync,
   } = useMySpecificBookReviews();
-  useAuthApi(bookApi);
   const {
     state: { isAuthorized },
   } = useAuth();
@@ -51,16 +42,22 @@ export default function OneBookReviewsListDialogContainer(
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Review | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isBookEditOpen, setIsBookEditOpen] = useState(false);
-  const [bookEditError, setBookEditError] = useState<Error | null>(null);
-  const [isBookEditLoading, setIsBookEditLoading] = useState(false);
   const [validationError, setValidationError] =
     useState<ValidationError | null>(null);
   const [createItem, setCreateItem] = useState<ReviewEditInfo | null>(null);
+  const {
+    openBookMasterEditDialog,
+    isBookMasterEditLoading,
+    renderBookMasterEditDialog,
+  } = useBookMasterEditDialog({
+    onUpdated: async () => {
+      await loadAsync();
+    },
+  });
 
   useEffect(() => {
-    setIsSpinnerOn(loading || isBookEditLoading);
-  }, [loading, isBookEditLoading, setIsSpinnerOn]);
+    setIsSpinnerOn(loading || isBookMasterEditLoading);
+  }, [loading, isBookMasterEditLoading, setIsSpinnerOn]);
 
   useEffect(() => {
     setBookId(bookId);
@@ -137,29 +134,7 @@ export default function OneBookReviewsListDialogContainer(
     }
   };
   const handleBookEdit = () => {
-    setBookEditError(null);
-    setIsBookEditOpen(true);
-  };
-  const handleBookEditClose = async (item: BookMasterEditInfo | null) => {
-    if (!item || !bookWithReviews) {
-      setIsBookEditOpen(false);
-      return;
-    }
-    setIsBookEditLoading(true);
-    try {
-      await bookApi.update(bookWithReviews.bookId, toBookUpdateParameter(item));
-      await loadAsync();
-      setBookEditError(null);
-      setIsBookEditOpen(false);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setBookEditError(e);
-        return;
-      }
-      setBookEditError(new Error("unexpected error."));
-    } finally {
-      setIsBookEditLoading(false);
-    }
+    openBookMasterEditDialog(bookWithReviews);
   };
 
   return (
@@ -176,12 +151,6 @@ export default function OneBookReviewsListDialogContainer(
         autoHideDuration={6000}
         message={validationError ? validationError.message : ""}
       />
-      <Snackbar
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        open={bookEditError ? true : false}
-        autoHideDuration={6000}
-        message={bookEditError ? bookEditError.message : ""}
-      />
       <OneBookReviewsListDialog
         open={open}
         bookWithReviews={bookWithReviews}
@@ -192,11 +161,7 @@ export default function OneBookReviewsListDialogContainer(
         onBookEdit={handleBookEdit}
         isBookEditEnabled={isAuthorized}
       />
-      <BookMasterEditFormDialog
-        open={isBookEditOpen}
-        bookInfo={bookWithReviews}
-        onClose={handleBookEditClose}
-      />
+      {renderBookMasterEditDialog()}
       <BookReviewEditFormDialog
         open={isEditOpen}
         editItem={editItem}
