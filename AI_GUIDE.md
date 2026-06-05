@@ -270,6 +270,7 @@ Book with reviews:
 - `src/components/containers/*`: API hook と画面部品の接続
 - `src/components/parts/*`: 表示部品、フォーム、ダイアログなど
 - 書籍マスタ管理画面は `/admin/books`。マイページのadmin用メニューから開く。`BookMastersContainer` が `BooksApi.searchMasters` と `BookMasterDataGrid` を使う。
+- 書籍マスタ管理画面は `MyPageBase` を使い、レビュー編集画面と同じパン屑を表示する。一覧列は編集アイコン、書影、書籍名、タグ、出版日、レビュー数。書籍名とタグは長い場合に省略し、tooltipで全文を確認できる。
 - 書籍マスタ編集UIは `/admin/books`、レビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
 - 書籍マスタ編集フォームには ISBN13 で `/api/book_search` を呼ぶ補助検索があり、候補を選ぶとタイトル・著者・出版社・出版日・書影URLをフォームへ反映する。保存はユーザーが確定ボタンを押すまで行わない。
 
