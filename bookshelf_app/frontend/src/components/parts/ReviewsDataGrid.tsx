@@ -2,19 +2,23 @@ import {
   DataGrid,
   GridColDef,
   GridRenderCellParams,
-  GridRowParams,
 } from "@mui/x-data-grid";
-import { IconButton } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { dateToString } from "../../libs/utils/date";
 import { Review, toJapanese } from "../../types/data";
+import DataGridActionIconButton from "./DataGridActionIconButton";
+import { readonlyDataGridProps } from "../../libs/utils/dataGrid";
 
 type ReviewsDataGridProps = {
   reviews: Review[];
   onEdit?: (review: Review) => void;
   onDelete?: (review: Review) => void;
+};
+
+type ReviewGridRow = Review & {
+  enabled?: boolean;
 };
 
 export default function ReviewsDataGrid(props: ReviewsDataGridProps) {
@@ -47,20 +51,18 @@ export default function ReviewsDataGrid(props: ReviewsDataGridProps) {
       renderCell: (params: GridRenderCellParams) => {
         return (
           <>
-            <IconButton
-              aria-label="edit"
+            <DataGridActionIconButton
+              label="編集"
               color="primary"
+              icon={EditIcon}
               onClick={() => handleEdit(params.row)}
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
+            />
+            <DataGridActionIconButton
+              label="削除"
               color="error"
+              icon={DeleteIcon}
               onClick={() => handleDelete(params.row)}
-            >
-              <DeleteIcon />
-            </IconButton>
+            />
           </>
         );
       },
@@ -83,22 +85,16 @@ export default function ReviewsDataGrid(props: ReviewsDataGridProps) {
   return (
     <>
       <div style={{ maxHeight: 400 }}>
-        <DataGrid
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          isRowSelectable={(_: GridRowParams) => false}
+        <DataGrid<ReviewGridRow>
+          {...readonlyDataGridProps}
           rows={reviews}
           columns={columns}
-          disableColumnFilter={true}
-          disableColumnMenu={true}
-          disableColumnSelector={true}
-          disableDensitySelector={true}
           editMode="row"
           hideFooter
           getRowClassName={(params) =>
             `table-row-enabled--${params.row.enabled}`
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          getRowId={(row: any) => row.reviewId}
+          getRowId={(row: ReviewGridRow) => row.reviewId}
         />
       </div>
     </>

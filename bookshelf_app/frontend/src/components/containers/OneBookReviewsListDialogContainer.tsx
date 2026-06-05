@@ -11,6 +11,7 @@ import BookReviewCreateFormDialog from "../parts/dialogs/BookReviewCreateFormDia
 import { ValidationError } from "../../types/errors";
 import { useAuth } from "../contexts/AuthContext";
 import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
+import { canEditBookMaster } from "../../libs/utils/permissions";
 
 type OneBookReviewsListDialogContainerProps = {
   open: boolean;
@@ -35,7 +36,7 @@ export default function OneBookReviewsListDialogContainer(
     loadAsync,
   } = useMySpecificBookReviews();
   const {
-    state: { isAuthorized },
+    state,
   } = useAuth();
   const { setIsSpinnerOn } = useGlobalSpinnerContext();
   const { showConfirmDialog, renderConfirmDialog } = useConfirmDialog();
@@ -159,7 +160,7 @@ export default function OneBookReviewsListDialogContainer(
         onDelete={handleDelete}
         onAdd={handleAdd}
         onBookEdit={handleBookEdit}
-        isBookEditEnabled={isAuthorized}
+        isBookEditEnabled={canEditBookMaster(state)}
       />
       {renderBookMasterEditDialog()}
       <BookReviewEditFormDialog
@@ -168,7 +169,7 @@ export default function OneBookReviewsListDialogContainer(
         bookInfo={bookWithReviews}
         onClose={handleEditClose}
         onBookEdit={handleBookEdit}
-        isBookEditEnabled={isAuthorized}
+        isBookEditEnabled={canEditBookMaster(state)}
       />
       <BookReviewCreateFormDialog
         open={isCreateOpen}

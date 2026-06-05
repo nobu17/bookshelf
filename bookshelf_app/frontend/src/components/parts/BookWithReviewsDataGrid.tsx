@@ -3,9 +3,8 @@ import {
   GridColDef,
   GridColumnVisibilityModel,
   GridRenderCellParams,
-  GridRowParams,
 } from "@mui/x-data-grid";
-import { IconButton, Link } from "@mui/material";
+import { Link } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -15,6 +14,8 @@ import { FilterCondition, FilterConditionDef } from "../../types/filter";
 import useFilterReviews from "../../hooks/UseFilterReviews";
 import { useEffect, useState } from "react";
 import { dateToString } from "../../libs/utils/date";
+import DataGridActionIconButton from "./DataGridActionIconButton";
+import { readonlyDataGridProps } from "../../libs/utils/dataGrid";
 
 type BookWithReviewsDataGridProps = {
   reviews: BookWithReviews[];
@@ -26,6 +27,10 @@ type BookWithReviewsDataGridProps = {
 type SpecificBookSelectInfo = {
   bookId: string;
   review: Review;
+};
+
+type BookWithReviewsGridRow = BookWithReviews & {
+  enabled?: boolean;
 };
 
 export default function BookWithReviewsDataGrid(
@@ -89,24 +94,22 @@ export default function BookWithReviewsDataGrid(
       renderCell: (params: GridRenderCellParams) => {
         return (
           <>
-            <IconButton
-              aria-label="edit"
+            <DataGridActionIconButton
+              label="編集"
               color="primary"
+              icon={EditIcon}
               onClick={() =>
                 handleEdit(params.row.bookId, params.row.representative)
               }
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
+            />
+            <DataGridActionIconButton
+              label="削除"
               color="error"
+              icon={DeleteIcon}
               onClick={() =>
                 handleDelete(params.row.bookId, params.row.representative)
               }
-            >
-              <DeleteIcon />
-            </IconButton>
+            />
           </>
         );
       },
@@ -158,22 +161,16 @@ export default function BookWithReviewsDataGrid(
         onSelectionChanged={handleFilterStateChange}
       ></FilterStateSelect>
       <div style={{ height: 600 }}>
-        <DataGrid
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          isRowSelectable={(_: GridRowParams) => false}
+        <DataGrid<BookWithReviewsGridRow>
+          {...readonlyDataGridProps}
           rows={filtered?.filtered}
           columns={columns}
-          disableColumnFilter={true}
-          disableColumnMenu={true}
-          disableColumnSelector={true}
-          disableDensitySelector={true}
           editMode="row"
           hideFooter
           getRowClassName={(params) =>
             `table-row-enabled--${params.row.enabled}`
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          getRowId={(row: any) => row.bookId}
+          getRowId={(row: BookWithReviewsGridRow) => row.bookId}
           columnVisibilityModel={columnVisibilityModel}
           onColumnVisibilityModelChange={(newModel) =>
             setColumnVisibilityModel(newModel)

@@ -10,6 +10,7 @@ import {
   updateReview,
 } from "../libs/services/reviewCreateWorkflow";
 import { ValidationError } from "../types/errors";
+import { toError } from "../libs/utils/error";
 
 const api = new BookWithMyReviewsApi();
 const reviewApi = new ReviewsApi();
@@ -58,7 +59,7 @@ export default function useMySpecificBookReviews() {
         setError(e);
         return null;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
       return null;
     } finally {
       setLoading(false);
@@ -86,7 +87,7 @@ export default function useMySpecificBookReviews() {
         setError(e);
         return null;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
       return null;
     } finally {
       setLoading(false);
@@ -109,7 +110,7 @@ export default function useMySpecificBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }
@@ -131,7 +132,7 @@ export default function useMySpecificBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

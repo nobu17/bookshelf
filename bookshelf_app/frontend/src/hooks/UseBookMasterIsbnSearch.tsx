@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import BookSearchApi from "../libs/apis/bookSearch";
+import { toError } from "../libs/utils/error";
 import { BookSearchResult } from "../types/bookSearch";
 
 const bookSearchApi = new BookSearchApi();
@@ -19,11 +20,7 @@ export default function useBookMasterIsbnSearch() {
       setResults(res.data.books);
       setIsDialogOpen(true);
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setIsSearching(false);
     }

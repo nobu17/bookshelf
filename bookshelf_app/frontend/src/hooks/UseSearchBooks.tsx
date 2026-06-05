@@ -7,6 +7,7 @@ import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import useAuthApi from "./UseAuthApi";
 import { BookWithReviews } from "../types/data";
 import BookSearchApi from "../libs/apis/bookSearch";
+import { toError } from "../libs/utils/error";
 
 const api = new BookWithMyReviewsApi();
 const bookSearchApi = new BookSearchApi();
@@ -34,11 +35,7 @@ export default function useSearchBooks() {
       );
       setBooks(aggregated);
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("Unexpected error:" + typeof e));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }
@@ -57,11 +54,7 @@ export default function useSearchBooks() {
       );
       setBooks(aggregated);
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("Unexpected error:" + typeof e));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

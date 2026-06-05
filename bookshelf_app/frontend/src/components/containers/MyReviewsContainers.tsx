@@ -18,6 +18,7 @@ import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
 import { useAuth } from "../contexts/AuthContext";
 import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
+import { canEditBookMaster } from "../../libs/utils/permissions";
 
 export default function MyReviewsContainer() {
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function MyReviewsContainer() {
   const { bookWithReviews, updateAsync, deleteAsync, loadAsync, error, loading } =
     useMyBookReviews();
   const {
-    state: { isAuthorized },
+    state,
   } = useAuth();
   const { openBookMasterEditDialog, renderBookMasterEditDialog } =
     useBookMasterEditDialog({
@@ -139,7 +140,7 @@ export default function MyReviewsContainer() {
         bookInfo={book}
         onClose={handleEditClose}
         onBookEdit={handleBookEdit}
-        isBookEditEnabled={isAuthorized}
+        isBookEditEnabled={canEditBookMaster(state)}
       />
       {renderBookMasterEditDialog()}
       <OneBookReviewsListDialogContainer

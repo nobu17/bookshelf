@@ -14,6 +14,7 @@ import { BookMasterInfo } from "../../types/data";
 import ErrorAlert from "../parts/ErrorAlert";
 import BookMasterDataGrid from "../parts/BookMasterDataGrid";
 import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
+import { toError } from "../../libs/utils/error";
 
 const bookApi = new BooksApi();
 
@@ -44,11 +45,7 @@ export default function BookMastersContainer() {
       setBooks(res.data.books);
       setError(null);
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

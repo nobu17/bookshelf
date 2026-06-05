@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BookWithReviewsApi from "../libs/apis/bookWithReviews";
 import { BookWithReviews } from "../types/data";
 import { ApiError } from "../libs/apis/apibase";
+import { toError } from "../libs/utils/error";
 
 const api = new BookWithReviewsApi();
 
@@ -32,7 +33,7 @@ export default function useLatestBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

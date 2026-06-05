@@ -9,6 +9,7 @@ import BookReviewDialog from "../parts/dialogs/BookReviewDialog";
 import { BookWithReviews } from "../../types/data";
 import { useAuth } from "../contexts/AuthContext";
 import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
+import { canEditBookMaster } from "../../libs/utils/permissions";
 
 type DialogState = {
   open: boolean;
@@ -24,7 +25,7 @@ export default function LatestBookReviewsContainer() {
   const [dialogState, setDialogState] = useState<DialogState>(initialState);
   const { bookWithReviews, error, loading, loadAsync } = useLatestBookReviews();
   const {
-    state: { isAuthorized },
+    state,
   } = useAuth();
   const { openBookMasterEditDialog, renderBookMasterEditDialog } =
     useBookMasterEditDialog({
@@ -59,7 +60,7 @@ export default function LatestBookReviewsContainer() {
         {...dialogState}
         onClose={handleClosed}
         onBookEdit={handleBookEdit}
-        isBookEditEnabled={isAuthorized}
+        isBookEditEnabled={canEditBookMaster(state)}
       />
       {renderBookMasterEditDialog()}
     </>

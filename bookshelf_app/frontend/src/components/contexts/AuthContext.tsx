@@ -9,7 +9,7 @@ import {
 } from "../../libs/services/authStorage";
 import { UserToken } from "../../types/data";
 
-type AuthState = {
+export type AuthState = {
   isAuthorized: boolean;
   isAdmin: boolean;
   userId: string;

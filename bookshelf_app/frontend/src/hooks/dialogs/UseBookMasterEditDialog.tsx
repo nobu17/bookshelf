@@ -9,6 +9,7 @@ import {
   BookMasterEditInfo,
   toBookUpdateParameter,
 } from "../../components/parts/BookMasterEditForm";
+import { toError } from "../../libs/utils/error";
 
 type UseBookMasterEditDialogOptions = {
   onUpdated?: (book: BookInfo) => Promise<void> | void;
@@ -48,11 +49,7 @@ export default function useBookMasterEditDialog(
       setError(null);
       setEditBook(null);
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e);
-        return;
-      }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

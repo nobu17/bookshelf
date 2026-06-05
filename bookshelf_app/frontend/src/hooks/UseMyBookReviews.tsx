@@ -5,6 +5,7 @@ import { ApiError } from "../libs/apis/apibase";
 import useAuthApi from "./UseAuthApi";
 import ReviewsApi from "../libs/apis/reviews";
 import { updateReview } from "../libs/services/reviewCreateWorkflow";
+import { toError } from "../libs/utils/error";
 
 const api = new BookWithMyReviewsApi();
 const reviewApi = new ReviewsApi();
@@ -38,7 +39,7 @@ export default function useMyBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ export default function useMyBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,7 @@ export default function useMyBookReviews() {
         setError(e);
         return;
       }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { ReviewEditInfo } from "../components/parts/BookReviewEditForm";
 import { creteNewBookAndReview } from "../libs/services/reviewCreateWorkflow";
 import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import { ValidationError } from "../types/errors";
+import { toError } from "../libs/utils/error";
 
 const booksApi = new BooksApi();
 const reviewsApi = new ReviewsApi();
@@ -39,11 +40,7 @@ export default function useBookAndReviewCreate() {
         setError(undefined);
         return e;
       }
-      if (e instanceof Error) {
-        setError(e);
-        return null;
-      }
-      setError(new Error("unexpected error."));
+      setError(toError(e));
       return null;
     } finally {
       setLoading(false);

@@ -1,10 +1,12 @@
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from "@mui/x-data-grid";
-import { Box, IconButton, Link, Tooltip, Typography } from "@mui/material";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { Box, Link, Tooltip, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 
 import { BookMasterInfo } from "../../types/data";
 import { dateToString } from "../../libs/utils/date";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
+import DataGridActionIconButton from "./DataGridActionIconButton";
+import { readonlyDataGridProps } from "../../libs/utils/dataGrid";
 
 type BookMasterDataGridProps = {
   books: BookMasterInfo[];
@@ -20,11 +22,12 @@ export default function BookMasterDataGrid(props: BookMasterDataGridProps) {
       width: 72,
       sortable: false,
       renderCell: (params: GridRenderCellParams<BookMasterInfo>) => (
-        <Tooltip title="編集">
-          <IconButton aria-label="edit" color="primary" onClick={() => onEdit(params.row)}>
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
+        <DataGridActionIconButton
+          label="編集"
+          color="primary"
+          icon={EditIcon}
+          onClick={() => onEdit(params.row)}
+        />
       ),
     },
     {
@@ -105,14 +108,11 @@ export default function BookMasterDataGrid(props: BookMasterDataGridProps) {
   return (
     <div style={{ height: 640 }}>
       <DataGrid
-        isRowSelectable={(_: GridRowParams) => false}
+        {...readonlyDataGridProps}
         rows={books}
         columns={columns}
         getRowId={(row) => row.bookId}
         rowHeight={88}
-        disableColumnFilter
-        disableColumnMenu
-        disableDensitySelector
       />
     </div>
   );
