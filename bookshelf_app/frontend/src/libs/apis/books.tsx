@@ -1,8 +1,17 @@
-import { BookInfo, BookTag } from "../../types/data";
+import { BookInfo, BookMasterInfo, BookTag } from "../../types/data";
 import { dateToString, toDate } from "../utils/date";
 import ApiBase, { ApiResponse } from "./apibase";
 
 export default class BooksApi extends ApiBase {
+  async searchMasters(
+    keyword: string,
+    maxCount = 100
+  ): Promise<ApiResponse<BookMasterFindResponse>> {
+    const res = await this.getAsync<ApiBookMasterFindResponse>(
+      `/books?keyword=${encodeURIComponent(keyword)}&max_count=${maxCount}`
+    );
+    return { data: convertToBookMasterFindResponse(res.data) };
+  }
   async findByIsbn13(isbn13: string): Promise<ApiResponse<BookFindResponse>> {
     const res = await this.getAsync<ApiBookFindResponse>(
       `/books/isbn13/${isbn13}`
@@ -38,6 +47,14 @@ type ApiBookFindResponse = {
   books: ApiBookInfo[];
 };
 
+type BookMasterFindResponse = {
+  books: BookMasterInfo[];
+};
+
+type ApiBookMasterFindResponse = {
+  books: ApiBookMasterInfo[];
+};
+
 type BookCreateResponse = BookInfo & {};
 
 type BookUpdateResponse = BookInfo & {};
@@ -53,10 +70,20 @@ type ApiBookInfo = {
   tags: BookTag[];
 };
 
+type ApiBookMasterInfo = ApiBookInfo & {
+  review_count: number;
+};
+
 const convertToBookFindResponse = (
   info: ApiBookFindResponse
 ): BookFindResponse => {
   return { books: info.books.map((x) => convertTotBookInfo(x)) };
+};
+
+const convertToBookMasterFindResponse = (
+  info: ApiBookMasterFindResponse
+): BookMasterFindResponse => {
+  return { books: info.books.map((x) => convertToBookMasterInfo(x)) };
 };
 
 const convertTiBookCreateResponse = (info: ApiBookInfo): BookCreateResponse => {
@@ -77,6 +104,13 @@ const convertTotBookInfo = (info: ApiBookInfo): BookInfo => {
     publishedAt: toDate(info.published_at),
     imageUrl: info.image_url || null,
     tags: info.tags,
+  };
+};
+
+const convertToBookMasterInfo = (info: ApiBookMasterInfo): BookMasterInfo => {
+  return {
+    ...convertTotBookInfo(info),
+    reviewCount: info.review_count,
   };
 };
 

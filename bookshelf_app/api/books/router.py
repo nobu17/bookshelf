@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import UUID4, BaseModel, ConfigDict
 
 from bookshelf_app.api.shared.custom_router import CustomRouter
@@ -10,6 +10,8 @@ from bookshelf_app.infra.dependencies import get_admin_dependency, get_book_serv
 from .service import (
     BookAppModel,
     BookCreateAppModel,
+    BookMasterAppModel,
+    BookMasterSearchAppModel,
     BookSearchBookIdAppModel,
     BookSearchIsbn13AppModel,
     BookService,
@@ -84,6 +86,14 @@ class BooksResponse(BaseModel):
     }
 
 
+class BookMasterResponse(BookResponse):
+    review_count: int
+
+
+class BookMastersResponse(BaseModel):
+    books: list[BookMasterResponse]
+
+
 class BookCreateModel(BookBaseModel):
     model_config = {
         "json_schema_extra": {
@@ -134,6 +144,16 @@ class BookTagUpdateModel(BaseModel):
             ]
         },
     )
+
+
+@router.get("/books", response_model=BookMastersResponse, dependencies=[Depends(get_admin_dependency)])
+async def search_book_masters(
+    keyword: str = "",
+    max_count: int = Query(default=100, ge=1, le=500),
+    book_service: BookService = Depends(get_book_service),
+) -> BookMastersResponse:
+    results = book_service.search_masters(BookMasterSearchAppModel(keyword=keyword, max_count=max_count))
+    return BookMastersResponse(books=[create_master_from_model(result) for result in results])
 
 
 @router.post("/books", response_model=BookResponse, dependencies=[Depends(get_user_dependency)])
@@ -198,3 +218,8 @@ def create_from_model(model: BookAppModel) -> BookResponse:
         authors=model.authors,
         tags=tags,
     )
+
+
+def create_master_from_model(model: BookMasterAppModel) -> BookMasterResponse:
+    base = create_from_model(model)
+    return BookMasterResponse(**vars(base), review_count=model.review_count)

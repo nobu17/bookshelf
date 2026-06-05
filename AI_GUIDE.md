@@ -103,6 +103,7 @@ test_env/                         pytest-docker 用 PostgreSQL
 - 書籍更新時は `book_id` で対象が確定しているため、検索結果用の同一扱いや作成時の重複登録防止ロジックを流用しない。
 - 書籍作成時の tags は空。タグ付けは `/api/books/tags/{book_id}` で更新する。
 - 書籍マスタ更新は `/api/books/{book_id}` で行う。現状は admin 権限必須。レビュー編集フローでは書籍マスタを変更しない。
+- 書籍マスタ管理一覧は `GET /api/books?keyword=&max_count=100`。admin 権限必須。全書籍マスタを対象にし、title / author / publisher / isbn13 の部分一致と `review_count` を返す。
 
 注意:
 
@@ -193,6 +194,7 @@ Auth:
 
 Books:
 
+- `GET /api/books?keyword=&max_count=100` admin required
 - `POST /api/books` auth required
 - `GET /api/books/isbn13/{isbn13}`
 - `GET /api/books/book_id/{book_id}`
@@ -267,7 +269,8 @@ Book with reviews:
 - `src/pages/*`: ページ単位
 - `src/components/containers/*`: API hook と画面部品の接続
 - `src/components/parts/*`: 表示部品、フォーム、ダイアログなど
-- 書籍マスタ編集UIはレビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
+- 書籍マスタ管理画面は `/admin/books`。マイページのadmin用メニューから開く。`BookMastersContainer` が `BooksApi.searchMasters` と `BookMasterDataGrid` を使う。
+- 書籍マスタ編集UIは `/admin/books`、レビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
 - 書籍マスタ編集フォームには ISBN13 で `/api/book_search` を呼ぶ補助検索があり、候補を選ぶとタイトル・著者・出版社・出版日・書影URLをフォームへ反映する。保存はユーザーが確定ボタンを押すまで行わない。
 
 ルーティング:

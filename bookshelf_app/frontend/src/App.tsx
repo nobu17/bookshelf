@@ -22,6 +22,7 @@ import MyHome from "./pages/mypage/MyHome";
 import SignOut from "./pages/auth/SignOut";
 import MyReviews from "./pages/mypage/MyReviews";
 import BookSearch from "./pages/mypage/BookSearch";
+import BookMasters from "./pages/admin/BookMasters";
 
 let theme = createTheme({
   typography: {
@@ -57,6 +58,7 @@ function App() {
                       path="/mypage/book/search"
                       element={<BookSearch />}
                     />
+                    <Route path="/admin/books" element={<BookMasters />} />
                     <Route path="/auth/signin" element={<SignIn />} />
                     <Route path="/auth/signout" element={<SignOut />} />
                     <Route path="/reviews/user/:id" element={<UserReviews />} />

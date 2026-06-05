@@ -31,6 +31,21 @@ class BookAppModel:
         self.image_url = book_domain.image_url.get_value()
 
 
+@dataclass(frozen=False)
+class BookMasterAppModel(BookAppModel):
+    review_count: int
+
+    def __init__(self, book_domain: Book, review_count: int):
+        super().__init__(book_domain)
+        self.review_count = review_count
+
+
+@dataclass(frozen=True)
+class BookMasterSearchAppModel:
+    keyword: str = ""
+    max_count: int = 100
+
+
 @dataclass(frozen=True)
 class BookCreateAppModel:
     isbn13: str
@@ -83,6 +98,11 @@ class BookService:
         self._book_repos = book_repos
         self._book_factory = BookFactory(book_repos)
         self._tag_repos = tag_repos
+
+    def search_masters(self, model: BookMasterSearchAppModel) -> list[BookMasterAppModel]:
+        max_count = min(max(model.max_count, 1), 500)
+        books = self._book_repos.search_masters(model.keyword.strip(), max_count)
+        return [BookMasterAppModel(book, review_count) for book, review_count in books]
 
     def list_by_isbn13(self, model: BookSearchIsbn13AppModel) -> list[BookAppModel]:
         isbn13 = ISBN13(model.isbn13)

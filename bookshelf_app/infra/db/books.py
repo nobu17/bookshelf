@@ -2,7 +2,7 @@ from datetime import date
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import Column, Date, ForeignKey, String, Table, Uuid, delete, select
+from sqlalchemy import Column, Date, ForeignKey, String, Table, Uuid, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, Session, joinedload, mapped_column, relationship
 
@@ -20,6 +20,7 @@ from bookshelf_app.api.books.domain import (
 from bookshelf_app.infra.db.database import Base
 
 from .tags import TagDTO
+from .reviews import BookReviewDTO
 
 # note for a Core table, we use the sqlalchemy.Column construct,
 # not sqlalchemy.orm.mapped_column
@@ -141,6 +142,47 @@ class SqlBookRepository(IBookRepository):
 
     def __init__(self, session: Session):
         self._session = session
+
+    def search_masters(self, keyword: str, max_count: int) -> list[tuple[Book, int]]:
+        book_ids_stmt = (
+            select(BookDTO.book_id)
+            .join(BookDTO.publisher)
+            .outerjoin(BookDTO.authors)
+            .group_by(BookDTO.book_id, BookDTO.title)
+            .order_by(BookDTO.title)
+            .limit(max_count)
+        )
+        if keyword:
+            like_keyword = f"%{keyword}%"
+            book_ids_stmt = book_ids_stmt.where(
+                or_(
+                    BookDTO.title.ilike(like_keyword),
+                    BookDTO.isbn13.ilike(like_keyword),
+                    PublisherDTO.name.ilike(like_keyword),
+                    AuthorDTO.name.ilike(like_keyword),
+                )
+            )
+
+        book_ids = list(self._session.scalars(book_ids_stmt).all())
+        if not book_ids:
+            return []
+
+        review_counts = (
+            select(BookReviewDTO.book_id, func.count(BookReviewDTO.review_id).label("review_count"))
+            .where(BookReviewDTO.is_deleted.is_(False))
+            .where(BookReviewDTO.book_id.in_(book_ids))
+            .group_by(BookReviewDTO.book_id)
+            .subquery()
+        )
+        stmt = (
+            select(BookDTO, func.coalesce(review_counts.c.review_count, 0))
+            .outerjoin(review_counts, BookDTO.book_id == review_counts.c.book_id)
+            .where(BookDTO.book_id.in_(book_ids))
+            .options(joinedload(BookDTO.authors), joinedload(BookDTO.publisher), joinedload(BookDTO.tags))
+            .order_by(BookDTO.title)
+        )
+        results = self._session.execute(stmt).unique().all()
+        return [(book.to_domain_model(), review_count) for book, review_count in results]
 
     def find_by_isbn13(self, isbn13: ISBN13) -> list[Book]:
         stmt = (

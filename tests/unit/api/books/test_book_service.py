@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from bookshelf_app.api.books.domain import Author, Authors, Book, BookImageUrl, BookTitle, ISBN13, Publisher, Tags
-from bookshelf_app.api.books.service import BookService, BookUpdateAppModel
+from bookshelf_app.api.books.service import BookMasterSearchAppModel, BookService, BookUpdateAppModel
 from bookshelf_app.api.shared.errors import DataNotFoundError
 
 
@@ -81,10 +81,31 @@ def test_book_update_not_found():
         )
 
 
+def test_book_search_masters_trims_keyword_and_caps_max_count():
+    book = create_book()
+    book_repos = FakeBookRepository([book])
+    service = BookService(book_repos, FakeTagRepository())
+
+    actual = service.search_masters(BookMasterSearchAppModel(keyword=" 入門 ", max_count=999))
+
+    assert len(actual) == 1
+    assert actual[0].book_id == book.book_id
+    assert actual[0].review_count == 3
+    assert book_repos.search_keyword == "入門"
+    assert book_repos.search_max_count == 500
+
+
 class FakeBookRepository:
     def __init__(self, books: list[Book]):
         self.books = {book.book_id: book for book in books}
         self.updated: Book | None = None
+        self.search_keyword: str | None = None
+        self.search_max_count: int | None = None
+
+    def search_masters(self, keyword: str, max_count: int) -> list[tuple[Book, int]]:
+        self.search_keyword = keyword
+        self.search_max_count = max_count
+        return [(book, 3) for book in self.books.values()]
 
     def find_by_isbn13(self, isbn13: ISBN13) -> list[Book]:
         return [book for book in self.books.values() if book.isbn13 == isbn13]

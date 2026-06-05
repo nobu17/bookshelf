@@ -12,6 +12,7 @@ from tests.integration.helper import (
     auth_headers,
     create_book,
     create_initial_accounts,
+    create_review,
     create_tags,
     default_book_request,
     get_book_by_id,
@@ -161,6 +162,69 @@ def test_books_create_same_isbn(database_service):
 
     assert_book_response(book1, request_json1)
     assert_book_response(book2, request_json2)
+
+
+def test_books_search_masters_as_admin(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    book1 = create_book(client, user_token)
+    book2 = create_book(
+        client,
+        user_token,
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        publisher="オライリージャパン",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )
+    create_review(client, user_token, book1["book_id"])
+    create_review(client, user_token, book1["book_id"], state=2, completed_at="2024-01-10T00:00:00+09:00")
+
+    response = client.get(url=URL_BASE, headers=auth_headers(admin_token))
+
+    assert response.status_code == 200
+    books = response.json()["books"]
+    assert {book["book_id"] for book in books} == {book1["book_id"], book2["book_id"]}
+    book1_response = next(book for book in books if book["book_id"] == book1["book_id"])
+    book2_response = next(book for book in books if book["book_id"] == book2["book_id"])
+    assert book1_response["review_count"] == 2
+    assert book2_response["review_count"] == 0
+
+
+def test_books_search_masters_filters_by_keyword(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    create_book(client, user_token)
+    target = create_book(
+        client,
+        user_token,
+        isbn13="9784814400973",
+        title="クリーンコードクックブック",
+        publisher="オライリージャパン",
+        authors=["著者A"],
+        published_at="2024-01-10",
+    )
+
+    response = client.get(url=URL_BASE + "?keyword=著者A", headers=auth_headers(admin_token))
+
+    assert response.status_code == 200
+    books = response.json()["books"]
+    assert len(books) == 1
+    assert books[0]["book_id"] == target["book_id"]
+
+
+def test_books_search_masters_no_authorization(database_service):
+    response = client.get(url=URL_BASE)
+
+    assert response.status_code == 401
+
+
+def test_books_search_masters_denied_as_user(database_service):
+    token = auth_as_user(client)
+
+    response = client.get(url=URL_BASE, headers=auth_headers(token))
+
+    assert response.status_code == 403
 
 
 def test_books_update_master_by_book_id(database_service):

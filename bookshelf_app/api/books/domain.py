@@ -162,6 +162,10 @@ class Book:
 
 class IBookRepository(metaclass=abc.ABCMeta):
     @abc.abstractmethod
+    def search_masters(self, keyword: str, max_count: int) -> list[tuple[Book, int]]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def find_by_isbn13(self, isbn13: ISBN13) -> list[Book]:
         raise NotImplementedError()
 

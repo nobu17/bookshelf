@@ -9,6 +9,10 @@ export type BookInfo = {
   tags: BookTag[];
 };
 
+export type BookMasterInfo = BookInfo & {
+  reviewCount: number;
+};
+
 export type BookTag = {
   id: string;
   name: string;
