@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosError } from "axios";
 import Config from "../utils/config";
 
@@ -45,7 +43,7 @@ export default class ApiBase {
   constructor(
     protected _baseUrl: string = "",
     protected _timeOut: number = 0,
-    protected _headers: any = null
+    protected _headers: Record<string, string> | null = null
   ) {
     if (this._baseUrl === "") {
       this._baseUrl = Config.apiRoot;
@@ -79,7 +77,7 @@ export default class ApiBase {
 
   getAsync<T>(
     url: string,
-    converter?: (data: any) => ApiResponse<T>
+    converter?: (data: unknown) => ApiResponse<T>
   ): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
@@ -101,7 +99,7 @@ export default class ApiBase {
     });
   }
 
-  postAsync<T>(url: string, param: any): Promise<ApiResponse<T>> {
+  postAsync<T>(url: string, param: unknown): Promise<ApiResponse<T>> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
@@ -119,13 +117,13 @@ export default class ApiBase {
     });
   }
 
-  putAsync(url: string, param: any): Promise<void> {
+  putAsync(url: string, param: unknown): Promise<void> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
       this._api
         .put(reqUrl, json)
-        .then((_) => {
+        .then(() => {
           resolve();
         })
         .catch((error) => {
@@ -134,7 +132,10 @@ export default class ApiBase {
     });
   }
 
-  putAsyncWithResponse<T>(url: string, param: any): Promise<ApiResponse<T>> {
+  putAsyncWithResponse<T>(
+    url: string,
+    param: unknown
+  ): Promise<ApiResponse<T>> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
       const reqUrl = this._baseUrl + url;
@@ -154,7 +155,7 @@ export default class ApiBase {
       const reqUrl = this._baseUrl + url;
       this._api
         .delete(reqUrl)
-        .then((_) => {
+        .then(() => {
           resolve();
         })
         .catch((error) => {
@@ -164,7 +165,7 @@ export default class ApiBase {
   }
 }
 
-export const convertError = (error: any): ApiError => {
+export const convertError = (error: unknown): ApiError => {
   if (isAxiosError(error)) {
     const message =
       typeof error.response?.data === "string" ? error.response?.data : "";
@@ -174,11 +175,12 @@ export const convertError = (error: any): ApiError => {
       message
     );
   }
-  return new ApiError(error, 0, "");
+  const wrapped = error instanceof Error ? error : new Error("unexpected error.");
+  return new ApiError(wrapped, 0, "");
 };
 
-const isAxiosError = (error: any): error is AxiosError => {
-  return !!error.isAxiosError;
+const isAxiosError = (error: unknown): error is AxiosError => {
+  return axios.isAxiosError(error);
 };
 
 export interface Api {

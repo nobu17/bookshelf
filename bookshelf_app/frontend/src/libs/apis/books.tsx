@@ -1,6 +1,7 @@
-import { BookInfo, BookMasterInfo, BookTag } from "../../types/data";
+import { BookInfo, BookMasterInfo } from "../../types/data";
 import { dateToString, toDate } from "../utils/date";
 import ApiBase, { ApiResponse } from "./apibase";
+import { ApiBookTag, convertToBookTags } from "./bookTags";
 
 export default class BooksApi extends ApiBase {
   async searchMasters(
@@ -67,7 +68,7 @@ type ApiBookInfo = {
   authors: string[];
   published_at: string;
   image_url: string;
-  tags: BookTag[];
+  tags: ApiBookTag[];
 };
 
 type ApiBookMasterInfo = ApiBookInfo & {
@@ -103,7 +104,7 @@ const convertToBookInfo = (info: ApiBookInfo): BookInfo => {
     authors: info.authors,
     publishedAt: toDate(info.published_at),
     imageUrl: info.image_url || null,
-    tags: info.tags,
+    tags: convertToBookTags(info.tags),
   };
 };
 

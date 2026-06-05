@@ -7,6 +7,7 @@ import {
   ReviewUser,
 } from "../../types/data";
 import { toDate } from "../utils/date";
+import { ApiBookTag, convertToBookTags } from "./bookTags";
 
 type BooksWithResponse = {
   books_with_reviews: BookWithReviews[];
@@ -76,6 +77,7 @@ const adjust = (data: ApiBookWithReviews): BookWithReviews => {
   adjusted.bookId = data.book_id;
   adjusted.publishedAt = toDate(data.published_at);
   adjusted.imageUrl = data.image_url || null;
+  adjusted.tags = convertToBookTags(data.tags);
   adjusted.reviews = data.reviews.map((x) => {
     const rev: Review = { ...x };
     rev.reviewId = x.review_id;
@@ -96,6 +98,7 @@ type ApiBookInfo = BookInfo & {
   book_id: string;
   published_at: string;
   image_url: string;
+  tags: ApiBookTag[];
 };
 
 type ApiReview = Review & {

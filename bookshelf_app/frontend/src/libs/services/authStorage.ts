@@ -28,9 +28,13 @@ export const restoreAuth = (): UserToken | null => {
   return null;
 };
 
-const globalCache: { auth: UserToken | null } =
-  (// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any)._authCache ??= { auth: null });
+type AuthCacheGlobal = typeof globalThis & {
+  _authCache?: { auth: UserToken | null };
+};
+
+const globalCache = ((globalThis as AuthCacheGlobal)._authCache ??= {
+  auth: null,
+});
 
 export const getCurrentAuth = (): UserToken | null => {
   return globalCache.auth;

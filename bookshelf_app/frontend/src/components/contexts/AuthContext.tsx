@@ -41,9 +41,7 @@ export function useAuth(): ContextType {
   return useContext(AuthContext);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const AuthErrors = ["Normal", "Unexpected"] as const;
-type AuthErrorDef = (typeof AuthErrors)[number];
+type AuthErrorDef = "Normal" | "Unexpected";
 export type AuthError = AuthErrorDef | null;
 
 const api = new AuthApi();
