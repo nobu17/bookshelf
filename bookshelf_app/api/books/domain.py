@@ -105,7 +105,7 @@ class Tags:
         pass  # currently allow empty
 
     def get_values(self) -> list[Tag]:
-        return [Tag(x.name) for x in self._values]
+        return [x.copy() for x in self._values]
 
 
 class Book:

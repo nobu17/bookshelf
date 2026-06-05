@@ -243,4 +243,6 @@ def test_tags_correct(values: list[str]):
     index = 0
     for x in actual:
         assert x.name == values[index]
+        assert x.tag_id == val[index].tag_id
+        assert x is not val[index]
         index += 1

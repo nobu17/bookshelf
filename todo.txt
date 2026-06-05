@@ -5,3 +5,7 @@
 - Phase 2: When Google Books and openBD both return data, prefer openBD per field only when that field is usable; Google Books may still be better for cover images.
 - Phase 2: Continue using January 1 for incomplete published dates.
 - Phase 2: Show a friendly quota/rate-limit message such as "Please wait a while and try again."
+- Frontend refactor: split AuthContext/GlobalSpinnerContext provider and hook/export files to remove react-refresh eslint-disable comments.
+- Frontend refactor: investigate Vite chunk size warning; consider route-level dynamic imports or manualChunks.
+- Frontend refactor: consider API client factory or hook-scoped API instances if module-scope `new XxxApi()` makes auth/testing harder.
+- Frontend tests: add small unit tests for `toError`, `convertToBookTag(s)`, `canEditBookMaster`, and `bookMasterEdit` converters.

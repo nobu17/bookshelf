@@ -63,6 +63,16 @@ test_env/                         pytest-docker 用 PostgreSQL
 - 永続化方式やクエリ変更は `infra/db/*.py` に閉じる。
 - DBスキーマ変更は Alembic migration を追加する。
 
+DDD / Domain Object 方針:
+
+- Domain層はDB取得やORM都合を直接表現しない。DB DTOとの変換は `infra/db/*` に閉じる。
+- Entity は ID を持つため、値だけで再生成しない。既存 Entity を外へ返す場合は ID を保持した `copy()` / reconstruct 系の振る舞いを使う。
+- Value Object は値が同じなら同一扱いできるため、必要に応じて値から再生成してよい。
+- `create_for_orm` は DTO から Domain を復元する用途に限定する。通常の Domain 処理では `copy()` などドメイン語彙のメソッドを使う。
+- Collection Object の `get_values()` は内部リストを直接返さず、外部変更を避けるためコピーを返す。ただし Entity の場合は ID を保持する。
+- API response 用の変換は service / app model / router 側で行い、Domain Object にレスポンス都合を持ち込まない。
+- 例: `Tag` は `tag_id` を持つ Entity なので、`Tags.get_values()` で `Tag(name)` と再生成してはいけない。`Tag.copy()` のように ID を保持する。
+
 ## Key Domain Rules
 
 ### Auth
@@ -269,6 +279,9 @@ Book with reviews:
 - `src/pages/*`: ページ単位
 - `src/components/containers/*`: API hook と画面部品の接続
 - `src/components/parts/*`: 表示部品、フォーム、ダイアログなど
+- 書籍マスタ編集フォームの入力値変換は `src/libs/services/bookMasterEdit.ts` に集約する。UI component から保存用API parameterへの変換を直接持たせない。
+- 書籍・レビュー付き書籍APIでは API response 型とフロント内部型を分け、snake_case/camelCase 変換を API client 内に閉じる。
+- 書籍タグはフロント内部では `BookTag { id, name }` に正規化する。API response の `id` / `tag_id` 揺れは `src/libs/apis/bookTags.ts` で吸収する。
 - 書籍マスタ管理画面は `/admin/books`。マイページのadmin用メニューから開く。`BookMastersContainer` が `BooksApi.searchMasters` と `BookMasterDataGrid` を使う。
 - 書籍マスタ管理画面は `MyPageBase` を使い、レビュー編集画面と同じパン屑を表示する。一覧列は編集アイコン、書影、書籍名、タグ、出版日、レビュー数。書籍名とタグは長い場合に省略し、tooltipで全文を確認できる。
 - 書籍マスタ編集UIは `/admin/books`、レビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
@@ -310,7 +323,7 @@ API設定:
 注意:
 
 - `vite.config.ts` の dev server proxy は `/books` のみだが、実際の API は `/api/...`。ローカル開発でAPI rootを使わない場合は proxy 設定の見直しが必要。
-- `BookTag` 型は `{ id, name }` だがバックエンドの通常レスポンスは `{ tag_id, name }`。一部変換で未調整の箇所があるため、タグ表示変更時は API client と型を確認する。
+- `BookTag` は `src/libs/apis/bookTags.ts` で `id` / `tag_id` を吸収している。タグ編集など新しいタグAPIを追加する場合もこの変換を使う。
 - openBD は現状 ISBN fallback 用。キーワード検索は Google Books が担当する。
 
 ## Environment Variables
@@ -424,6 +437,8 @@ AI作業ルール:
 - バックエンドを変更した場合、AIエージェントは原則として影響する integration test も追加または更新する。
 - バックエンド変更後に integration test を実行せずに完了報告してはいけない。少なくとも `ENV_FILE=.env.test PYTHONPATH=. ./venv_webapp/bin/pytest -q tests/integration` を実行する。
 - DB schema、repository、API request/response を変更した場合は、migration と integration test の整合性を必ず確認する。
+- Entity を含む domain / API response / round trip のテストでは、表示名や件数だけでなく Entity ID が保持されることを確認する。例: `Tag` は `name` だけでなく `tag_id` も assert する。
+- Collection Object が Entity を返す場合は、コピーであることと ID が維持されることを unit test で確認する。
 - 外部APIに依存する処理の unit test では実通信せず、fake、monkeypatch、mock などを使う。
 - テストを実行できない場合は、理由と未検証範囲を final response に明記する。
 
@@ -485,6 +500,9 @@ ENV_FILE=.env.test PYTHONPATH=. ./venv_webapp/bin/pytest -q tests/integration
 - OAuth2 docs の token URL が実ルートとずれている。
 - フロントの Vite proxy は実 API prefix とずれている。
 - API response の tag key は `tag_id` と `id` の混在に注意。
+- フロントの `AuthContext.tsx` / `GlobalSpinnerContext.tsx` は `react-refresh/only-export-components` の eslint-disable が残っている。解消するなら Context provider と hook/export をファイル分割する。
+- frontend build で Vite の chunk size warning が出る。機能追加が進んだら route 単位の dynamic import や manualChunks を検討する。
+- フロント API instance は module scope で `new XxxApi()` している箇所が多い。認証ヘッダ更新やテスト容易性で困ったら hook 内生成または factory 化を検討する。
 
 ## High-Value Files To Read First
 

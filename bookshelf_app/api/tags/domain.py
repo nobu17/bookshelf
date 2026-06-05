@@ -20,6 +20,9 @@ class Tag:
         instance.tag_id = tag_id
         return instance
 
+    def copy(self) -> Self:
+        return self.create_for_orm(self.tag_id, self.name)
+
     def _validate(self):
         if not self.name:
             raise DomainValidationError(self.__class__.__name__, "name is empty")

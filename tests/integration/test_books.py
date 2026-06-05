@@ -247,7 +247,9 @@ def test_books_update_master_by_book_id(database_service):
 
     assert_book_response(updated, request_json)
     assert {tag["name"] for tag in updated["tags"]} == {"Tag1", "Tag2", "Tag3"}
+    assert_tag_ids(updated["tags"], tag_ids)
     assert_book_response(get_book_by_id(client, book_id), request_json)
+    assert_tag_ids(get_book_by_id(client, book_id)["tags"], tag_ids)
 
 
 def test_books_update_master_no_authorization(database_service):
@@ -344,6 +346,7 @@ def test_books_update_tags(database_service):
     book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 3
+    assert_tag_ids(tags, tag_ids)
 
     # case2: remove tags (2 items)
     update_book_tags(client, token, book1_id, [tag_ids[0], tag_ids[2]])
@@ -352,6 +355,7 @@ def test_books_update_tags(database_service):
     book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 2
+    assert_tag_ids(tags, [tag_ids[0], tag_ids[2]])
 
     # case3: add tag
     update_book_tags(client, token, book1_id, tag_ids)
@@ -360,6 +364,7 @@ def test_books_update_tags(database_service):
     book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 3
+    assert_tag_ids(tags, tag_ids)
 
     # case4: remove all
     update_book_tags(client, token, book1_id, [])
@@ -368,6 +373,10 @@ def test_books_update_tags(database_service):
     book1 = get_book_by_id(client, book1_id)
     tags = book1["tags"]
     assert len(tags) == 0
+
+
+def assert_tag_ids(tags: list[dict], expected_tag_ids: list[str]) -> None:
+    assert {tag["tag_id"] for tag in tags} == set(expected_tag_ids)
 
 
 def test_books_update_tags_no_authorization(database_service):

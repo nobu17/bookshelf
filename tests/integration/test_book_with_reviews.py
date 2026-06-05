@@ -67,11 +67,12 @@ def test_books_list_with_reviews(database_service):
     for url, headers in cases:
         response = client.get(url, headers=headers)
         assert response.status_code == 200
-        _assert_books_with_reviews_response(response.json(), request_json)
+        _assert_books_with_reviews_response(response.json(), request_json, tag_ids)
 
     response = client.get(URL_WITH_REVIEW_FOR_EDIT_BOOK_ID + "/" + book1_id, headers=auth_headers(token))
     assert response.status_code == 200
     assert_book_response(response.json(), request_json)
+    assert_tag_ids(response.json()["tags"], tag_ids)
 
 
 def test_book_with_reviews_public_endpoints_exclude_draft_and_for_edit_includes_it(database_service):
@@ -155,6 +156,14 @@ def test_book_with_reviews_me_does_not_include_other_user_reviews(database_servi
     assert [book["book_id"] for book in books] == [user_book["book_id"]]
 
 
-def _assert_books_with_reviews_response(body: dict, expected_book: dict) -> None:
+def _assert_books_with_reviews_response(
+    body: dict, expected_book: dict, expected_tag_ids: list[str] | None = None
+) -> None:
     assert len(body["books_with_reviews"]) == 1
     assert_book_response(body["books_with_reviews"][0], expected_book)
+    if expected_tag_ids is not None:
+        assert_tag_ids(body["books_with_reviews"][0]["tags"], expected_tag_ids)
+
+
+def assert_tag_ids(tags: list[dict], expected_tag_ids: list[str]) -> None:
+    assert {tag["tag_id"] for tag in tags} == set(expected_tag_ids)
