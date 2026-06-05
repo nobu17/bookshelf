@@ -3,7 +3,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Button,
   IconButton,
   Stack,
   Tooltip,
@@ -90,15 +89,14 @@ export default function OneBookReviewsListDialog(
         >
           {isBookEditEnabled ? (
             <Tooltip title="書籍マスタ編集">
-              <Button
+              <IconButton
                 aria-label="book-edit"
-                variant="outlined"
+                color="primary"
                 size="small"
-                startIcon={<EditIcon />}
                 onClick={handleBookEdit}
               >
-                書籍マスタ
-              </Button>
+                <EditIcon />
+              </IconButton>
             </Tooltip>
           ) : (
             <></>

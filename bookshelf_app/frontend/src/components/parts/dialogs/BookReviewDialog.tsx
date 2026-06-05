@@ -9,6 +9,7 @@ import {
   Stack,
   Card,
   CardContent,
+  IconButton,
   Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
@@ -56,16 +57,15 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
         {book.title}
         {isBookEditEnabled ? (
           <Tooltip title="書籍マスタ編集">
-            <Button
+            <IconButton
               aria-label="book-edit"
+              color="primary"
               onClick={handleBookEdit}
-              variant="outlined"
               size="small"
-              startIcon={<EditIcon />}
               sx={{ position: "absolute", right: 8, top: 8 }}
             >
-              書籍マスタ
-            </Button>
+              <EditIcon />
+            </IconButton>
           </Tooltip>
         ) : (
           <></>

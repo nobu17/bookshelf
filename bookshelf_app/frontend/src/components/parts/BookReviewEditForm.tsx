@@ -8,7 +8,8 @@ import {
   Divider,
   Typography,
   Box,
-  Button,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 
@@ -108,13 +109,15 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
             出版年：{dateToString(bookInfo.publishedAt)}
           </Typography>
           {isBookEditEnabled ? (
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={handleBookEdit}
-            >
-              書籍マスタ
-            </Button>
+            <Tooltip title="書籍マスタ編集">
+              <IconButton
+                aria-label="book-edit"
+                color="primary"
+                onClick={handleBookEdit}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
           ) : (
             <></>
           )}
