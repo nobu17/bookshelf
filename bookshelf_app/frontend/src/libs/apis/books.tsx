@@ -25,7 +25,7 @@ export default class BooksApi extends ApiBase {
       `/books`,
       convertToApiBookCreateParameter(createBook)
     );
-    return { data: convertTiBookCreateResponse(res.data) };
+    return { data: convertToBookCreateResponse(res.data) };
   }
   async update(
     bookId: string,
@@ -35,7 +35,7 @@ export default class BooksApi extends ApiBase {
       `/books/${bookId}`,
       convertToApiBookUpdateParameter(updateBook)
     );
-    return { data: convertTiBookUpdateResponse(res.data) };
+    return { data: convertToBookUpdateResponse(res.data) };
   }
 }
 
@@ -77,7 +77,7 @@ type ApiBookMasterInfo = ApiBookInfo & {
 const convertToBookFindResponse = (
   info: ApiBookFindResponse
 ): BookFindResponse => {
-  return { books: info.books.map((x) => convertTotBookInfo(x)) };
+  return { books: info.books.map((x) => convertToBookInfo(x)) };
 };
 
 const convertToBookMasterFindResponse = (
@@ -86,15 +86,15 @@ const convertToBookMasterFindResponse = (
   return { books: info.books.map((x) => convertToBookMasterInfo(x)) };
 };
 
-const convertTiBookCreateResponse = (info: ApiBookInfo): BookCreateResponse => {
-  return convertTotBookInfo(info);
+const convertToBookCreateResponse = (info: ApiBookInfo): BookCreateResponse => {
+  return convertToBookInfo(info);
 };
 
-const convertTiBookUpdateResponse = (info: ApiBookInfo): BookUpdateResponse => {
-  return convertTotBookInfo(info);
+const convertToBookUpdateResponse = (info: ApiBookInfo): BookUpdateResponse => {
+  return convertToBookInfo(info);
 };
 
-const convertTotBookInfo = (info: ApiBookInfo): BookInfo => {
+const convertToBookInfo = (info: ApiBookInfo): BookInfo => {
   return {
     bookId: info.book_id,
     isbn13: info.isbn13,
@@ -109,7 +109,7 @@ const convertTotBookInfo = (info: ApiBookInfo): BookInfo => {
 
 const convertToBookMasterInfo = (info: ApiBookMasterInfo): BookMasterInfo => {
   return {
-    ...convertTotBookInfo(info),
+    ...convertToBookInfo(info),
     reviewCount: info.review_count,
   };
 };

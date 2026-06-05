@@ -2,39 +2,29 @@ import { Controller, useForm } from "react-hook-form";
 import {
   Box,
   Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  CardMedia,
   Container,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   Divider,
   Snackbar,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import SearchIcon from "@mui/icons-material/Search";
-import { useState } from "react";
 
 import { BookInfo } from "../../types/data";
 import { dateToString } from "../../libs/utils/date";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import SubmitButtons from "./SubmitButtons";
-import BookSearchApi from "../../libs/apis/bookSearch";
 import { BookSearchResult } from "../../types/bookSearch";
+import useBookMasterIsbnSearch from "../../hooks/UseBookMasterIsbnSearch";
+import BookMasterSearchResultDialog from "./dialogs/BookMasterSearchResultDialog";
 
 type BookMasterEditFormProps = {
   bookInfo: BookInfo;
   onSubmit: (book: BookMasterEditInfo) => void;
   onCancel: () => void;
 };
-
-const bookSearchApi = new BookSearchApi();
 
 export type BookMasterEditInfo = {
   isbn13: string;
@@ -82,30 +72,20 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
   } = useForm<BookMasterEditInfo>({
     defaultValues: toBookMasterEditInfo(bookInfo),
   });
-  const [searchResults, setSearchResults] = useState<BookSearchResult[]>([]);
-  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<Error | null>(null);
+  const {
+    results: searchResults,
+    isDialogOpen: isSearchDialogOpen,
+    isSearching,
+    error: searchError,
+    searchByIsbn,
+    closeDialog: closeSearchDialog,
+  } = useBookMasterIsbnSearch();
 
   const imageUrl = watch("imageUrl");
   const isbn13 = watch("isbn13");
   const previewBook = { ...bookInfo, imageUrl: imageUrl || null };
   const handleSearchByIsbn = async () => {
-    setIsSearching(true);
-    try {
-      setSearchError(null);
-      const res = await bookSearchApi.search(isbn13);
-      setSearchResults(res.data.books);
-      setIsSearchDialogOpen(true);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setSearchError(e);
-        return;
-      }
-      setSearchError(new Error("unexpected error."));
-    } finally {
-      setIsSearching(false);
-    }
+    await searchByIsbn(isbn13);
   };
   const handleSelectSearchResult = (book: BookSearchResult) => {
     setValue("isbn13", book.isbn13);
@@ -114,7 +94,7 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
     setValue("authorsText", book.authors.join("\n"));
     setValue("publishedAt", book.publishedAt);
     setValue("imageUrl", book.imageUrl || "");
-    setIsSearchDialogOpen(false);
+    closeSearchDialog();
   };
 
   return (
@@ -216,50 +196,12 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
         />
         <SubmitButtons onSubmit={handleSubmit(onSubmit)} onCancel={onCancel} />
       </Stack>
-      <Dialog
+      <BookMasterSearchResultDialog
         open={isSearchDialogOpen}
-        onClose={() => setIsSearchDialogOpen(false)}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle>検索結果</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2}>
-            {searchResults.length === 0 ? (
-              <Typography>候補が見つかりませんでした。</Typography>
-            ) : (
-              searchResults.map((book) => (
-                <Card key={`${book.source}:${book.sourceId}`}>
-                  <CardActionArea onClick={() => handleSelectSearchResult(book)}>
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                      <CardMedia
-                        component="img"
-                        sx={{
-                          width: { xs: "100%", sm: 120 },
-                          height: 180,
-                          objectFit: "contain",
-                          p: 1,
-                        }}
-                        image={book.imageUrl || getFallbackImageUrl()}
-                        onError={(e) => {
-                          e.currentTarget.src = getFallbackImageUrl();
-                        }}
-                      />
-                      <CardContent>
-                        <Typography fontWeight="bold">{book.title}</Typography>
-                        <Typography>ISBN13: {book.isbn13}</Typography>
-                        <Typography>出版社: {book.publisher}</Typography>
-                        <Typography>著者: {book.authors.join(", ")}</Typography>
-                        <Typography>出版日: {dateToString(book.publishedAt)}</Typography>
-                      </CardContent>
-                    </Stack>
-                  </CardActionArea>
-                </Card>
-              ))
-            )}
-          </Stack>
-        </DialogContent>
-      </Dialog>
+        books={searchResults}
+        onSelect={handleSelectSearchResult}
+        onClose={closeSearchDialog}
+      />
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={searchError ? true : false}
