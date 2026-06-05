@@ -4,7 +4,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 
 import { BookInfo } from "../../../types/data";
-import BookMasterEditForm, { BookMasterEditInfo } from "../BookMasterEditForm";
+import { BookMasterEditInfo } from "../../../libs/services/bookMasterEdit";
+import BookMasterEditForm from "../BookMasterEditForm";
 
 type BookMasterEditFormDialogProps = {
   bookInfo: BookInfo | null;

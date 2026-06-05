@@ -3,7 +3,7 @@ import { ApiResponse } from "./apibase";
 import {
   BookWithReviews,
   Review,
-  BookInfo,
+  ReviewState,
   ReviewUser,
 } from "../../types/data";
 import { toDate } from "../utils/date";
@@ -73,43 +73,62 @@ const convert_specific_user = (
 };
 
 const adjust = (data: ApiBookWithReviews): BookWithReviews => {
-  const adjusted: BookWithReviews = { ...data };
-  adjusted.bookId = data.book_id;
-  adjusted.publishedAt = toDate(data.published_at);
-  adjusted.imageUrl = data.image_url || null;
-  adjusted.tags = convertToBookTags(data.tags);
-  adjusted.reviews = data.reviews.map((x) => {
-    const rev: Review = { ...x };
-    rev.reviewId = x.review_id;
-    rev.isDraft = x.is_draft;
-    rev.completedAt = x.completed_at ? toDate(x.completed_at) : null;
-    rev.lastModifiedAt = toDate(x.last_modified_at);
-
-    const user: ReviewUser = { ...x.user };
-    user.userId = (x.user as ApiReviewUser).user_id;
-    rev.user = user;
-    return rev;
-  });
-
-  return adjusted;
+  return {
+    bookId: data.book_id,
+    isbn13: data.isbn13,
+    title: data.title,
+    publisher: data.publisher,
+    authors: data.authors,
+    publishedAt: toDate(data.published_at),
+    imageUrl: data.image_url || null,
+    tags: convertToBookTags(data.tags),
+    reviews: data.reviews.map((review) => convertToReview(review)),
+  };
 };
 
-type ApiBookInfo = BookInfo & {
+const convertToReview = (review: ApiReview): Review => {
+  return {
+    reviewId: review.review_id,
+    content: review.content,
+    isDraft: review.is_draft,
+    state: review.state,
+    completedAt: review.completed_at ? toDate(review.completed_at) : null,
+    lastModifiedAt: toDate(review.last_modified_at),
+    user: convertToReviewUser(review.user),
+  };
+};
+
+const convertToReviewUser = (user: ApiReviewUser): ReviewUser => {
+  return {
+    userId: user.user_id,
+    name: user.name,
+  };
+};
+
+type ApiBookInfo = {
   book_id: string;
+  isbn13: string;
+  title: string;
+  publisher: string;
+  authors: string[];
   published_at: string;
-  image_url: string;
+  image_url: string | null;
   tags: ApiBookTag[];
 };
 
-type ApiReview = Review & {
+type ApiReview = {
   review_id: string;
+  content: string;
   is_draft: boolean;
+  state: ReviewState;
   completed_at: string | null;
   last_modified_at: string;
+  user: ApiReviewUser;
 };
 
-export type ApiReviewUser = ReviewUser & {
+export type ApiReviewUser = {
   user_id: string;
+  name: string;
 };
 
 type ApiBookWithReviews = ApiBookInfo & {

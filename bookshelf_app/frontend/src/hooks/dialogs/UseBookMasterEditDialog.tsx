@@ -8,7 +8,7 @@ import BookMasterEditFormDialog from "../../components/parts/dialogs/BookMasterE
 import {
   BookMasterEditInfo,
   toBookUpdateParameter,
-} from "../../components/parts/BookMasterEditForm";
+} from "../../libs/services/bookMasterEdit";
 import { toError } from "../../libs/utils/error";
 
 type UseBookMasterEditDialogOptions = {
