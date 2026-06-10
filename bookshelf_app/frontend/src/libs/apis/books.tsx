@@ -38,6 +38,9 @@ export default class BooksApi extends ApiBase {
     );
     return { data: convertToBookUpdateResponse(res.data) };
   }
+  async updateTags(bookId: string, tagIds: string[]): Promise<void> {
+    await this.putAsync(`/books/tags/${bookId}`, { tag_ids: tagIds });
+  }
 }
 
 type BookFindResponse = {

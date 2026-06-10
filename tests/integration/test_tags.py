@@ -81,6 +81,14 @@ def test_tags_post_successfully_as_user():
     ]
 
 
+def test_tags_post_trims_name():
+    token = auth_as_user(client)
+
+    resp_json = create_tag(client, token, "  Test01  ")
+
+    assert get_tags(client) == [{"tag_id": resp_json["tag_id"], "name": "Test01"}]
+
+
 def test_tags_put_delete_denied_as_user():
     # precondition auth as normal user
     token = auth_as_user(client)

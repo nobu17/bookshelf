@@ -8,6 +8,7 @@ export type BookMasterEditInfo = {
   authorsText: string;
   publishedAt: Date;
   imageUrl: string;
+  tagNames: string[];
 };
 
 export const toBookMasterEditInfo = (book: BookInfo): BookMasterEditInfo => {
@@ -18,6 +19,7 @@ export const toBookMasterEditInfo = (book: BookInfo): BookMasterEditInfo => {
     authorsText: book.authors.join("\n"),
     publishedAt: book.publishedAt,
     imageUrl: book.imageUrl || "",
+    tagNames: book.tags.map((tag) => tag.name),
   };
 };
 

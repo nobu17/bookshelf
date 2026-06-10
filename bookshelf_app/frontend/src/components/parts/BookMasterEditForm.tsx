@@ -23,6 +23,7 @@ import {
   BookMasterEditInfo,
   toBookMasterEditInfo,
 } from "../../libs/services/bookMasterEdit";
+import BookTagEditor from "./BookTagEditor";
 
 type BookMasterEditFormProps = {
   bookInfo: BookInfo;
@@ -53,6 +54,7 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
 
   const imageUrl = watch("imageUrl");
   const isbn13 = watch("isbn13");
+  const tagNames = watch("tagNames");
   const previewBook = { ...bookInfo, imageUrl: imageUrl || null };
   const handleSearchByIsbn = async () => {
     await searchByIsbn(isbn13);
@@ -163,6 +165,11 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
           })}
           error={Boolean(errors.imageUrl)}
           helperText={errors.imageUrl?.message}
+        />
+        <BookTagEditor
+          bookInfo={previewBook}
+          value={tagNames}
+          onChange={(newTagNames) => setValue("tagNames", newTagNames)}
         />
         <SubmitButtons onSubmit={handleSubmit(onSubmit)} onCancel={onCancel} />
       </Stack>

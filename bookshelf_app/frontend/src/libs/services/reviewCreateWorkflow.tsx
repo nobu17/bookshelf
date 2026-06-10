@@ -1,34 +1,44 @@
 import { ReviewEditInfo } from "../../components/parts/BookReviewEditForm";
-import { Review, ReviewStateDef, toJapanese } from "../../types/data";
+import { BookInfo, Review, ReviewStateDef, toJapanese } from "../../types/data";
 import { ValidationError } from "../../types/errors";
 import { ApiError } from "../apis/apibase";
 import BooksApi, { BookCreateParameter } from "../apis/books";
 import { BookWithMyReviewsApi } from "../apis/bookWithReviews";
 import ReviewsApi from "../apis/reviews";
+import TagsApi from "../apis/tags";
+import { mergeBookTagsByNames } from "./bookTags";
 
 export const creteNewBookAndReview = async (
   bookApi: BooksApi,
   reviewApi: ReviewsApi,
   bookReviewApi: BookWithMyReviewsApi,
+  tagsApi: TagsApi,
   createBook: BookCreateParameter,
-  createReview: ReviewEditInfo
+  createReview: ReviewEditInfo,
+  tagNames: string[] = []
 ) => {
   // only when book info not exists, need to create
-  let bookId = await fetchBookId(bookApi, createBook.isbn13);
-  if (!bookId) {
-    const book = await bookApi.create(createBook);
-    bookId = book.data.bookId;
+  let book = await fetchBook(bookApi, createBook.isbn13);
+  if (!book) {
+    book = (await bookApi.create(createBook)).data;
   }
   const validateError = await validateNewReview(
     bookReviewApi,
-    bookId,
+    book.bookId,
     createReview
   );
   if (validateError !== null) {
     throw validateError;
   }
+  await mergeBookTagsByNames(
+    bookApi,
+    tagsApi,
+    book.bookId,
+    book.tags,
+    tagNames
+  );
   // attach book Id to review
-  const createReviewInfo = { ...createReview, bookId: bookId };
+  const createReviewInfo = { ...createReview, bookId: book.bookId };
   await reviewApi.createReview(createReviewInfo);
 };
 
@@ -69,10 +79,10 @@ export const updateReview = async (
   await reviewApi.updateReview(reviewId, updateReview);
 };
 
-const fetchBookId = async (
+const fetchBook = async (
   bookApi: BooksApi,
   isbn13: string
-): Promise<string | null> => {
+): Promise<BookInfo | null> => {
   try {
     // if can api call correctly, means that book is exists
     const res = await bookApi.findByIsbn13(isbn13);
@@ -80,7 +90,7 @@ const fetchBookId = async (
     if (res.data.books.length === 0) {
       return null;
     }
-    return res.data.books[0].bookId;
+    return res.data.books[0];
   } catch (e: unknown) {
     // if not found, return 404
     if (e instanceof ApiError) {

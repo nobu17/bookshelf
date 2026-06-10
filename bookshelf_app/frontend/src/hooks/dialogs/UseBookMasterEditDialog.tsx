@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Snackbar } from "@mui/material";
 
 import BooksApi from "../../libs/apis/books";
+import TagsApi from "../../libs/apis/tags";
 import useAuthApi from "../UseAuthApi";
 import { BookInfo } from "../../types/data";
 import BookMasterEditFormDialog from "../../components/parts/dialogs/BookMasterEditFormDialog";
@@ -9,6 +10,7 @@ import {
   BookMasterEditInfo,
   toBookUpdateParameter,
 } from "../../libs/services/bookMasterEdit";
+import { updateBookTagsByNames } from "../../libs/services/bookTags";
 import { toError } from "../../libs/utils/error";
 
 type UseBookMasterEditDialogOptions = {
@@ -16,12 +18,14 @@ type UseBookMasterEditDialogOptions = {
 };
 
 const bookApi = new BooksApi();
+const tagsApi = new TagsApi();
 
 export default function useBookMasterEditDialog(
   options: UseBookMasterEditDialogOptions = {}
 ) {
   const { onUpdated } = options;
   useAuthApi(bookApi);
+  useAuthApi(tagsApi);
   const [editBook, setEditBook] = useState<BookInfo | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,7 +49,13 @@ export default function useBookMasterEditDialog(
         editBook.bookId,
         toBookUpdateParameter(item)
       );
-      await onUpdated?.(updated.data);
+      const tags = await updateBookTagsByNames(
+        bookApi,
+        tagsApi,
+        editBook.bookId,
+        item.tagNames
+      );
+      await onUpdated?.({ ...updated.data, tags });
       setError(null);
       setEditBook(null);
     } catch (e: unknown) {

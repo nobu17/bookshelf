@@ -7,6 +7,7 @@ import styles from "./BookCard.module.css";
 import { BookWithReviews } from "../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import BookCardRibbon from "./BookCardRibbon";
+import BookTagChips from "./BookTagChips";
 
 type BookCardProps = {
   book: BookWithReviews;
@@ -27,6 +28,7 @@ export default function BookCard(props: BookCardProps) {
         sx={{
           justifyContent: "center",
           alignItems: "center",
+          pb: book.tags.length > 0 ? 1 : 0,
         }}
         onClick={() => onSelect(bookId)}
       >
@@ -48,7 +50,7 @@ export default function BookCard(props: BookCardProps) {
         >
           <Typography
             sx={{
-              mb: 2,
+              mb: book.tags.length > 0 ? 0.75 : 2,
               fontWeight: "bold",
               wordBreak: "break-word",
               maxWidth: 200,
@@ -57,6 +59,7 @@ export default function BookCard(props: BookCardProps) {
             {title}
           </Typography>
         </Box>
+        <BookTagChips tags={book.tags} maxVisible={3} />
       </Stack>
     </>
   );

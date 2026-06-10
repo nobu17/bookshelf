@@ -7,21 +7,25 @@ import { creteNewBookAndReview } from "../libs/services/reviewCreateWorkflow";
 import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import { ValidationError } from "../types/errors";
 import { toError } from "../libs/utils/error";
+import TagsApi from "../libs/apis/tags";
 
 const booksApi = new BooksApi();
 const reviewsApi = new ReviewsApi();
 const bookReviewApi = new BookWithMyReviewsApi();
+const tagsApi = new TagsApi();
 
 export default function useBookAndReviewCreate() {
   useAuthApi(booksApi);
   useAuthApi(reviewsApi);
   useAuthApi(bookReviewApi);
+  useAuthApi(tagsApi);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(false);
 
   const createAsync = async (
     createBook: BookCreateParameter,
-    createReview: ReviewEditInfo
+    createReview: ReviewEditInfo,
+    tagNames: string[] = []
   ) : Promise<ValidationError | null> => {
     setError(undefined);
     setLoading(true);
@@ -30,8 +34,10 @@ export default function useBookAndReviewCreate() {
         booksApi,
         reviewsApi,
         bookReviewApi,
+        tagsApi,
         createBook,
-        createReview
+        createReview,
+        tagNames
       );
       return null;
     } catch (e: unknown) {

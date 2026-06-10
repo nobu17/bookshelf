@@ -21,7 +21,7 @@ import { DatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { dateToString } from "../../libs/utils/date";
 
 dayjs.extend(utc);
@@ -43,6 +43,7 @@ type BookReviewEditFormProps = {
   onCancel: () => void;
   onBookEdit?: () => void;
   isBookEditEnabled?: boolean;
+  bookActionContent?: ReactNode;
 };
 
 export type ReviewEditInfo = {
@@ -60,6 +61,7 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
     onCancel,
     onBookEdit,
     isBookEditEnabled,
+    bookActionContent,
   } = props;
   const {
     register,
@@ -129,6 +131,7 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
               e.currentTarget.src = getFallbackImageUrl();
             }}
           />
+          {bookActionContent}
           <Divider />
           <TextField
             label="感想, レビュー"

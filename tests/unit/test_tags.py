@@ -114,6 +114,16 @@ def test_tags_post_successfully_as_user():
     ]
 
 
+def test_tags_post_trims_name():
+    token = auth_as_user(client)
+
+    resp_json = client.post(url=URL_BASE, json={"name": "  Test01  "}, headers=auth_headers(token)).json()
+
+    get_response = client.get(URL_BASE)
+    assert get_response.status_code == 200
+    assert get_response.json() == [{"tag_id": resp_json["tag_id"], "name": "Test01"}]
+
+
 def test_tags_put_delete_denied_as_user():
     # precondition auth as normal user
     token = auth_as_user(client)

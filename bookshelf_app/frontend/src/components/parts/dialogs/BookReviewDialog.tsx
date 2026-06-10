@@ -19,6 +19,7 @@ import { BookWithReviews, Review, toJapanese } from "../../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/image";
 import { dateToString } from "../../../libs/utils/date";
 import LineBreakText from "../LineBreakText";
+import BookTagChips from "../BookTagChips";
 
 export type BookReviewDialogProps = {
   open: boolean;
@@ -102,6 +103,9 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
                 <Typography sx={{ mb: 1 }}>
                   出版日: {dateToString(book.publishedAt)}
                 </Typography>
+                <Box sx={{ mb: 1 }}>
+                  <BookTagChips tags={book.tags} />
+                </Box>
                 {book.reviews.map((r) => {
                   return ReviewCard(r);
                 })}

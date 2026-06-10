@@ -10,7 +10,7 @@ class Tag:
     name: str
 
     def __init__(self, name: str):
-        self.name = name
+        self.name = name.strip()
         self.tag_id = uuid.uuid4()
         self._validate()
 
@@ -36,7 +36,7 @@ class Tag:
         return self.tag_id == tag.tag_id
 
     def update_name(self, name: str):
-        self.name = name
+        self.name = name.strip()
         self._validate()
 
 

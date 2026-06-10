@@ -43,14 +43,17 @@ export default function BookReviewCreateFormDialogContainers(
     return "";
   };
 
-  const handleClose = async (item: ReviewEditInfo | null) => {
+  const handleClose = async (
+    item: ReviewEditInfo | null,
+    tagNames: string[] = []
+  ) => {
     setValidationError(null);
     // cancel or unexpected
     if (!item || !bookInfo) {
       props.onClose(item);
       return;
     }
-    const validationErr = await createAsync(bookInfo, item);
+    const validationErr = await createAsync(bookInfo, item, tagNames);
     setValidationError(validationErr);
     if (validationErr) {
       // dialog not close when validation error
