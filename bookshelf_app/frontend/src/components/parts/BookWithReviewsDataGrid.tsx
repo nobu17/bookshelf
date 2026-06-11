@@ -4,7 +4,7 @@ import {
   GridColumnVisibilityModel,
   GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { Link } from "@mui/material";
+import { Box, Link } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -155,11 +155,13 @@ export default function BookWithReviewsDataGrid(
 
   return (
     <>
-      <FilterStateSelect
-        label="表示条件"
-        value={condition}
-        onSelectionChanged={handleFilterStateChange}
-      ></FilterStateSelect>
+      <Box sx={{ mb: 2 }}>
+        <FilterStateSelect
+          label="表示条件"
+          value={condition}
+          onSelectionChanged={handleFilterStateChange}
+        ></FilterStateSelect>
+      </Box>
       <div style={{ height: 600 }}>
         <DataGrid<BookWithReviewsGridRow>
           {...readonlyDataGridProps}

@@ -37,6 +37,7 @@ export default function BookCardsDisplayOptions(
         sx={{
           justifyContent: "center",
           alignItems: "center",
+          mb: 2,
         }}
       >
         <FormGroup row={true}>
