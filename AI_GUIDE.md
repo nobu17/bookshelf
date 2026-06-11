@@ -286,6 +286,10 @@ Book with reviews:
 - 書籍マスタ管理画面は `MyPageBase` を使い、レビュー編集画面と同じパン屑を表示する。一覧列は編集アイコン、書影、書籍名、タグ、出版日、レビュー数。書籍名とタグは長い場合に省略し、tooltipで全文を確認できる。
 - 書籍マスタ編集UIは `/admin/books`、レビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
 - 書籍マスタ編集フォームには ISBN13 で `/api/book_search` を呼ぶ補助検索があり、候補を選ぶとタイトル・著者・出版社・出版日・書影URLをフォームへ反映する。保存はユーザーが確定ボタンを押すまで行わない。
+- 書籍カード一覧のタグ表示は `BookTagChips` を使う。`onTagClick` が渡された場合だけクリック可能な見た目にし、表示専用タグは従来の白い outlined chip のままにする。
+- `/` と `/reviews/user/:id` はカード上のタグクリックで単一タグフィルタを行う。タグクリック時はカード本体クリックと競合しないよう `stopPropagation()` する。同じタグの再クリック、または選択中タグの削除アイコンでフィルタ解除する。
+- タグフィルタはフロント側で `src/libs/utils/bookTags.ts` の `filterBooksByTag` を使う。既存の読書状態フィルタや表示順とは合成して使い、バックエンドAPIは追加しない。
+- 選択中タグの表示は `SelectedTagFilterBar` を使い、カード一覧の直前に置く。0件時は「選択中のタグに一致する本はありません。」を表示する。
 
 ルーティング:
 
@@ -318,6 +322,8 @@ API設定:
 - 著者名の正規化では空白を除去し、現状 `WINGSプロジェクト` のような著者接頭辞も取り除く。重複排除の調整は `bookshelf_app/api/book_search/service.py` の `create_same_publish_duplicate_key` / `create_near_duplicate_key` / `score_book` 周辺を見る。
 - Google Books が 429 を返した場合、ISBN検索では openBD fallback を試す。通常キーワード検索では「しばらく時間を置いてから再度お試しください」というメッセージに正規化する。
 - 書影URLは backend の book search service で `http://` から `https://` に正規化する。
+- Google Books 由来の書影を表示する場合は attribution が必要。現状は DB/API に `image_source` を持たせず、フロント側で `src/libs/utils/image.ts` の `isGoogleBooksImageUrl` により `books.google.com` / `books.google.co.jp` の URL を軽量判定し、`GoogleBooksAttribution` で `Powered by Google` を表示する。
+- openBD や手入力URLなど、Google Books URL と判定できない書影では `Powered by Google` を表示しない。将来画像プロキシやキャッシュを挟む場合は URL 判定ではなく `image_source` を保存する設計へ移行する。
 - 将来課題: Google Books の `imageLinks` は `smallThumbnail` / `thumbnail` / `small` / `medium` / `large` / `extraLarge` が返る場合がある。現状は `thumbnail` / `smallThumbnail` のみ利用しているが、必要になったら大きいサイズを優先する方針を検討する。
 
 注意:

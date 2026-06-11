@@ -1,5 +1,5 @@
 import { Box, Chip } from "@mui/material";
-import { CSSProperties } from "react";
+import { CSSProperties, MouseEvent } from "react";
 
 import { BookTag } from "../../types/data";
 
@@ -7,7 +7,7 @@ type BookTagChipsProps = {
   tags: BookTag[];
   maxVisible?: number;
   justifyContent?: CSSProperties["justifyContent"];
-  onTagClick?: (tag: BookTag) => void;
+  onTagClick?: (tag: BookTag, event: MouseEvent<HTMLDivElement>) => void;
 };
 
 export default function BookTagChips(props: BookTagChipsProps) {
@@ -34,7 +34,22 @@ export default function BookTagChips(props: BookTagChipsProps) {
           label={tag.name}
           size="small"
           variant="outlined"
-          onClick={onTagClick ? () => onTagClick(tag) : undefined}
+          sx={
+            onTagClick
+              ? {
+                  cursor: "pointer",
+                  bgcolor: "rgba(25, 118, 210, 0.08)",
+                  borderColor: "rgba(25, 118, 210, 0.32)",
+                  color: "primary.main",
+                  fontWeight: 500,
+                  "&:hover": {
+                    bgcolor: "rgba(25, 118, 210, 0.16)",
+                    borderColor: "primary.main",
+                  },
+                }
+              : undefined
+          }
+          onClick={onTagClick ? (event) => onTagClick(tag, event) : undefined}
         />
       ))}
       {overflowCount > 0 ? (

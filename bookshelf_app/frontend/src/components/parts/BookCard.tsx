@@ -3,9 +3,10 @@ import CardActionArea from "@mui/material/CardActionArea";
 import CardMedia from "@mui/material/CardMedia";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import { MouseEvent } from "react";
 
 import styles from "./BookCard.module.css";
-import { BookWithReviews } from "../../types/data";
+import { BookTag, BookWithReviews } from "../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import BookCardRibbon from "./BookCardRibbon";
 import BookTagChips from "./BookTagChips";
@@ -15,12 +16,17 @@ type BookCardProps = {
   book: BookWithReviews;
   isRibbonRender?: boolean;
   onSelect: (bookId: string) => void;
+  onTagClick?: (tag: BookTag) => void;
 };
 
 export default function BookCard(props: BookCardProps) {
   const { bookId, title } = props.book;
   const { book, isRibbonRender } = props;
-  const { onSelect } = props;
+  const { onSelect, onTagClick } = props;
+  const handleTagClick = (tag: BookTag, event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    onTagClick?.(tag);
+  };
   return (
     <Card
       variant="outlined"
@@ -111,6 +117,7 @@ export default function BookCard(props: BookCardProps) {
             tags={book.tags}
             maxVisible={3}
             justifyContent="flex-start"
+            onTagClick={onTagClick ? handleTagClick : undefined}
           />
         </Box>
       </CardActionArea>

@@ -1,16 +1,17 @@
 import Grid from "@mui/material/Grid2";
 
 import BookCard from "./BookCard";
-import { BookWithReviews } from "../../types/data";
+import { BookTag, BookWithReviews } from "../../types/data";
 
 type BookCardsProps = {
   books: BookWithReviews[];
   isRibbonRender?: boolean;
   onSelect: (book: BookWithReviews) => void;
+  onTagClick?: (tag: BookTag) => void;
 };
 
 export default function BookCards(props: BookCardsProps) {
-  const { books, isRibbonRender, onSelect } = props;
+  const { books, isRibbonRender, onSelect, onTagClick } = props;
   const handleSelect = (bookId: string) => {
     const book = books.find((x) => x.bookId == bookId);
     if (book) {
@@ -37,6 +38,7 @@ export default function BookCards(props: BookCardsProps) {
               book={book}
               isRibbonRender={isRibbonRender}
               onSelect={handleSelect}
+              onTagClick={onTagClick}
             ></BookCard>
           </Grid>
         ))}
