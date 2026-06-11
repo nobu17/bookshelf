@@ -23,6 +23,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { ReactNode, useEffect } from "react";
 import { dateToString } from "../../libs/utils/date";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -123,14 +124,17 @@ export default function BookReviewEditForm(props: BookReviewEditFormProps) {
           ) : (
             <></>
           )}
-          <Box
-            component="img"
-            sx={{ height: "150px", width: "auto", objectFit: "contain" }}
-            src={getBookInfoImageUrl(bookInfo)}
-            onError={(e) => {
-              e.currentTarget.src = getFallbackImageUrl();
-            }}
-          />
+          <Box sx={{ textAlign: "center" }}>
+            <Box
+              component="img"
+              sx={{ height: "150px", width: "auto", objectFit: "contain" }}
+              src={getBookInfoImageUrl(bookInfo)}
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl();
+              }}
+            />
+            <GoogleBooksAttribution imageUrl={bookInfo.imageUrl} />
+          </Box>
           {bookActionContent}
           <Divider />
           <TextField

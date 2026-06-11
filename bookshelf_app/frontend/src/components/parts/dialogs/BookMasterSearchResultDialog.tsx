@@ -8,11 +8,13 @@ import {
   DialogTitle,
   Stack,
   Typography,
+  Box,
 } from "@mui/material";
 
 import { dateToString } from "../../../libs/utils/date";
 import { getFallbackImageUrl } from "../../../libs/utils/image";
 import { BookSearchResult } from "../../../types/bookSearch";
+import GoogleBooksAttribution from "../GoogleBooksAttribution";
 
 type BookMasterSearchResultDialogProps = {
   open: boolean;
@@ -38,19 +40,28 @@ export default function BookMasterSearchResultDialog(
               <Card key={`${book.source}:${book.sourceId}`}>
                 <CardActionArea onClick={() => onSelect(book)}>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <CardMedia
-                      component="img"
+                    <Box
                       sx={{
                         width: { xs: "100%", sm: 120 },
-                        height: 180,
-                        objectFit: "contain",
-                        p: 1,
+                        textAlign: "center",
+                        flexShrink: 0,
                       }}
-                      image={book.imageUrl || getFallbackImageUrl()}
-                      onError={(e) => {
-                        e.currentTarget.src = getFallbackImageUrl();
-                      }}
-                    />
+                    >
+                      <CardMedia
+                        component="img"
+                        sx={{
+                          width: "100%",
+                          height: 168,
+                          objectFit: "contain",
+                          p: 1,
+                        }}
+                        image={book.imageUrl || getFallbackImageUrl()}
+                        onError={(e) => {
+                          e.currentTarget.src = getFallbackImageUrl();
+                        }}
+                      />
+                      <GoogleBooksAttribution imageUrl={book.imageUrl} compact />
+                    </Box>
                     <CardContent>
                       <Typography fontWeight="bold">{book.title}</Typography>
                       <Typography>ISBN13: {book.isbn13}</Typography>

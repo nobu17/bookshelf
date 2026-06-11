@@ -6,6 +6,7 @@ import Stack from "@mui/material/Stack";
 import { getFallbackImageUrl, getSearchResultImageUrl } from "../../libs/utils/image";
 import { BookSearchResultWithReviews } from "../../types/bookSearch";
 import BookCardRibbon from "./BookCardRibbon";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 import styles from "./BookSearchCard.module.css";
 
 type BookSearchCardProps = {
@@ -39,6 +40,7 @@ export default function BookSearchCard(props: BookSearchCardProps) {
             e.currentTarget.src = getFallbackImageUrl();
           }}
         />
+        <GoogleBooksAttribution imageUrl={book.imageUrl} compact />
         <Box
           sx={{
             display: "flex",

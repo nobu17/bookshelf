@@ -7,6 +7,7 @@ import { dateToString } from "../../libs/utils/date";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import DataGridActionIconButton from "./DataGridActionIconButton";
 import { readonlyDataGridProps } from "../../libs/utils/dataGrid";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 
 type BookMasterDataGridProps = {
   books: BookMasterInfo[];
@@ -36,14 +37,17 @@ export default function BookMasterDataGrid(props: BookMasterDataGridProps) {
       width: 90,
       sortable: false,
       renderCell: (params: GridRenderCellParams<BookMasterInfo>) => (
-        <Box
-          component="img"
-          sx={{ width: 48, height: 72, objectFit: "contain", mt: 1 }}
-          src={getBookInfoImageUrl(params.row)}
-          onError={(e) => {
-            e.currentTarget.src = getFallbackImageUrl();
-          }}
-        />
+        <Box sx={{ mt: 0.5, textAlign: "center", width: 64 }}>
+          <Box
+            component="img"
+            sx={{ width: 48, height: 64, objectFit: "contain" }}
+            src={getBookInfoImageUrl(params.row)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
+          />
+          <GoogleBooksAttribution imageUrl={params.row.imageUrl} compact />
+        </Box>
       ),
     },
     {

@@ -24,6 +24,7 @@ import {
   toBookMasterEditInfo,
 } from "../../libs/services/bookMasterEdit";
 import BookTagEditor from "./BookTagEditor";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 
 type BookMasterEditFormProps = {
   bookInfo: BookInfo;
@@ -73,14 +74,17 @@ export default function BookMasterEditForm(props: BookMasterEditFormProps) {
     <Container maxWidth="sm" sx={{ pt: 1 }}>
       <Divider />
       <Stack spacing={3} sx={{ pt: 3 }}>
-        <Box
-          component="img"
-          sx={{ height: "180px", width: "auto", objectFit: "contain" }}
-          src={getBookInfoImageUrl(previewBook)}
-          onError={(e) => {
-            e.currentTarget.src = getFallbackImageUrl();
-          }}
-        />
+        <Box sx={{ textAlign: "center" }}>
+          <Box
+            component="img"
+            sx={{ height: "180px", width: "auto", objectFit: "contain" }}
+            src={getBookInfoImageUrl(previewBook)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
+          />
+          <GoogleBooksAttribution imageUrl={previewBook.imageUrl} />
+        </Box>
         <TextField
           label="ISBN13"
           {...register("isbn13", {

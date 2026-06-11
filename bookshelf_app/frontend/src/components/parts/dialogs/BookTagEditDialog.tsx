@@ -16,6 +16,7 @@ import { dateToString } from "../../../libs/utils/date";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/image";
 import { validateBookTagNames } from "../../../libs/services/bookTags";
 import BookTagInput from "../BookTagInput";
+import GoogleBooksAttribution from "../GoogleBooksAttribution";
 
 type BookInfoForDisplay = {
   isbn13: string;
@@ -71,19 +72,21 @@ export default function BookTagEditDialog(props: BookTagEditDialogProps) {
       <DialogContent>
         <Stack spacing={3} sx={{ pt: 1 }}>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Box
-              component="img"
-              sx={{
-                width: 72,
-                height: 96,
-                objectFit: "contain",
-                flexShrink: 0,
-              }}
-              src={getBookInfoImageUrl(bookInfo)}
-              onError={(e) => {
-                e.currentTarget.src = getFallbackImageUrl();
-              }}
-            />
+            <Box sx={{ flexShrink: 0, textAlign: "center", width: 80 }}>
+              <Box
+                component="img"
+                sx={{
+                  width: 72,
+                  height: 88,
+                  objectFit: "contain",
+                }}
+                src={getBookInfoImageUrl(bookInfo)}
+                onError={(e) => {
+                  e.currentTarget.src = getFallbackImageUrl();
+                }}
+              />
+              <GoogleBooksAttribution imageUrl={bookInfo.imageUrl} compact />
+            </Box>
             <Typography variant="body2" align="left">
               書籍名：{bookInfo.title}
               <br />

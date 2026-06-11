@@ -9,6 +9,7 @@ import { BookWithReviews } from "../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
 import BookCardRibbon from "./BookCardRibbon";
 import BookTagChips from "./BookTagChips";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 
 type BookCardProps = {
   book: BookWithReviews;
@@ -58,6 +59,7 @@ export default function BookCard(props: BookCardProps) {
             width: "100%",
             height: 208,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             pt: 1.5,
@@ -67,7 +69,7 @@ export default function BookCard(props: BookCardProps) {
           <CardMedia
             component="img"
             sx={{
-              maxHeight: 196,
+              maxHeight: 182,
               width: "100%",
               objectFit: "contain",
               filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.16))",
@@ -77,6 +79,7 @@ export default function BookCard(props: BookCardProps) {
               e.currentTarget.src = getFallbackImageUrl();
             }}
           />
+          <GoogleBooksAttribution imageUrl={book.imageUrl} compact />
         </Box>
         <Box
           sx={{

@@ -20,6 +20,7 @@ import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/im
 import { dateToString } from "../../../libs/utils/date";
 import LineBreakText from "../LineBreakText";
 import BookTagChips from "../BookTagChips";
+import GoogleBooksAttribution from "../GoogleBooksAttribution";
 
 export type BookReviewDialogProps = {
   open: boolean;
@@ -79,14 +80,17 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
           direction={{ xs: "column", md: "row" }}
           spacing={{ xs: 1, sm: 2, md: 4 }}
         >
-          <img
-            height="200"
-            style={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
-            src={getBookInfoImageUrl(book)}
-            onError={(e) => {
-              e.currentTarget.src = getFallbackImageUrl();
-            }}
-          />
+          <Box sx={{ textAlign: "center" }}>
+            <img
+              height="200"
+              style={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
+              src={getBookInfoImageUrl(book)}
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl();
+              }}
+            />
+            <GoogleBooksAttribution imageUrl={book.imageUrl} />
+          </Box>
           <Grid
             container
             spacing={1}

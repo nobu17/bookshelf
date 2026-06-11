@@ -3,6 +3,7 @@ import { GenericBookInfoWithReviews, Review } from "../../types/data";
 import ReviewsDataGrid from "./ReviewsDataGrid";
 import { dateToString } from "../../libs/utils/date";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../libs/utils/image";
+import GoogleBooksAttribution from "./GoogleBooksAttribution";
 
 type OneBookReviewsDataGridProps = {
   bookWithReviews: GenericBookInfoWithReviews;
@@ -29,14 +30,17 @@ export default function OneBookReviewsDataGrid(
             <br />
             出版年：{dateToString(bookWithReviews.publishedAt)}
           </Typography>
-          <Box
-            component="img"
-            sx={{ height: "150px", width: "auto", objectFit: "contain" }}
-            src={getBookInfoImageUrl(bookWithReviews)}
-            onError={(e) => {
-              e.currentTarget.src = getFallbackImageUrl();
-            }}
-          />
+          <Box sx={{ textAlign: "center" }}>
+            <Box
+              component="img"
+              sx={{ height: "150px", width: "auto", objectFit: "contain" }}
+              src={getBookInfoImageUrl(bookWithReviews)}
+              onError={(e) => {
+                e.currentTarget.src = getFallbackImageUrl();
+              }}
+            />
+            <GoogleBooksAttribution imageUrl={bookWithReviews.imageUrl} />
+          </Box>
           <Button variant="contained" onClick={onAdd}>
             新規投稿
           </Button>

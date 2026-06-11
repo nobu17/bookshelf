@@ -19,3 +19,18 @@ export const getSearchResultImageUrl = (book: BookImageSource): string => {
 export const getFallbackImageUrl = (baseUrl: string = ""): string => {
   return `${baseUrl}/images/no_image.jpg`;
 };
+
+export const isGoogleBooksImageUrl = (imageUrl?: string | null): boolean => {
+  if (!imageUrl) {
+    return false;
+  }
+
+  try {
+    const url = new URL(imageUrl);
+    return ["books.google.com", "books.google.co.jp"].includes(
+      url.hostname.toLowerCase()
+    );
+  } catch {
+    return false;
+  }
+};
