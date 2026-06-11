@@ -1,15 +1,17 @@
 import { Box, Chip } from "@mui/material";
+import { CSSProperties } from "react";
 
 import { BookTag } from "../../types/data";
 
 type BookTagChipsProps = {
   tags: BookTag[];
   maxVisible?: number;
+  justifyContent?: CSSProperties["justifyContent"];
   onTagClick?: (tag: BookTag) => void;
 };
 
 export default function BookTagChips(props: BookTagChipsProps) {
-  const { tags, maxVisible, onTagClick } = props;
+  const { tags, maxVisible, justifyContent = "flex-start", onTagClick } = props;
   if (tags.length === 0) {
     return <></>;
   }
@@ -23,7 +25,7 @@ export default function BookTagChips(props: BookTagChipsProps) {
         display: "flex",
         gap: 0.5,
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent,
       }}
     >
       {visibleTags.map((tag) => (

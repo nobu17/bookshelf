@@ -1,7 +1,8 @@
+import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
 import CardMedia from "@mui/material/CardMedia";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
 
 import styles from "./BookCard.module.css";
 import { BookWithReviews } from "../../types/data";
@@ -20,47 +21,96 @@ export default function BookCard(props: BookCardProps) {
   const { book, isRibbonRender } = props;
   const { onSelect } = props;
   return (
-    <>
-      <Stack
+    <Card
+      variant="outlined"
+      sx={{
+        width: "100%",
+        borderRadius: "8px",
+        borderColor: "rgba(31, 41, 55, 0.16)",
+        backgroundColor: "#fcfcfd",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+        transition:
+          "border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
+        "&:hover": {
+          borderColor: "rgba(25, 118, 210, 0.42)",
+          boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
+          transform: "translateY(-2px)",
+        },
+      }}
+    >
+      <CardActionArea
         className={styles.box}
-        direction="column"
-        spacing={0}
         sx={{
-          justifyContent: "center",
+          height: "100%",
+          minHeight: 304,
+          display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          pb: book.tags.length > 0 ? 1 : 0,
+          justifyContent: "flex-start",
+          px: 1.25,
+          pb: 1.25,
         }}
         onClick={() => onSelect(bookId)}
       >
         {isRibbonRender ? <BookCardRibbon reviews={book.reviews} /> : <></>}
-        <CardMedia
-          component="img"
-          height="200"
-          sx={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
-          image={getBookInfoImageUrl(book)}
-          onError={(e) => {
-            e.currentTarget.src = getFallbackImageUrl();
-          }}
-        />
         <Box
           sx={{
+            width: "100%",
+            height: 208,
             display: "flex",
-            justifyContent: "space-between",
+            alignItems: "center",
+            justifyContent: "center",
+            pt: 1.5,
+            pb: 1,
+          }}
+        >
+          <CardMedia
+            component="img"
+            sx={{
+              maxHeight: 196,
+              width: "100%",
+              objectFit: "contain",
+              filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.16))",
+            }}
+            image={getBookInfoImageUrl(book)}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImageUrl();
+            }}
+          />
+        </Box>
+        <Box
+          sx={{
+            width: "100%",
+            textAlign: "left",
+            px: 0.5,
+            minHeight: 58,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-start",
           }}
         >
           <Typography
             sx={{
-              mb: book.tags.length > 0 ? 0.75 : 2,
               fontWeight: "bold",
               wordBreak: "break-word",
-              maxWidth: 200,
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 2,
+              overflow: "hidden",
+              lineHeight: 1.45,
             }}
           >
             {title}
           </Typography>
         </Box>
-        <BookTagChips tags={book.tags} maxVisible={3} />
-      </Stack>
-    </>
+        <Box sx={{ minHeight: 28, width: "100%", px: 0.5 }}>
+          <BookTagChips
+            tags={book.tags}
+            maxVisible={3}
+            justifyContent="flex-start"
+          />
+        </Box>
+      </CardActionArea>
+    </Card>
   );
 }

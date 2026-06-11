@@ -28,7 +28,11 @@ export default function BookCards(props: BookCardsProps) {
         }}
       >
         {books.map((book) => (
-          <Grid size={{ xs: 6, md: 3 }} sx={{ border: 2 }} key={book.bookId}>
+          <Grid
+            size={{ xs: 6, md: 3 }}
+            sx={{ display: "flex" }}
+            key={book.bookId}
+          >
             <BookCard
               book={book}
               isRibbonRender={isRibbonRender}
