@@ -23,7 +23,6 @@ export function OrderStateSelect(props: OrderStateSelectProps) {
             value: props.value,
           },
         }}
-        sx={{ mt: 2 }}
         fullWidth
         label={props.label}
         onChange={(e) => {

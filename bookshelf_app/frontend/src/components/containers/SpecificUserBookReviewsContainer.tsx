@@ -12,7 +12,11 @@ import { useAuth } from "../contexts/AuthContext";
 import useBookMasterEditDialog from "../../hooks/dialogs/UseBookMasterEditDialog";
 import { canEditBookMaster } from "../../libs/utils/permissions";
 import SelectedTagFilterBar from "../parts/SelectedTagFilterBar";
-import { filterBooksByTag } from "../../libs/utils/bookTags";
+import {
+  filterBooksByKeyword,
+  filterBooksByTag,
+} from "../../libs/utils/bookTags";
+import BookListSearchInput from "../parts/BookListSearchInput";
 
 type DialogState = {
   open: boolean;
@@ -34,6 +38,7 @@ export default function SpecificUserBookReviewsContainer(
   const { userId } = props;
   const [dialogState, setDialogState] = useState<DialogState>(initialState);
   const [selectedTag, setSelectedTag] = useState<BookTag | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const { filteredReviews, displayOption, setDisplayOption, userName, error, loading, loadAsync } =
     useSpecificUserBookReviews(userId);
   const {
@@ -55,7 +60,9 @@ export default function SpecificUserBookReviewsContainer(
   const handleTagClick = (tag: BookTag) => {
     setSelectedTag((current) => (current?.id === tag.id ? null : tag));
   };
-  const displayedBooks = filterBooksByTag(filteredReviews, selectedTag);
+  const searchedBooks = filterBooksByKeyword(filteredReviews, searchKeyword);
+  const displayedBooks = filterBooksByTag(searchedBooks, selectedTag);
+  const isFiltered = searchKeyword.trim() !== "" || selectedTag !== null;
 
   if (loading) {
     return <CircularProgress />;
@@ -69,14 +76,18 @@ export default function SpecificUserBookReviewsContainer(
         {userName}さんの本棚
       </Typography>
       <BookCardsDisplayOptions option={displayOption} onChange={setDisplayOption} />
+      <BookListSearchInput
+        value={searchKeyword}
+        onChange={setSearchKeyword}
+      />
       <SelectedTagFilterBar
         tag={selectedTag}
         resultCount={displayedBooks.length}
         onClear={() => setSelectedTag(null)}
       />
-      {selectedTag && displayedBooks.length === 0 ? (
+      {isFiltered && displayedBooks.length === 0 ? (
         <Typography align="center" color="text.secondary" sx={{ my: 4 }}>
-          選択中のタグに一致する本はありません。
+          検索条件に一致する本はありません。
         </Typography>
       ) : (
         <></>

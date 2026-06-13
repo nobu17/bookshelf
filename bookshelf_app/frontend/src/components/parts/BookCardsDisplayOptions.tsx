@@ -1,5 +1,4 @@
-import { FormControlLabel, FormGroup, Switch } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import { Box, FormControlLabel, FormGroup, Switch } from "@mui/material";
 import { DisplayOption, DisplayOrderOption } from "../../types/display";
 import { OrderStateSelect } from "./OrderStateSelect";
 
@@ -30,17 +29,14 @@ export default function BookCardsDisplayOptions(
     }
   };
   return (
-    <>
-      <Grid
-        container
-        spacing={1}
+    <Box sx={{ display: "flex", justifyContent: "center", mx: 1, mb: 2 }}>
+      <Box
         sx={{
-          justifyContent: "center",
-          alignItems: "center",
-          mb: 2,
+          maxWidth: 720,
+          width: "100%",
         }}
       >
-        <FormGroup row={true}>
+        <FormGroup row={true} sx={{ justifyContent: "center", mb: 2 }}>
           <FormControlLabel
             control={
               <Switch
@@ -74,7 +70,7 @@ export default function BookCardsDisplayOptions(
           value={option.order}
           onChange={handleOrderChange}
         />
-      </Grid>
-    </>
+      </Box>
+    </Box>
   );
 }
