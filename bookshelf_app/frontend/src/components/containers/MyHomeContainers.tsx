@@ -18,7 +18,10 @@ const bookDisplayMenu: PageMenuProps = {
 const adminMenu: PageMenuProps = {
   title: "管理",
   icon: "coffee",
-  pageInfoList: [{ title: "書籍マスタ管理", url: "/admin/books" }],
+  pageInfoList: [
+    { title: "書籍マスタ管理", url: "/admin/books" },
+    { title: "タグマスタ管理", url: "/admin/tags" },
+  ],
 };
 
 export default function MyHomeContainer() {

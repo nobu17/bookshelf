@@ -286,6 +286,8 @@ Book with reviews:
 - 書籍マスタ管理画面は `MyPageBase` を使い、レビュー編集画面と同じパン屑を表示する。一覧列は編集アイコン、書影、書籍名、タグ、出版日、レビュー数。書籍名とタグは長い場合に省略し、tooltipで全文を確認できる。
 - 書籍マスタ編集UIは `/admin/books`、レビュー一覧・本詳細・レビュー編集ダイアログ内の導線から開く。フォームは `BookMasterEditForm` / `BookMasterEditFormDialog`。レビュー編集フォームとは分離する。
 - 書籍マスタ編集フォームには ISBN13 で `/api/book_search` を呼ぶ補助検索があり、候補を選ぶとタイトル・著者・出版社・出版日・書影URLをフォームへ反映する。保存はユーザーが確定ボタンを押すまで行わない。
+- タグマスタ管理画面は `/admin/tags`。マイページのadmin用メニューから開く。`TagMastersContainer` が `TagsApi.list/create/update/delete` と `TagMasterDataGrid` を使う。
+- タグマスタ管理画面は初期版としてタグ名検索、新規作成、編集、削除を提供する。使用冊数とタグ統合は未実装の将来課題。削除時は使用中の本からも表示されなくなる可能性を確認文言で伝える。
 - 書籍カード一覧のタグ表示は `BookTagChips` を使う。`onTagClick` が渡された場合だけクリック可能な見た目にし、表示専用タグは従来の白い outlined chip のままにする。
 - `/` と `/reviews/user/:id` はカード上のタグクリックで単一タグフィルタを行う。タグクリック時はカード本体クリックと競合しないよう `stopPropagation()` する。同じタグの再クリック、または選択中タグの削除アイコンでフィルタ解除する。
 - タグフィルタはフロント側で `src/libs/utils/bookTags.ts` の `filterBooksByTag` を使う。既存の読書状態フィルタや表示順とは合成して使い、バックエンドAPIは追加しない。
@@ -298,6 +300,8 @@ Book with reviews:
 - `/mypage`
 - `/mypage/reviews`
 - `/mypage/book/search`
+- `/admin/books`
+- `/admin/tags`
 - `/auth/signin`
 - `/auth/signout`
 - `/reviews/user/:id`

@@ -12,6 +12,20 @@ export default class TagsApi extends ApiBase {
     const res = await this.postAsync<ApiBookTag>(`/tags`, { name });
     return { data: convertToBookTag(res.data) };
   }
+
+  async update(
+    tagId: string,
+    name: string
+  ): Promise<ApiResponse<TagUpdateResponse>> {
+    const res = await this.putAsyncWithResponse<ApiBookTag>(`/tags/${tagId}`, {
+      name,
+    });
+    return { data: convertToBookTag(res.data) };
+  }
+
+  async delete(tagId: string): Promise<void> {
+    await this.deleteAsync(`/tags/${tagId}`);
+  }
 }
 
 type TagsFindResponse = {
@@ -19,3 +33,5 @@ type TagsFindResponse = {
 };
 
 type TagCreateResponse = BookTag;
+
+type TagUpdateResponse = BookTag;

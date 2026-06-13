@@ -23,6 +23,7 @@ import SignOut from "./pages/auth/SignOut";
 import MyReviews from "./pages/mypage/MyReviews";
 import BookSearch from "./pages/mypage/BookSearch";
 import BookMasters from "./pages/admin/BookMasters";
+import TagMasters from "./pages/admin/TagMasters";
 
 let theme = createTheme({
   typography: {
@@ -59,6 +60,7 @@ function App() {
                       element={<BookSearch />}
                     />
                     <Route path="/admin/books" element={<BookMasters />} />
+                    <Route path="/admin/tags" element={<TagMasters />} />
                     <Route path="/auth/signin" element={<SignIn />} />
                     <Route path="/auth/signout" element={<SignOut />} />
                     <Route path="/reviews/user/:id" element={<UserReviews />} />
