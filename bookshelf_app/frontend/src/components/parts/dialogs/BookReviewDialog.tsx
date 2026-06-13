@@ -2,8 +2,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
   Box,
   Typography,
   Stack,
@@ -11,9 +9,12 @@ import {
   CardContent,
   IconButton,
   Tooltip,
+  Divider,
+  Chip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { BookWithReviews, Review, toJapanese } from "../../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/image";
@@ -51,12 +52,32 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
     <Dialog
       scroll="paper"
       fullWidth
-      maxWidth="md"
+      maxWidth="lg"
       onClose={handleClose}
       open={open}
     >
-      <DialogTitle textAlign="center">
-        {book.title}
+      <DialogTitle
+        sx={{
+          pr: 6,
+          textAlign: "left",
+          fontWeight: "bold",
+          lineHeight: 1.35,
+        }}
+      >
+        <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
+          {book.title}
+        </Typography>
+        <Tooltip title="閉じる">
+          <IconButton
+            aria-label="close"
+            color="error"
+            onClick={handleClose}
+            size="small"
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
         {isBookEditEnabled ? (
           <Tooltip title="書籍マスタ編集">
             <IconButton
@@ -64,7 +85,7 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
               color="primary"
               onClick={handleBookEdit}
               size="small"
-              sx={{ position: "absolute", right: 8, top: 8 }}
+              sx={{ position: "absolute", right: 44, top: 8 }}
             >
               <EditIcon />
             </IconButton>
@@ -73,80 +94,125 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
           <></>
         )}
       </DialogTitle>
-      <DialogContent>
-        <Stack
-          alignItems={{ xs: "center", md: "stretch" }}
-          justifyContent={{ xs: "center", md: "center" }}
-          direction={{ xs: "column", md: "row" }}
-          spacing={{ xs: 1, sm: 2, md: 4 }}
-        >
-          <Box sx={{ textAlign: "center" }}>
-            <img
-              height="200"
-              style={{ padding: "1em 0em 0em 0em", objectFit: "contain" }}
-              src={getBookInfoImageUrl(book)}
-              onError={(e) => {
-                e.currentTarget.src = getFallbackImageUrl();
+      <DialogContent dividers sx={{ px: { xs: 2, md: 3 }, py: 3 }}>
+        <Grid container spacing={{ xs: 3, md: 4 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Stack
+              spacing={2}
+              sx={{
+                position: { md: "sticky" },
+                top: { md: 16 },
+                alignItems: "center",
+                textAlign: "left",
               }}
-            />
-            <GoogleBooksAttribution imageUrl={book.imageUrl} />
-          </Box>
-          <Grid
-            container
-            spacing={1}
-            sx={{
-              justifyContent: "center",
-              alignItems: "stretch",
-              bgcolor: "",
-            }}
-          >
-            <Grid>
-              <Box sx={{ bgcolor: "", m: 2 }}>
-                <Typography>出版社: {book.publisher}</Typography>
-                <Typography>著者: {book.authors.join(",")}</Typography>
-                <Typography sx={{ mb: 1 }}>
-                  出版日: {dateToString(book.publishedAt)}
-                </Typography>
-                <Box sx={{ mb: 1 }}>
-                  <BookTagChips tags={book.tags} />
-                </Box>
-                {book.reviews.map((r) => {
-                  return ReviewCard(r);
-                })}
+            >
+              <Box sx={{ textAlign: "center", width: "100%" }}>
+                <Box
+                  component="img"
+                  sx={{
+                    maxHeight: { xs: 220, md: 280 },
+                    width: "100%",
+                    objectFit: "contain",
+                    filter: "drop-shadow(0 6px 12px rgba(0, 0, 0, 0.16))",
+                  }}
+                  src={getBookInfoImageUrl(book)}
+                  onError={(e) => {
+                    e.currentTarget.src = getFallbackImageUrl();
+                  }}
+                />
+                <GoogleBooksAttribution imageUrl={book.imageUrl} />
               </Box>
-            </Grid>
+              <Box sx={{ width: "100%" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  出版社
+                </Typography>
+                <Typography sx={{ mb: 1.5 }}>{book.publisher}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  著者
+                </Typography>
+                <Typography sx={{ mb: 1.5 }}>
+                  {book.authors.join(", ")}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  出版日
+                </Typography>
+                <Typography sx={{ mb: 1.5 }}>
+                  {dateToString(book.publishedAt)}
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <BookTagChips tags={book.tags} />
+              </Box>
+            </Stack>
           </Grid>
-        </Stack>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Stack spacing={2}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Typography variant="h6" component="h2" fontWeight="bold">
+                  レビュー
+                </Typography>
+                <Chip label={`${book.reviews.length}件`} size="small" />
+              </Stack>
+              {book.reviews.length === 0 ? (
+                <Typography color="text.secondary">
+                  レビューはまだありません。
+                </Typography>
+              ) : (
+                book.reviews.map((r) => ReviewCard(r))
+              )}
+            </Stack>
+          </Grid>
+        </Grid>
       </DialogContent>
-      <DialogActions>
-        <Box>
-          <Button onClick={handleClose}>OK</Button>
-        </Box>
-      </DialogActions>
     </Dialog>
   );
 }
 
 function ReviewCard(review: Review) {
   return (
-    <Card sx={{ minWidth: 275, border: 1, m: 1 }} key={review.reviewId}>
-      <CardContent>
-        <Typography gutterBottom sx={{ fontSize: 14 }}>
-          {review.user.name}
-        </Typography>
-        <Typography
-          gutterBottom
-          sx={{ fontSize: 14, color: "blue", borderBottom: 1 }}
+    <Card
+      variant="outlined"
+      sx={{
+        borderColor: "rgba(31, 41, 55, 0.14)",
+        borderRadius: "8px",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+      }}
+      key={review.reviewId}
+    >
+      <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          justifyContent="space-between"
+          sx={{ mb: 1.5 }}
         >
-          {toJapanese(review.state) +
-            (review.completedAt ? " :" + dateToString(review.completedAt) : "")}
-        </Typography>
+          <Typography fontWeight="bold">{review.user.name}</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip label={toJapanese(review.state)} color="primary" size="small" />
+            {review.completedAt ? (
+              <Typography variant="body2" color="text.secondary">
+                {dateToString(review.completedAt)}
+              </Typography>
+            ) : (
+              <></>
+            )}
+          </Stack>
+        </Stack>
+        <Divider sx={{ mb: 2 }} />
         {review.content ? (
-          <Typography variant="body2">
+          <Typography
+            variant="body1"
+            sx={{ lineHeight: 1.85, whiteSpace: "normal" }}
+          >
             <LineBreakText text={review.content} />
           </Typography>
         ) : (
-          <></>
+          <Typography color="text.secondary">感想は未入力です。</Typography>
         )}
       </CardContent>
     </Card>
