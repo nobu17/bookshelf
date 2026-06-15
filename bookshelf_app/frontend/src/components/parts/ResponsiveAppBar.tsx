@@ -10,8 +10,8 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
-import AdbIcon from "@mui/icons-material/Adb";
 import { AccountCircle } from "@mui/icons-material";
+import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
 type ResponsiveAppBarProps = {
   title: string;
@@ -47,31 +47,45 @@ export default function ResponsiveAppBar(props: ResponsiveAppBarProps) {
   };
   const handleLinkClick = (menu: PageLink) => {
     setAnchorElNav(null);
+    setAnchorElUserNav(null);
     onMenuSelect(menu);
   };
+
+  const brand = (
+    <>
+      <AutoStoriesIcon sx={{ mr: 1 }} />
+      <Typography
+        noWrap
+        component="span"
+        sx={{
+          fontWeight: 700,
+          color: "inherit",
+          textDecoration: "none",
+          lineHeight: 1,
+        }}
+      >
+        {title}
+      </Typography>
+    </>
+  );
 
   return (
     <AppBar position="sticky" sx={{ mb: 2 }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <AdbIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component="a"
-            href="#app-bar-with-responsive-menu"
+          <Box
+            component={Link}
+            to="/"
             sx={{
               mr: 2,
               display: { xs: "none", md: "flex" },
-              fontFamily: "monospace",
-              fontWeight: 700,
-              letterSpacing: ".3rem",
+              alignItems: "center",
               color: "inherit",
               textDecoration: "none",
             }}
           >
-            LOGO
-          </Typography>
+            {brand}
+          </Box>
 
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
@@ -109,25 +123,20 @@ export default function ResponsiveAppBar(props: ResponsiveAppBarProps) {
               ))}
             </Menu>
           </Box>
-          <AdbIcon sx={{ display: { xs: "flex", md: "none" }, mr: 1 }} />
-          <Typography
-            variant="h5"
-            noWrap
+          <Box
             component={Link}
             to="/"
             sx={{
               mr: 2,
               display: { xs: "flex", md: "none" },
+              alignItems: "center",
               flexGrow: 1,
-              fontFamily: "monospace",
-              fontWeight: 700,
-              letterSpacing: ".3rem",
               color: "inherit",
               textDecoration: "none",
             }}
           >
-            {title}
-          </Typography>
+            {brand}
+          </Box>
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {menus.map((menu) => (
               <Button

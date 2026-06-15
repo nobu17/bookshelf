@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Book">
+  <rect width="64" height="64" rx="12" fill="#2f5d50" />
+  <path
+    d="M18 16h18a8 8 0 0 1 8 8v26H25a7 7 0 0 0-7 7V16Z"
+    fill="#f7f0df"
+  />
+  <path
+    d="M18 16h18a8 8 0 0 1 8 8v26H25a7 7 0 0 0-7 7V16Z"
+    fill="none"
+    stroke="#1f3f37"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <path d="M26 25h12M26 33h12" stroke="#bd7052" stroke-width="3" stroke-linecap="round" />
+</svg>

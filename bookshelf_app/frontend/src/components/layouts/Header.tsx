@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ResponsiveAppBar from "../parts/ResponsiveAppBar";
 import { useAuth } from "../contexts/AuthContext";
 
-const title = "技術書感想";
+const title = "技術書ノート";
 const menus = [{ name: "ホーム", link: "/" }];
 const userMenus = [
   { name: "マイページ", link: "/mypage" },
