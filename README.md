@@ -85,6 +85,31 @@ alembic upgrade head
 
 CI/CD で migration を自動化するのは、接続・バックアップ・失敗時の戻し方が決まってからにします。
 
+### Initial Admin Account
+
+初回ログイン用の Admin は migration では自動作成されません。DB migration 後に、初期Admin作成コマンドを1回実行します。
+
+`.env.tool.prod` に次を設定します。
+
+```text
+TOOL_INITIAL_USER_NAME=<admin name>
+TOOL_INITIAL_USER_MAIL=<admin email>
+TOOL_INITIAL_USER_PASS=<admin password>
+```
+
+Admin password は 8-100 文字で、大文字・小文字・数字を含めてください。
+
+Azure SQL に作成する場合:
+
+```bash
+DB_CONNECTION='mssql+pymssql://<user>:<password>@<server>.database.windows.net:1433/<database>' \
+CRYPT_SECRET_KEY='<your secret>' \
+CRYPT_ALGORITHM='HS256' \
+python -m bookshelf_app.tools.seeds.user
+```
+
+同じメールアドレスのユーザーが既に存在する場合は新規作成せず、そのユーザーをそのまま使います。
+
 ## Tests
 
 PostgreSQL integration test:
