@@ -489,7 +489,7 @@ SQL Server 用テストは `.env.test.mssql`、`test_env/docker-compose-sqlserve
 - `.env.test` が必要。
 - SQL Server integration test には `.env.test.mssql` が必要。
 - Docker が必要。
-- SQL Server integration test には `pymssql` が必要。これは `requirements-dev.txt` に含める。
+- Azure SQL / SQL Server 接続には `pymssql` が必要。Azure SQL を本番DBにする間は `requirements.txt` に含める。
 - DB truncate helper は PostgreSQL では `TRUNCATE ... CASCADE`、それ以外では `DELETE` を使う。
 
 ## Common Change Recipes
@@ -523,7 +523,7 @@ SQL Server 用テストは `.env.test.mssql`、`test_env/docker-compose-sqlserve
 ## Known Issues / Watch Points
 
 - `README.md` は開発・テスト手順の入口。このファイルは設計判断や変更時の注意点を含む詳細ガイド。
-- Python 依存は `requirements.txt` と `requirements-dev.txt` に分けている。SQL Server を本番DBにする場合は、`pymssql` を本番依存へ移すか、SQL Server 用 requirements を追加する。
+- Python 依存は `requirements.txt` と `requirements-dev.txt` に分けている。`requirements.txt` はAzure App Service実行用、`requirements-dev.txt` はテスト・開発用。
 - `pytest.ini` に `[tool.pytest.ini_options]` と `[pytest]` が混在している。pytest-env の設定が期待通り効くか要確認。
 - `BookWithReviewLatestInputAppModel.__post_init__` がクラス外にあり、検証として機能していない可能性が高い。
 - latest 系クエリは名前に反して昇順の可能性がある。

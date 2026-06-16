@@ -71,3 +71,4 @@ alembic upgrade head
 
 # apply seed data for test
 python ./bookshelf_app/tools/seeds/test_data.py
+

@@ -40,6 +40,47 @@ alembic upgrade head
 
 Alembic は `bookshelf_app/infra/db/migrations` 配下の migration を使います。
 
+## Azure App Service Deployment
+
+Azure へ載せる最初の構成は次を想定します。
+
+- Azure App Service: Linux / Python 3.12
+- Azure SQL Database
+- GitHub Actions: frontend build、unit test、App Service deploy
+
+Azure App Service の Startup Command:
+
+```bash
+bash startup.sh
+```
+
+App Service の Application settings には次を設定します。
+
+```text
+CRYPT_SECRET_KEY=<your secret>
+CRYPT_ALGORITHM=HS256
+DB_CONNECTION=mssql+pymssql://<user>:<password>@<server>.database.windows.net:1433/<database>
+GOOGLE_BOOKS_API_KEY=<optional>
+```
+
+GitHub Actions には次を設定します。
+
+- Repository variable: `AZURE_WEBAPP_NAME`
+- Repository secret: `AZURE_WEBAPP_PUBLISH_PROFILE`
+
+`AZURE_WEBAPP_PUBLISH_PROFILE` は Azure Portal の App Service から publish profile をダウンロードし、その内容を GitHub Secret に登録します。最初のCI/CD確認ではこの方式が簡単です。運用を固める段階で、GitHub Actions の OIDC 認証へ移行すると長寿命 secret を減らせます。
+
+初回の DB migration は、デプロイ前にローカルから Azure SQL に対して手動実行するのが安全です。
+
+```bash
+DB_CONNECTION='mssql+pymssql://<user>:<password>@<server>.database.windows.net:1433/<database>' \
+CRYPT_SECRET_KEY='<your secret>' \
+CRYPT_ALGORITHM='HS256' \
+alembic upgrade head
+```
+
+CI/CD で migration を自動化するのは、接続・バックアップ・失敗時の戻し方が決まってからにします。
+
 ## Tests
 
 PostgreSQL integration test:
@@ -76,7 +117,7 @@ SQL Server 対応では、次の差分を吸収しています。
 
 依存関係は用途別に分けています。
 
-- `requirements.txt`: アプリ実行用の依存関係
-- `requirements-dev.txt`: テスト・開発用の依存関係。`requirements.txt` を含み、`pytest`、`pytest-docker`、`httpx`、SQL Server integration test 用の `pymssql` を追加します。
+- `requirements.txt`: アプリ実行用の依存関係。Azure SQL 接続用の `pymssql` と App Service 起動用の `gunicorn` を含みます。
+- `requirements-dev.txt`: テスト・開発用の依存関係。`requirements.txt` を含み、`pytest`、`pytest-docker`、`httpx`、types 系を追加します。
 
-PostgreSQL で動かす本番環境は `requirements.txt` で足ります。SQL Server を本番DBにする場合は `pymssql` も本番依存に移すか、別途 SQL Server 用 requirements を作るのが安全です。
+PostgreSQL 専用の本番環境に戻す場合は、`pymssql` を SQL Server 用 requirements に分けても構いません。Azure SQL を本番DBにする間は `requirements.txt` に含めておきます。
