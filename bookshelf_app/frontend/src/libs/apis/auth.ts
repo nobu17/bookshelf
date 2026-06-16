@@ -16,9 +16,8 @@ export default class AuthApi extends ApiBase {
     const headers = { "content-type": "application/x-www-form-urlencoded" };
 
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + `/auth/token`;
       this._api
-        .post(reqUrl, payload, { headers: headers })
+        .post("/auth/token", payload, { headers: headers })
         .then((r) => {
           const res = {
             data: convert(r.data),

@@ -80,9 +80,8 @@ export default class ApiBase {
     converter?: (data: unknown) => ApiResponse<T>
   ): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + url;
       this._api
-        .get(reqUrl)
+        .get(url)
         .then((r) => {
           if (converter) {
             resolve(converter(r.data));
@@ -102,9 +101,8 @@ export default class ApiBase {
   postAsync<T>(url: string, param: unknown): Promise<ApiResponse<T>> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + url;
       this._api
-        .post(reqUrl, json)
+        .post(url, json)
         .then((r) => {
           const res = {
             data: r.data,
@@ -120,9 +118,8 @@ export default class ApiBase {
   putAsync(url: string, param: unknown): Promise<void> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + url;
       this._api
-        .put(reqUrl, json)
+        .put(url, json)
         .then(() => {
           resolve();
         })
@@ -138,9 +135,8 @@ export default class ApiBase {
   ): Promise<ApiResponse<T>> {
     const json = JSON.stringify(param);
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + url;
       this._api
-        .put(reqUrl, json)
+        .put(url, json)
         .then((r) => {
           resolve({ data: r.data });
         })
@@ -152,9 +148,8 @@ export default class ApiBase {
 
   deleteAsync(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const reqUrl = this._baseUrl + url;
       this._api
-        .delete(reqUrl)
+        .delete(url)
         .then(() => {
           resolve();
         })
