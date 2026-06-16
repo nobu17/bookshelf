@@ -8,7 +8,7 @@ type _Config = {
 
 const Config: _Config = {
   apiRoot: url || "",
-  apiTimeout: Number(timeOut) || 5000
+  apiTimeout: Number(timeOut) || 15000
 };
 
 export default Config;

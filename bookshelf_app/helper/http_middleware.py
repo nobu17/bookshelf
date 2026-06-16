@@ -1,7 +1,9 @@
+import asyncio
 import traceback
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DBAPIError, OperationalError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from bookshelf_app.api.shared.errors import (
@@ -20,11 +22,22 @@ from bookshelf_app.helper.logger import get_app_logger
 
 logger = get_app_logger(__name__)
 
+TRANSIENT_DB_ERROR_CODES = {
+    40197,
+    40501,
+    40613,
+    49918,
+    49919,
+    49920,
+}
+TRANSIENT_RETRY_METHODS = {"GET", "HEAD", "OPTIONS"}
+TRANSIENT_RETRY_DELAYS_SECONDS = (1.0, 3.0, 5.0)
+
 
 class HttpRequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         try:
-            response: Response = await call_next(request)
+            response: Response = await _call_next_with_transient_retry(request, call_next)
             if response.status_code >= 400:
                 logger.error(f"error http status: code:{response.status_code}, {vars(response)}")
         except ApiException as exc:
@@ -100,3 +113,53 @@ class HttpRequestMiddleware(BaseHTTPMiddleware):
                 content={"message": f"Unexpected error is happened. {exc}"},
             )
         return response
+
+
+async def _call_next_with_transient_retry(request: Request, call_next) -> Response:
+    if request.method not in TRANSIENT_RETRY_METHODS:
+        return await call_next(request)
+
+    retry_count = len(TRANSIENT_RETRY_DELAYS_SECONDS)
+    for attempt in range(retry_count + 1):
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            if attempt >= retry_count or not is_transient_db_error(exc):
+                raise
+
+            delay = TRANSIENT_RETRY_DELAYS_SECONDS[attempt]
+            logger.warning(
+                "Transient database error is happened. retrying request. "
+                f"method:{request.method}, path:{request.url.path}, attempt:{attempt + 1}/{retry_count}, delay:{delay}"
+            )
+            await asyncio.sleep(delay)
+
+    return await call_next(request)
+
+
+def is_transient_db_error(exc: Exception) -> bool:
+    if not isinstance(exc, (DBAPIError, OperationalError)) and not _contains_dbapi_error(exc):
+        return False
+
+    return any(str(code) in _flatten_exception_text(exc) for code in TRANSIENT_DB_ERROR_CODES)
+
+
+def _contains_dbapi_error(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    while current is not None:
+        if isinstance(current, DBAPIError):
+            return True
+        current = current.__cause__ or current.__context__
+
+    return False
+
+
+def _flatten_exception_text(exc: BaseException) -> str:
+    texts: list[str] = []
+    current: BaseException | None = exc
+    while current is not None:
+        texts.append(str(current))
+        texts.extend(str(arg) for arg in getattr(current, "args", ()))
+        current = current.__cause__ or current.__context__
+
+    return " ".join(texts)
