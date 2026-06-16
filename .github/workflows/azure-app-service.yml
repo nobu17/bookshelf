@@ -68,7 +68,7 @@ jobs:
     needs: build
     environment:
       name: production
-      url: https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net
+      url: ${{ vars.AZURE_WEBAPP_URL }}
 
     steps:
       - name: Download deployment package
