@@ -2,7 +2,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 import bookshelf_app.infra.db.auth  # noqa: F401　# pylint: disable=W0611
 import bookshelf_app.infra.db.tags  # noqa: F401 # pylint: disable=W0611
@@ -64,12 +64,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    config.set_section_option("alembic", "DB_CONNECTION", get_settings().db_connection)
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(get_settings().db_connection, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

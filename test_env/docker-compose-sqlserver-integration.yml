@@ -1,0 +1,24 @@
+services:
+  sqlserver_bookshelf_it:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: "sqlserver_db_book_shelf_integ"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+      MSSQL_PID: "Developer"
+      TZ: "Asia/Tokyo"
+    ports:
+      - 11433:1433
+
+  sqlserver_bookshelf_it_init:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      - sqlserver_bookshelf_it
+    command:
+      - /bin/bash
+      - -c
+      - |
+        until /opt/mssql-tools/bin/sqlcmd -S sqlserver_bookshelf_it -U sa -P "YourStrong!Passw0rd" -Q "SELECT 1";
+        do sleep 2;
+        done;
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver_bookshelf_it -U sa -P "YourStrong!Passw0rd" -Q "IF DB_ID('test_BookDb') IS NULL CREATE DATABASE test_BookDb";

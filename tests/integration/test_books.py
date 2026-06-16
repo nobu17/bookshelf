@@ -213,6 +213,87 @@ def test_books_search_masters_filters_by_keyword(database_service):
     assert books[0]["book_id"] == target["book_id"]
 
 
+@pytest.mark.parametrize(
+    ["keyword", "target_overrides"],
+    [
+        pytest.param(
+            "architecture-notes-title-keyword",
+            {
+                "isbn13": "9784798178417",
+                "title": "architecture-notes-title-keyword",
+                "publisher": "Tech Publisher Title Search",
+                "authors": ["Author Title Search"],
+                "published_at": "2025-01-10",
+            },
+            id="title",
+        ),
+        pytest.param(
+            "9784297137830",
+            {
+                "isbn13": "9784297137830",
+                "title": "Database Search Notes",
+                "publisher": "Tech Publisher Isbn Search",
+                "authors": ["Author Isbn Search"],
+                "published_at": "2025-01-11",
+            },
+            id="isbn13",
+        ),
+        pytest.param(
+            "publisher-field-keyword",
+            {
+                "isbn13": "9784798178424",
+                "title": "Publisher Search Notes",
+                "publisher": "publisher-field-keyword",
+                "authors": ["Author Publisher Search"],
+                "published_at": "2025-01-12",
+            },
+            id="publisher",
+        ),
+        pytest.param(
+            "author-field-keyword",
+            {
+                "isbn13": "9784798178431",
+                "title": "Author Search Notes",
+                "publisher": "Tech Publisher Author Search",
+                "authors": ["author-field-keyword"],
+                "published_at": "2025-01-13",
+            },
+            id="author",
+        ),
+    ],
+)
+def test_books_search_masters_filters_by_each_keyword_field(database_service, keyword: str, target_overrides: dict):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    target = create_book(client, user_token, **target_overrides)
+
+    response = client.get(url=URL_BASE + f"?keyword={keyword}", headers=auth_headers(admin_token))
+
+    assert response.status_code == 200
+    books = response.json()["books"]
+    assert [book["book_id"] for book in books] == [target["book_id"]]
+
+
+def test_books_search_masters_filters_case_insensitively(database_service):
+    user_token = auth_as_user(client)
+    admin_token = auth_as_admin(client)
+    target = create_book(
+        client,
+        user_token,
+        isbn13="9784798178448",
+        title="CASE-INSENSITIVE-BOOK-SEARCH",
+        publisher="Tech Publisher Case Search",
+        authors=["Author Case Search"],
+        published_at="2025-01-14",
+    )
+
+    response = client.get(url=URL_BASE + "?keyword=case-insensitive-book-search", headers=auth_headers(admin_token))
+
+    assert response.status_code == 200
+    books = response.json()["books"]
+    assert [book["book_id"] for book in books] == [target["book_id"]]
+
+
 def test_books_search_masters_no_authorization(database_service):
     response = client.get(url=URL_BASE)
 

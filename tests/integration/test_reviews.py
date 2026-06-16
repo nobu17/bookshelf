@@ -1,5 +1,7 @@
 # pylint: disable=unused-argument
 
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -249,6 +251,19 @@ def test_review_post_create_content_length_boundary(database_service, content: s
     assert response.status_code == expected_status
 
 
+def test_review_post_create_preserves_completed_state_datetime_instant(database_service):
+    token = auth_as_user(client)
+    book_id = create_book(client, token)["book_id"]
+    completed_at = "2032-04-23T10:20:30.400+02:30"
+
+    create_review(client, token, book_id, state=2, completed_at=completed_at)
+
+    reviews = get_my_reviews(client, token)
+    assert len(reviews) == 1
+    assert reviews[0]["state"] == 2
+    assert _parse_iso_datetime(reviews[0]["completed_at"]) == _parse_iso_datetime(completed_at)
+
+
 def test_review_put_update_not_existed_data(database_service):
     # precondition auth as normal user
     token = auth_as_user(client)
@@ -460,3 +475,7 @@ def test_review_delete_denies_another_user_data(database_service):
     response = client.delete(url=URL_BASE + "/" + review_id, headers=auth_headers(user_token))
 
     assert response.status_code == 401
+
+
+def _parse_iso_datetime(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))

@@ -2,8 +2,7 @@ from datetime import date
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import Column, Date, ForeignKey, String, Table, Uuid, delete, func, or_, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import Column, Date, ForeignKey, String, Table, Unicode, Uuid, delete, false, func, insert, or_, select
 from sqlalchemy.orm import Mapped, Session, joinedload, mapped_column, relationship
 
 from bookshelf_app.api.books.domain import (
@@ -51,7 +50,7 @@ class PublisherDTO(Base):
     __tablename__ = "publishers"
     __table_args__ = {"comment": "出版社"}
 
-    name: Mapped[str] = mapped_column(String(length=100), primary_key=True, comment="名称")
+    name: Mapped[str] = mapped_column(Unicode(length=100), primary_key=True, comment="名称")
 
     def to_domain_model(self) -> Publisher:
         return Publisher(self.name)
@@ -68,7 +67,7 @@ class AuthorDTO(Base):
     __tablename__ = "authors"
     __table_args__ = {"comment": "著者"}
 
-    name: Mapped[str] = mapped_column(String(length=100), primary_key=True, comment="著者")
+    name: Mapped[str] = mapped_column(Unicode(length=100), primary_key=True, comment="著者")
 
     def to_domain_model(self) -> Author:
         return Author(self.name)
@@ -97,7 +96,7 @@ class BookDTO(Base):
 
     book_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, comment="主キー")
     isbn13: Mapped[str] = mapped_column(String(length=13), nullable=False, index=True, comment="ISBN13")
-    title: Mapped[str] = mapped_column(String(length=100), nullable=False, index=True, comment="書籍名")
+    title: Mapped[str] = mapped_column(Unicode(length=100), nullable=False, index=True, comment="書籍名")
     image_url: Mapped[str] = mapped_column(String(length=1000), nullable=False, default="", comment="書影URL")
     published_at: Mapped[date] = mapped_column(Date, nullable=False, index=True, comment="出版日時")
     publisher: Mapped[PublisherDTO] = relationship(secondary=books_publishers_association_table)
@@ -169,7 +168,7 @@ class SqlBookRepository(IBookRepository):
 
         review_counts = (
             select(BookReviewDTO.book_id, func.count(BookReviewDTO.review_id).label("review_count"))
-            .where(BookReviewDTO.is_deleted.is_(False))
+            .where(BookReviewDTO.is_deleted == false())
             .where(BookReviewDTO.book_id.in_(book_ids))
             .group_by(BookReviewDTO.book_id)
             .subquery()
@@ -278,12 +277,19 @@ class SqlBookRepository(IBookRepository):
     def _resolve_publisher(self, original: PublisherDTO) -> PublisherDTO:
         select_pub_stmt = select(PublisherDTO).where(PublisherDTO.name == original.name)
         publisher = self._session.scalars(select_pub_stmt).first()
-        return publisher if publisher is not None else original
+        if publisher is not None:
+            return publisher
+
+        self._session.add(original)
+        self._session.flush([original])
+        return original
 
     def _resolve_authors(self, originals: list[AuthorDTO]) -> list[AuthorDTO]:
         authors = self._session.query(AuthorDTO).filter(AuthorDTO.name.in_([x.name for x in originals])).all()
         for original in originals:
             matched = next((author for author in authors if author.name == original.name), None)
             if matched is None:
+                self._session.add(original)
+                self._session.flush([original])
                 authors.append(original)
         return authors

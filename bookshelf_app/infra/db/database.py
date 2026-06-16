@@ -52,11 +52,18 @@ def truncate_tables():
     # truncate all tables
     for table in reversed(Base.metadata.sorted_tables):
         for session in get_session():
-            session.execute(text(f"TRUNCATE {table.name} CASCADE;"))
+            if session.bind and session.bind.dialect.name == "postgresql":
+                session.execute(text(f"TRUNCATE {table.name} CASCADE;"))
+            else:
+                session.execute(table.delete())
             session.commit()
 
 
 def truncate_table(table_name: str):
+    table = Base.metadata.tables[table_name]
     for session in get_session():
-        session.execute(text(f"TRUNCATE {table_name} CASCADE;"))
+        if session.bind and session.bind.dialect.name == "postgresql":
+            session.execute(text(f"TRUNCATE {table_name} CASCADE;"))
+        else:
+            session.execute(table.delete())
         session.commit()

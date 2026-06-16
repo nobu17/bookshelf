@@ -1,7 +1,7 @@
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import String, Uuid, select, update
+from sqlalchemy import Unicode, Uuid, select, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlalchemy.sql.expression import false
 
@@ -15,7 +15,7 @@ class TagDTO(DeletableBase):
     __table_args__ = {"comment": "タグ"}
 
     tag_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, comment="主キー")
-    name: Mapped[str] = mapped_column(String(length=30), nullable=False, index=True, comment="タグ名")
+    name: Mapped[str] = mapped_column(Unicode(length=30), nullable=False, index=True, comment="タグ名")
 
     def to_domain_model(self) -> Tag:
         return Tag.create_for_orm(self.tag_id, self.name)
@@ -38,7 +38,7 @@ class SqlTagRepository(ITagRepository):
         self._session = session
 
     def fetch_all(self) -> list[Tag]:
-        stmt = select(TagDTO).where(TagDTO.is_deleted == false())
+        stmt = select(TagDTO).where(TagDTO.is_deleted == false()).order_by(TagDTO.name)
         results = self._session.scalars(stmt).all()
 
         return [res.to_domain_model() for res in results]

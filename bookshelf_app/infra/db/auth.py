@@ -1,7 +1,7 @@
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import JSON, String, Uuid, select
+from sqlalchemy import JSON, String, Unicode, Uuid, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlalchemy.sql.expression import false
 
@@ -51,8 +51,8 @@ class UserDTO(DeletableBase):
     __table_args__ = {"comment": "ユーザー"}
 
     user_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, comment="主キー")
-    name: Mapped[str] = mapped_column(String(length=30), nullable=False, comment="ユーザー名")
-    email: Mapped[str] = mapped_column(String(length=100), nullable=False, comment="メールアドレス")
+    name: Mapped[str] = mapped_column(Unicode(length=30), nullable=False, comment="ユーザー名")
+    email: Mapped[str] = mapped_column(Unicode(length=100), nullable=False, comment="メールアドレス")
     hashed_password: Mapped[str] = mapped_column(String(length=256), nullable=False, comment="パスワード")
     roles: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment="ロール")
 

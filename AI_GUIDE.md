@@ -6,7 +6,7 @@
 
 Bookshelf は、書籍と読書レビューを管理する Web アプリケーションです。
 
-- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL
+- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL / SQL Server integration test
 - Frontend: Vite, React 18, TypeScript, MUI, React Router
 - Tests: pytest, FastAPI TestClient, pytest-docker
 - 外部検索: バックエンドの `/api/book_search` から Google Books API と openBD API を利用
@@ -42,8 +42,8 @@ bookshelf_app/
   tools/                          seed投入用ツール
 tests/
   unit/                           ドメイン中心の単体テスト
-  integration/                    TestClient + PostgreSQL 統合テスト
-test_env/                         pytest-docker 用 PostgreSQL
+  integration/                    TestClient + DB 統合テスト
+  test_env/                       pytest-docker 用 PostgreSQL / SQL Server
 ```
 
 ## Backend Architecture
@@ -242,6 +242,7 @@ Book with reviews:
 - `DB_CONNECTION` を `.env`, `.env.prod`, `.env.test` などで指定。
 - Alembic script location は `bookshelf_app/infra/db/migrations`。
 - `alembic.ini` の `sqlalchemy.url` は実質 `.env` の `DB_CONNECTION` を使う設計。
+- integration test は通常 `.env.test` の PostgreSQL を使う。SQL Server 互換確認では `.env.test.mssql` と `test_env/docker-compose-sqlserver-integration.yml` を使う。
 
 主なテーブル/DTO:
 
@@ -260,6 +261,8 @@ Book with reviews:
 - `tags` と `book_reviews` は論理削除。
 - `books` は現状削除実装なし。
 - DTO は `to_domain_model` / `from_domain_model` を持つ。DB層の変更では domain 変換の整合性を必ず確認する。
+- 日本語などの非ASCII文字列を保存するカラムは SQL Server で文字化けしないよう `Unicode` / `UnicodeText` を使う。
+- `DateTime(timezone=True)` は DB / driver ごとに往復挙動が異なるため、レビュー日時は DB 保存時に UTC 正規化している。
 
 ## Frontend Architecture
 
@@ -462,6 +465,20 @@ ENV_FILE=.env.test PYTHONPATH=. ./venv_webapp/bin/pytest -q tests/integration
 
 統合テストは `tests/integration/conftest.py` で `test_env/docker-compose-integration.yml` を使い、PostgreSQL 起動後に Alembic migration を head まで適用します。
 
+SQL Server integration tests:
+
+```bash
+./scripts/test_integration_sqlserver.sh
+```
+
+特定ファイルだけ確認する場合:
+
+```bash
+./scripts/test_integration_sqlserver.sh tests/integration/test_books.py
+```
+
+SQL Server 用テストは `.env.test.mssql`、`test_env/docker-compose-sqlserver-integration.yml`、`pymssql` を使います。
+
 テスト用アカウント:
 
 - admin: `hoge@hoge.com` / `Hoge123456789`
@@ -470,8 +487,10 @@ ENV_FILE=.env.test PYTHONPATH=. ./venv_webapp/bin/pytest -q tests/integration
 注意:
 
 - `.env.test` が必要。
+- SQL Server integration test には `.env.test.mssql` が必要。
 - Docker が必要。
-- DB truncate helper は `TRUNCATE ... CASCADE` を使うため PostgreSQL 前提。
+- SQL Server integration test には `pymssql` が必要。これは `requirements-dev.txt` に含める。
+- DB truncate helper は PostgreSQL では `TRUNCATE ... CASCADE`、それ以外では `DELETE` を使う。
 
 ## Common Change Recipes
 
@@ -503,8 +522,8 @@ ENV_FILE=.env.test PYTHONPATH=. ./venv_webapp/bin/pytest -q tests/integration
 
 ## Known Issues / Watch Points
 
-- `README.md` は概要のみで、実行手順はこのファイルの方が詳しい。
-- Python 依存関係ファイルがリポジトリ直下に見当たらない。環境再構築時は実行環境の依存管理方法を別途確認する。
+- `README.md` は開発・テスト手順の入口。このファイルは設計判断や変更時の注意点を含む詳細ガイド。
+- Python 依存は `requirements.txt` と `requirements-dev.txt` に分けている。SQL Server を本番DBにする場合は、`pymssql` を本番依存へ移すか、SQL Server 用 requirements を追加する。
 - `pytest.ini` に `[tool.pytest.ini_options]` と `[pytest]` が混在している。pytest-env の設定が期待通り効くか要確認。
 - `BookWithReviewLatestInputAppModel.__post_init__` がクラス外にあり、検証として機能していない可能性が高い。
 - latest 系クエリは名前に反して昇順の可能性がある。

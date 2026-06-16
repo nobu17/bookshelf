@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Uuid, and_, select, update
+from sqlalchemy import Boolean, DateTime, ForeignKey, UnicodeText, Uuid, and_, select, update
+from sqlalchemy.dialects import mssql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlalchemy.sql.expression import false
 
@@ -20,24 +21,48 @@ from bookshelf_app.api.reviews.domain import (
 from bookshelf_app.infra.db.database import Base
 
 
+def _to_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc)
+
+
+def _restore_utc_timezone(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is not None:
+        return value
+
+    return value.replace(tzinfo=timezone.utc)
+
+
 # pylint: disable=unsubscriptable-object
 class BookReviewDTO(Base):
     __tablename__ = "book_reviews"
     __table_args__ = {"comment": "書籍レビュー"}
 
     review_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, comment="主キー")
-    content: Mapped[str] = mapped_column(String(length=10000), comment="レビュー本文")
+    content: Mapped[str] = mapped_column(UnicodeText, comment="レビュー本文")
     is_draft: Mapped[bool] = mapped_column(Boolean, comment="ドラフト")
     state: Mapped[ReviewStateEnum] = mapped_column(comment="状態", default=ReviewStateEnum.NOT_YET)
     last_modified_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), comment="最終更新日時(Program)", index=True
+        DateTime(timezone=True).with_variant(mssql.DATETIMEOFFSET(), "mssql"),
+        comment="最終更新日時(Program)",
+        index=True,
     )
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, comment="読了日")
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True).with_variant(mssql.DATETIMEOFFSET(), "mssql"), nullable=True, comment="読了日"
+    )
     book_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("books.book_id"))
     user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.user_id"))
 
     def to_domain_model(self) -> BookReview:
-        state = ReviewState.create_from_orm(self.state, self.completed_at, self.last_modified_at)
+        state = ReviewState.create_from_orm(
+            self.state,
+            _restore_utc_timezone(self.completed_at),
+            _restore_utc_timezone(self.last_modified_at),
+        )
         content = ReviewContent.create_from_orm(self.content, self.is_draft)
         detail = ReviewDetail.create_from_orm(self.review_id, state, content)
         return BookReview.create_from_orm(detail, self.user_id, self.book_id)
@@ -49,8 +74,8 @@ class BookReviewDTO(Base):
         model.content = domain.detail.content.get_value()
         model.is_draft = domain.detail.content.is_draft
         model.state = domain.detail.state.state
-        model.last_modified_at = domain.detail.state.last_modified_at
-        model.completed_at = domain.detail.state.completed_at
+        model.last_modified_at = _to_utc(domain.detail.state.last_modified_at)
+        model.completed_at = _to_utc(domain.detail.state.completed_at)
         model.book_id = domain.book_id
         model.user_id = domain.user_id
 
@@ -72,16 +97,27 @@ class SqlBookReviewRepository(IBookReviewRepository):
         return result.to_domain_model()
 
     def find_by_user_id(self, id: UUID) -> SpecificUserBookReviews:
-        stmt = select(BookReviewDTO).where(BookReviewDTO.user_id == id).where(BookReviewDTO.is_deleted == false())
+        stmt = (
+            select(BookReviewDTO)
+            .where(BookReviewDTO.user_id == id)
+            .where(BookReviewDTO.is_deleted == false())
+            .order_by(BookReviewDTO.last_modified_at)
+        )
         results = self._session.scalars(stmt).all()
 
         return SpecificUserBookReviews.create_from_orm(id, [res.to_domain_model() for res in results])
 
     def find_by_user_id_and_book_id(self, user_id: UUID, book_id: UUID) -> SpecificBookUserReviews:
-        stmt = select(BookReviewDTO).where(
-            and_(
-                BookReviewDTO.user_id == user_id, BookReviewDTO.book_id == book_id, BookReviewDTO.is_deleted == false()
+        stmt = (
+            select(BookReviewDTO)
+            .where(
+                and_(
+                    BookReviewDTO.user_id == user_id,
+                    BookReviewDTO.book_id == book_id,
+                    BookReviewDTO.is_deleted == false(),
+                )
             )
+            .order_by(BookReviewDTO.last_modified_at)
         )
         results = self._session.scalars(stmt).all()
 

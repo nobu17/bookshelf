@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-os.environ.setdefault("ENV_FILE", ".env.test")
+os.environ.setdefault("ENV_FILE", os.getenv("INTEGRATION_ENV_FILE", ".env.test"))
 
 from bookshelf_app import main
 from bookshelf_app.infra.db.database import get_session
@@ -23,11 +23,11 @@ alembicArgs = [
 def is_database_ready(docker_ip):
     """データベース起動待ち
     接続を試みて、Exceptionが発生しなくなったらコンテナー起動済みとする
-    MySQL/PostgreSQLはSELECT version()でバージョン応答できるのでこれで試しとく
+    SQLAlchemyが接続できることをDB非依存なSELECTで試す
     """
     try:
         for session in get_session():
-            session.execute(text("SELECT version()"))
+            session.execute(text("SELECT 1"))
             # migration start
             print("start migration")
             alembic.config.main(argv=alembicArgs)
@@ -40,7 +40,8 @@ def is_database_ready(docker_ip):
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
-    return os.path.join(str(pytestconfig.rootdir), "test_env", "docker-compose-integration.yml")
+    compose_file = os.getenv("INTEGRATION_DOCKER_COMPOSE_FILE", "test_env/docker-compose-integration.yml")
+    return os.path.join(str(pytestconfig.rootdir), compose_file)
 
 
 @pytest.fixture(scope="session")
@@ -60,4 +61,4 @@ def docker_compose_project_name() -> str:
     fixture in your tests if you need a particular project name."""
 
     # to avoid creating duplicate images, return fix name
-    return "pytest-integration_1"
+    return os.getenv("INTEGRATION_DOCKER_COMPOSE_PROJECT_NAME", "pytest-integration_1")
