@@ -1,4 +1,4 @@
-import ApiBase from "./apibase";
+import ApiBase, { ApiError } from "./apibase";
 import { ApiResponse } from "./apibase";
 import {
   BookWithReviews,
@@ -61,6 +61,7 @@ export class BookWithMyReviewsApi extends ApiBase {
 }
 
 const convert = (data: ApiRawResp): BooksWithResponse => {
+  assertBooksWithReviewsResponse(data);
   const converted = data.books_with_reviews.map((x) => adjust(x));
   return { books_with_reviews: converted };
 };
@@ -68,6 +69,7 @@ const convert = (data: ApiRawResp): BooksWithResponse => {
 const convert_specific_user = (
   data: ApiSpecificUserRawResp
 ): SpecificUserBooksWithResponse => {
+  assertBooksWithReviewsResponse(data);
   const converted = data.books_with_reviews.map((x) => adjust(x));
   return { books_with_reviews: converted, user_name: data.user_name };
 };
@@ -82,8 +84,20 @@ const adjust = (data: ApiBookWithReviews): BookWithReviews => {
     publishedAt: toDate(data.published_at),
     imageUrl: data.image_url || null,
     tags: convertToBookTags(data.tags),
-    reviews: data.reviews.map((review) => convertToReview(review)),
+    reviews: (data.reviews ?? []).map((review) => convertToReview(review)),
   };
+};
+
+const assertBooksWithReviewsResponse = (
+  data: ApiRawResp | ApiSpecificUserRawResp
+): void => {
+  if (!Array.isArray(data?.books_with_reviews)) {
+    throw new ApiError(
+      new Error("books_with_reviews is missing from API response."),
+      0,
+      "books_with_reviews is missing from API response."
+    );
+  }
 };
 
 const convertToReview = (review: ApiReview): Review => {
