@@ -61,11 +61,15 @@ CRYPT_SECRET_KEY=<your secret>
 CRYPT_ALGORITHM=HS256
 DB_CONNECTION=mssql+pymssql://<user>:<password>@<server>.database.windows.net:1433/<database>
 GOOGLE_BOOKS_API_KEY=<optional>
+SCM_DO_BUILD_DURING_DEPLOYMENT=1
 ```
+
+Frontend の API root は Vite のビルド時に決まります。未指定時は同一ドメインの `/api` を使います。別APIホストへ向ける場合だけ、GitHub Actions の build 時に `VITE_APP_API_ROOT` を設定してください。App Service の Application settings に後から `VITE_APP_API_ROOT` を足しても、既にビルド済みの静的ファイルには反映されません。
 
 GitHub Actions には次を設定します。
 
 - Repository variable: `AZURE_WEBAPP_NAME`
+- Repository variable: `AZURE_WEBAPP_URL`
 - Repository secret: `AZURE_WEBAPP_PUBLISH_PROFILE`
 
 `AZURE_WEBAPP_PUBLISH_PROFILE` は Azure Portal の App Service から publish profile をダウンロードし、その内容を GitHub Secret に登録します。最初のCI/CD確認ではこの方式が簡単です。運用を固める段階で、GitHub Actions の OIDC 認証へ移行すると長寿命 secret を減らせます。

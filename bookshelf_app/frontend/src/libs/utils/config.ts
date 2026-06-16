@@ -7,7 +7,7 @@ type _Config = {
 };
 
 const Config: _Config = {
-  apiRoot: url || "",
+  apiRoot: url || "/api",
   apiTimeout: Number(timeOut) || 15000
 };
 

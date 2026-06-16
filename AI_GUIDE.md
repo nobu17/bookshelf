@@ -312,8 +312,8 @@ Book with reviews:
 
 API設定:
 
-- `VITE_APP_API_ROOT`: API root。空なら相対URL寄りの挙動。
-- `VITE_APP_API_TIMEOUT`: Axios timeout。未指定なら 5000ms。
+- `VITE_APP_API_ROOT`: API root。未指定なら同一ドメインの `/api`。
+- `VITE_APP_API_TIMEOUT`: Axios timeout。未指定なら 15000ms。
 
 外部API:
 
