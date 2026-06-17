@@ -11,7 +11,11 @@ from bookshelf_app.config import get_settings
 SQLALCHEMY_DATABASE_URL = get_settings().db_connection
 
 # engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

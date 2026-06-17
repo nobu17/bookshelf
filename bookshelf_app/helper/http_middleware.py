@@ -23,6 +23,7 @@ from bookshelf_app.helper.logger import get_app_logger
 logger = get_app_logger(__name__)
 
 TRANSIENT_DB_ERROR_CODES = {
+    20047,
     40197,
     40501,
     40613,

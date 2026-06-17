@@ -17,6 +17,16 @@ def test_is_transient_db_error_detects_azure_sql_40613():
     assert http_middleware.is_transient_db_error(exc)
 
 
+def test_is_transient_db_error_detects_dead_pymssql_connection_20047():
+    exc = OperationalError(
+        statement="SELECT 1",
+        params={},
+        orig=Exception("DB-Lib error message 20047, severity 9: DBPROCESS is dead or not enabled"),
+    )
+
+    assert http_middleware.is_transient_db_error(exc)
+
+
 def test_is_transient_db_error_ignores_regular_exception():
     assert not http_middleware.is_transient_db_error(ValueError("40613 as plain validation message"))
 
