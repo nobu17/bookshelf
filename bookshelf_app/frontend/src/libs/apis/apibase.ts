@@ -13,13 +13,13 @@ interface ApiErrorImpl {
   isAuthError: () => boolean;
 }
 
-export class ApiError implements ApiErrorImpl {
-  public name: string;
+export class ApiError extends Error implements ApiErrorImpl {
   constructor(
     public error: Error,
     public code: number,
-    public message: string
+    message: string
   ) {
+    super(message);
     this.name = "ApiError";
   }
 
@@ -162,8 +162,7 @@ export default class ApiBase {
 
 export const convertError = (error: unknown): ApiError => {
   if (isAxiosError(error)) {
-    const message =
-      typeof error.response?.data === "string" ? error.response?.data : "";
+    const message = getAxiosErrorMessage(error);
     return new ApiError(
       error,
       error.response?.status != null ? error.response?.status : 0,
@@ -171,11 +170,41 @@ export const convertError = (error: unknown): ApiError => {
     );
   }
   const wrapped = error instanceof Error ? error : new Error("unexpected error.");
-  return new ApiError(wrapped, 0, "");
+  return new ApiError(wrapped, 0, wrapped.message || "予期しないエラーが発生しました。");
 };
 
 const isAxiosError = (error: unknown): error is AxiosError => {
   return axios.isAxiosError(error);
+};
+
+const getAxiosErrorMessage = (error: AxiosError): string => {
+  if (error.code === "ECONNABORTED") {
+    return "サーバーからの応答がタイムアウトしました。時間を置いて再度お試しください。";
+  }
+
+  if (!error.response) {
+    return "サーバーに接続できませんでした。ネットワーク状態を確認して再度お試しください。";
+  }
+
+  const data = error.response.data;
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (isErrorResponse(data)) {
+    return data.message;
+  }
+
+  return error.message || "APIリクエストでエラーが発生しました。";
+};
+
+const isErrorResponse = (value: unknown): value is { message: string } => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
 };
 
 export interface Api {
