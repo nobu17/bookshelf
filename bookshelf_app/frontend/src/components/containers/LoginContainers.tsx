@@ -7,7 +7,7 @@ import { useSignInGuard } from "../../hooks/auth/UseSignInGuard";
 export default function LoginContainer() {
   useSignInGuard();
   const { setIsSpinnerOn } = useGlobalSpinnerContext();
-  const { signIn, error } = useAuth();
+  const { signIn, error, loading } = useAuth();
 
   const displayError = (authError: AuthError) => {
     if (authError != null) {
@@ -41,6 +41,7 @@ export default function LoginContainer() {
       <LoginForm
         input={{ email: "", password: "" }}
         onSubmit={handleSubmit}
+        isLoading={loading}
       ></LoginForm>
     </>
   );

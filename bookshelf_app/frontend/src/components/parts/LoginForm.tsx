@@ -15,6 +15,7 @@ import { isValidEmail } from "../../libs/utils/email";
 type LoginFormProps = {
   input: LoginInput;
   onSubmit: callbackSubmit;
+  isLoading?: boolean;
 };
 
 type LoginInput = {
@@ -37,6 +38,7 @@ export default function LoginForm(props: LoginFormProps) {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const onSubmit: SubmitHandler<LoginInput> = (data) => {
+    if (props.isLoading) return;
     props.onSubmit(data);
   };
   const handleEmailValidation = (email: string) => {
@@ -53,10 +55,11 @@ export default function LoginForm(props: LoginFormProps) {
   return (
     <>
       <Container maxWidth="sm" sx={{ pt: 5 }}>
-        <Stack spacing={3}>
+        <Stack component="form" spacing={3} onSubmit={handleSubmit(onSubmit)}>
           <TextField
             label="ID"
             fullWidth
+            disabled={props.isLoading}
             {...register("email", {
               required: { value: true, message: RequiredErrorMessage },
               validate: handleEmailValidation,
@@ -67,6 +70,7 @@ export default function LoginForm(props: LoginFormProps) {
           <TextField
             label="Password"
             fullWidth
+            disabled={props.isLoading}
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             {...register("password", {
@@ -80,6 +84,7 @@ export default function LoginForm(props: LoginFormProps) {
                     onClick={handleClickShowPassword}
                     onMouseDown={(e) => e.preventDefault()}
                     edge="end"
+                    disabled={props.isLoading}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -93,7 +98,8 @@ export default function LoginForm(props: LoginFormProps) {
             color="primary"
             variant="contained"
             size="large"
-            onClick={handleSubmit(onSubmit)}
+            type="submit"
+            disabled={props.isLoading}
           >
             ログイン
           </Button>
