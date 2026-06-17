@@ -31,6 +31,8 @@ archive.zip
 # env file
 .env
 .env.tool
+.env.prod
+.env.tool.prod
 
 # test related
 /test_env/postgres_ut/data/*
@@ -39,3 +41,5 @@ archive.zip
 #venv
 venv_webapp
 
+# secrets
+secret.txt

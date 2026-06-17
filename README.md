@@ -70,9 +70,21 @@ GitHub Actions には次を設定します。
 
 - Repository variable: `AZURE_WEBAPP_NAME`
 - Repository variable: `AZURE_WEBAPP_URL`
-- Repository secret: `AZURE_WEBAPP_PUBLISH_PROFILE`
+- Repository secret: `AZURE_CLIENT_ID`
+- Repository secret: `AZURE_TENANT_ID`
+- Repository secret: `AZURE_SUBSCRIPTION_ID`
 
-`AZURE_WEBAPP_PUBLISH_PROFILE` は Azure Portal の App Service から publish profile をダウンロードし、その内容を GitHub Secret に登録します。最初のCI/CD確認ではこの方式が簡単です。運用を固める段階で、GitHub Actions の OIDC 認証へ移行すると長寿命 secret を減らせます。
+GitHub Actions から Azure への認証は OIDC を使います。Azure 側で Microsoft Entra application / service principal を作成し、App Service のある Resource Group へ `Contributor` 以上のロールを付与します。その後、Federated credential を追加します。
+
+Federated credential の設定値:
+
+```text
+Issuer: https://token.actions.githubusercontent.com
+Subject: repo:<github-owner>/<github-repo>:environment:production
+Audience: api://AzureADTokenExchange
+```
+
+GitHub Actions の deploy job は `environment: production` を使うため、Subject も `environment:production` にします。`AZURE_CLIENT_ID` は作成した application の Client ID、`AZURE_TENANT_ID` は Directory tenant ID、`AZURE_SUBSCRIPTION_ID` は Subscription ID を登録します。Publish Profile は使わないため、`AZURE_WEBAPP_PUBLISH_PROFILE` は不要です。
 
 初回の DB migration は、デプロイ前にローカルから Azure SQL に対して手動実行するのが安全です。
 
@@ -88,6 +100,12 @@ CI/CD で migration を自動化するのは、接続・バックアップ・失
 ### Initial Admin Account
 
 初回ログイン用の Admin は migration では自動作成されません。DB migration 後に、初期Admin作成コマンドを1回実行します。
+
+`.env.tool.prod.example` をコピーして、コード管理しない `.env.tool.prod` を作成します。
+
+```bash
+cp .env.tool.prod.example .env.tool.prod
+```
 
 `.env.tool.prod` に次を設定します。
 
