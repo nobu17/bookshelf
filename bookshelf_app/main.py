@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from bookshelf_app.api.auth import router as auth
 from bookshelf_app.api.book_search import router as book_search
 from bookshelf_app.api.books import router as books
+from bookshelf_app.api.health import router as health
 from bookshelf_app.api.reviews import router as reviews
 from bookshelf_app.api.tags import router as tags
 from bookshelf_app.api.book_with_reviews import router as book_with_reviews
@@ -21,6 +22,7 @@ app.include_router(book_search.router, prefix=API_PREFIX)
 app.include_router(books.router, prefix=API_PREFIX)
 app.include_router(reviews.router, prefix=API_PREFIX)
 app.include_router(book_with_reviews.router, prefix=API_PREFIX)
+app.include_router(health.router, prefix=API_PREFIX)
 
 app.add_middleware(HttpRequestMiddleware)
 app.add_middleware(

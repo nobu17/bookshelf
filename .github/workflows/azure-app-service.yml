@@ -43,7 +43,7 @@ jobs:
         working-directory: bookshelf_app/frontend
         env:
           VITE_APP_API_ROOT: /api
-          VITE_APP_API_TIMEOUT: "15000"
+          VITE_APP_API_TIMEOUT: "60000"
         run: |
           npm ci
           npm run build
