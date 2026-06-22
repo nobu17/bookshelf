@@ -5,10 +5,11 @@ import { useAuth } from "../contexts/AuthContext";
 
 const title = "技術書ノート";
 const menus = [{ name: "ホーム", link: "/" }];
-const userMenus = [
+const authorizedMenus = [
+  { name: "ホーム", link: "/" },
   { name: "マイページ", link: "/mypage" },
-  { name: "ログアウト", link: "/auth/signout" },
 ];
+const userMenus = [{ name: "ログアウト", link: "/auth/signout" }];
 
 function Header() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ function Header() {
     <>
       <ResponsiveAppBar
         title={title}
-        menus={menus}
+        menus={state.isAuthorized ? authorizedMenus : menus}
         userMenus={userMenus}
         isAuthorized={state.isAuthorized}
         onMenuSelect={handleMenuClick}
