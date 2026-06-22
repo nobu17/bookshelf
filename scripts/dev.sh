@@ -24,7 +24,12 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-export ENV_FILE="${ENV_FILE:-.env}"
+export ENV_FILE="${ENV_FILE:-.env.local}"
+
+if [[ "${ENV_FILE}" == ".env.local" && ! -f "${ROOT_DIR}/.env.local" ]]; then
+  echo "[dev] creating .env.local from .env.local.example..."
+  cp "${ROOT_DIR}/.env.local.example" "${ROOT_DIR}/.env.local"
+fi
 
 if [[ -d "${HOME}/.nodebrew/current/bin" ]]; then
   export PATH="${HOME}/.nodebrew/current/bin:${PATH}"
@@ -32,6 +37,17 @@ fi
 
 echo "[dev] starting PostgreSQL container..."
 (cd "${ROOT_DIR}/test_env" && docker compose up -d)
+
+echo "[dev] waiting for PostgreSQL..."
+for _ in {1..30}; do
+  if "${ROOT_DIR}/venv_webapp/bin/python" -c "import socket; socket.create_connection(('127.0.0.1', 17432), 1).close()" 2>/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+echo "[dev] applying database migrations..."
+(cd "${ROOT_DIR}" && ./venv_webapp/bin/alembic upgrade head)
 
 echo "[dev] starting backend: http://localhost:8000"
 (cd "${ROOT_DIR}" && ./venv_webapp/bin/uvicorn bookshelf_app.main:app --reload --host 0.0.0.0 --port 8000) &

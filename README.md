@@ -24,6 +24,8 @@ pip install -r requirements-dev.txt
 ./scripts/dev.sh
 ```
 
+初回実行時に `.env.local` がなければ `.env.local.example` から自動作成します。`dev.sh` はローカルPostgreSQLコンテナを起動し、migrationを適用してから backend / frontend を起動します。
+
 停止するときは起動したターミナルで `Ctrl+C` を押します。DB コンテナだけ明示的に止めたい場合は次を使います。
 
 ```bash

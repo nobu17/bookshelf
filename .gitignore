@@ -30,6 +30,7 @@ archive.zip
 
 # env file
 .env
+.env.local
 .env.tool
 .env.prod
 .env.tool.prod
