@@ -32,9 +32,30 @@ pip install -r requirements-dev.txt
 ./scripts/down.sh
 ```
 
+## Environment Files
+
+普段のローカル開発では、基本的に `.env.local` だけを編集します。
+
+| File | Git | 用途 |
+| --- | --- | --- |
+| `.env.local` | ignored | ローカル開発用。`dev.sh` が `ENV_FILE=.env.local` として読み込みます。Google Books API key もここに入れます。 |
+| `.env.local.example` | tracked | `.env.local` の雛形。secret は入れません。 |
+| `.env` | ignored | 手動実行や一時検証用。`dev.sh` はデフォルトでは使いません。 |
+| `.env.prod` | ignored | 本番相当の手動実行用。必要な場合だけ作ります。 |
+| `.env.test` | tracked | PostgreSQL integration / unit test 用。secret は入れません。 |
+| `.env.test.mssql` | tracked | SQL Server integration test 用。secret は入れません。 |
+| `.env.tool` | ignored | seed/tool のローカル用。 |
+| `.env.tool.prod` | ignored | Azure SQL へ初期Adminなどを作る手動tool用。 |
+| `.env.tool.example` | tracked | `.env.tool` の雛形。 |
+| `.env.tool.prod.example` | tracked | `.env.tool.prod` の雛形。 |
+| `bookshelf_app/frontend/.env.development` | tracked | Vite開発サーバー用。API root は `http://localhost:8000/api`。 |
+| `bookshelf_app/frontend/.env.production` | tracked | Vite本番ビルド用。GitHub Actionsではworkflow内の値も使います。 |
+
+`.env.local` や `.env.tool.prod` などの ignored ファイルにはsecretを入れて構いませんが、tracked な `*.example` や test 用envにはsecretを入れません。
+
 ## Database Migration
 
-DB 接続先は `.env`、`.env.test`、`.env.test.mssql` などの `DB_CONNECTION` で切り替えます。
+DB 接続先は `ENV_FILE` で指定したenvファイルの `DB_CONNECTION` で切り替えます。
 
 ```bash
 alembic upgrade head

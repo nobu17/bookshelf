@@ -192,18 +192,24 @@ const getAxiosErrorMessage = (error: AxiosError): string => {
   }
 
   if (isErrorResponse(data)) {
-    return data.message;
+    return data.message ?? data.detail ?? "APIリクエストでエラーが発生しました。";
+  }
+
+  if (error.response.status === 429) {
+    return "外部書籍検索APIの利用制限に達しました。少し時間を置いてから再度お試しください。";
   }
 
   return error.message || "APIリクエストでエラーが発生しました。";
 };
 
-const isErrorResponse = (value: unknown): value is { message: string } => {
+const isErrorResponse = (
+  value: unknown
+): value is { message?: string; detail?: string } => {
   return (
     typeof value === "object" &&
     value !== null &&
-    "message" in value &&
-    typeof value.message === "string"
+    (("message" in value && typeof value.message === "string") ||
+      ("detail" in value && typeof value.detail === "string"))
   );
 };
 

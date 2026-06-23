@@ -74,18 +74,22 @@ class GoogleBooksProvider:
         self._api_key = api_key
 
     def search(self, keyword: str) -> list[BookSearchResultAppModel]:
-        q = f"isbn:{normalize_isbn(keyword)}" if is_isbn13(keyword) else keyword
-        data = fetch_json(
-            "https://www.googleapis.com/books/v1/volumes",
-            {
-                "q": q,
-                "printType": "books",
-                "langRestrict": "ja",
-                "maxResults": "40",
-                "key": self._api_key,
-            },
-        )
-        return unique_books([book for item in data.get("items", []) if (book := convert_google_volume(item))])
+        books: list[BookSearchResultAppModel] = []
+        for query in create_google_search_queries(keyword):
+            data = fetch_json(
+                "https://www.googleapis.com/books/v1/volumes",
+                {
+                    "q": query,
+                    "printType": "books",
+                    "langRestrict": "ja",
+                    "orderBy": "newest",
+                    "maxResults": "40",
+                    "key": self._api_key,
+                },
+            )
+            books.extend([book for item in data.get("items", []) if (book := convert_google_volume(item))])
+
+        return unique_books(books)
 
     def find_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
         results = self.search(normalize_isbn(isbn13))
@@ -127,6 +131,34 @@ def fetch_json(url: str, params: dict[str, str]) -> dict | list:
         if error.code == 429:
             raise BookSearchRateLimitError() from error
         raise
+
+
+def create_google_search_queries(keyword: str) -> list[str]:
+    normalized = keyword.strip()
+    if is_isbn13(normalized):
+        return [f"isbn:{normalize_isbn(normalized)}"]
+
+    return unique_search_queries(
+        [
+            normalized,
+            create_google_field_search_query("intitle", normalized),
+            create_google_field_search_query("inpublisher", normalized),
+        ]
+    )
+
+
+def create_google_field_search_query(field: str, keyword: str) -> str:
+    if re.search(r"\s", keyword):
+        return f'{field}:"{keyword}"'
+    return f"{field}:{keyword}"
+
+
+def unique_search_queries(queries: list[str]) -> list[str]:
+    results: list[str] = []
+    for query in queries:
+        if query and query not in results:
+            results.append(query)
+    return results
 
 
 def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:

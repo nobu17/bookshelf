@@ -3,6 +3,58 @@ from datetime import date
 from bookshelf_app.api.book_search import service as target
 
 
+def test_create_google_search_queries_adds_field_specific_queries():
+    actual = target.create_google_search_queries("オライリー")
+
+    assert actual == [
+        "オライリー",
+        "intitle:オライリー",
+        "inpublisher:オライリー",
+    ]
+
+
+def test_create_google_search_queries_keeps_isbn_search_single_query():
+    actual = target.create_google_search_queries("978-4-7981-2196-3")
+
+    assert actual == ["isbn:9784798121963"]
+
+
+def test_google_books_provider_search_uses_publisher_query(monkeypatch):
+    queries: list[str] = []
+
+    def fake_fetch_json(_url: str, params: dict[str, str]):
+        assert params["orderBy"] == "newest"
+        queries.append(params["q"])
+        if params["q"] == "inpublisher:オライリー":
+            return {
+                "items": [
+                    {
+                        "id": "google-id",
+                        "volumeInfo": {
+                            "title": "Publisher matched book",
+                            "authors": ["著者"],
+                            "publisher": "オライリー・ジャパン",
+                            "publishedDate": "2024-01",
+                            "industryIdentifiers": [{"type": "ISBN_13", "identifier": "9784814400737"}],
+                        },
+                    }
+                ]
+            }
+        return {"items": []}
+
+    monkeypatch.setattr(target, "fetch_json", fake_fetch_json)
+
+    actual = target.GoogleBooksProvider(api_key="dummy").search("オライリー")
+
+    assert queries == [
+        "オライリー",
+        "intitle:オライリー",
+        "inpublisher:オライリー",
+    ]
+    assert len(actual) == 1
+    assert actual[0].publisher == "オライリー・ジャパン"
+
+
 def test_convert_google_volume_uses_isbn10_when_isbn13_is_missing():
     actual = target.convert_google_volume(
         {
