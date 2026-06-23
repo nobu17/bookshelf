@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
+from html import unescape
+from html.parser import HTMLParser
 import json
 import re
 from urllib.error import HTTPError
@@ -54,6 +56,10 @@ class BookSearchService:
             return merge_book_search_result(google_book, openbd_book)
         return openbd_book or google_book
 
+    def find_description_by_isbn13(self, isbn13: str) -> str | None:
+        result = self.find_by_isbn13(isbn13)
+        return result.description if result else None
+
     def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
         try:
             return self._google.find_by_isbn13(isbn13)
@@ -107,6 +113,7 @@ class OpenBdProvider:
             isbn13=isbn,
             published_at=parse_published_date(summary.get("pubdate")),
             image_url=normalize_cover_url(summary.get("cover")),
+            description=extract_openbd_description(item),
         )
 
 
@@ -139,7 +146,7 @@ def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:
         isbn13=isbn13,
         published_at=parse_published_date(volume_info.get("publishedDate")),
         image_url=normalize_cover_url(image_url),
-        description=volume_info.get("description"),
+        description=normalize_description(volume_info.get("description")),
     )
 
 
@@ -167,8 +174,75 @@ def merge_book_search_result(
         isbn13=openbd_book.isbn13,
         published_at=prefer_date(openbd_book.published_at, google_book.published_at),
         image_url=openbd_book.image_url or google_book.image_url,
-        description=google_book.description,
+        description=google_book.description or openbd_book.description,
     )
+
+
+def extract_openbd_description(item: dict) -> str | None:
+    text_contents = (((item.get("onix") or {}).get("CollateralDetail") or {}).get("TextContent") or [])
+    if not isinstance(text_contents, list):
+        return None
+
+    preferred_codes = ["03", "02"]
+    for code in preferred_codes:
+        for content in text_contents:
+            if not isinstance(content, dict) or content.get("TextTypeCode") != code:
+                continue
+            text = (content.get("Text") or "").strip()
+            if text:
+                return normalize_description(text)
+
+    for content in text_contents:
+        if not isinstance(content, dict):
+            continue
+        text = (content.get("Text") or "").strip()
+        if text:
+            return normalize_description(text)
+
+    return None
+
+
+def normalize_description(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    text = strip_html(value)
+    text = unescape(text)
+    text = re.sub(r"\r\n|\r", "\n", text)
+    text = re.sub(r"[ \t\f\v]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = "\n".join(line.strip() for line in text.split("\n"))
+    text = text.strip()
+    return text or None
+
+
+class _HtmlTextExtractor(HTMLParser):
+    _break_tags = {"br", "p", "div", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+    def __init__(self):
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, _attrs):
+        if tag.lower() in self._break_tags:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str):
+        if tag.lower() in self._break_tags:
+            self.parts.append("\n")
+
+    def handle_data(self, data: str):
+        self.parts.append(data)
+
+    def text(self) -> str:
+        return "".join(self.parts)
+
+
+def strip_html(value: str) -> str:
+    parser = _HtmlTextExtractor()
+    parser.feed(value)
+    parser.close()
+    return parser.text()
 
 
 def normalize_isbn(isbn: str) -> str:

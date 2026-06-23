@@ -70,6 +70,24 @@ export default function BookMasterSearchResultDialog(
                       <Typography>
                         出版日: {dateToString(book.publishedAt)}
                       </Typography>
+                      {book.description ? (
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            mt: 1.5,
+                            whiteSpace: "pre-line",
+                            display: "-webkit-box",
+                            WebkitBoxOrient: "vertical",
+                            WebkitLineClamp: 4,
+                            overflow: "hidden",
+                            lineHeight: 1.7,
+                          }}
+                        >
+                          {book.description}
+                        </Typography>
+                      ) : (
+                        <></>
+                      )}
                     </CardContent>
                   </Stack>
                 </CardActionArea>

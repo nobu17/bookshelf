@@ -9,6 +9,20 @@ export default class BookSearchApi extends ApiBase {
     );
     return { data: convert(res.data) };
   }
+
+  async findDescriptionByIsbn13(
+    isbn13: string
+  ): Promise<ApiResponse<BookDescriptionResponse>> {
+    const res = await this.getAsync<ApiBookDescriptionResponse>(
+      `/book_search/isbn13/${encodeURIComponent(isbn13)}/description`
+    );
+    return {
+      data: {
+        isbn13: res.data.isbn13,
+        description: res.data.description ?? null,
+      },
+    };
+  }
 }
 
 type BookSearchResponse = {
@@ -28,6 +42,16 @@ type ApiBookSearchResult = {
   isbn13: string;
   published_at: string;
   image_url: string | null;
+  description?: string | null;
+};
+
+type BookDescriptionResponse = {
+  isbn13: string;
+  description: string | null;
+};
+
+type ApiBookDescriptionResponse = {
+  isbn13: string;
   description?: string | null;
 };
 

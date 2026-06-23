@@ -11,10 +11,12 @@ import {
   Tooltip,
   Divider,
   Chip,
+  LinearProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
+import { useEffect, useState } from "react";
 
 import { BookWithReviews, Review, toJapanese } from "../../../types/data";
 import { getBookInfoImageUrl, getFallbackImageUrl } from "../../../libs/utils/image";
@@ -22,6 +24,7 @@ import { dateToString } from "../../../libs/utils/date";
 import LineBreakText from "../LineBreakText";
 import BookTagChips from "../BookTagChips";
 import GoogleBooksAttribution from "../GoogleBooksAttribution";
+import BookSearchApi from "../../../libs/apis/bookSearch";
 
 export type BookReviewDialogProps = {
   open: boolean;
@@ -33,6 +36,8 @@ export type BookReviewDialogProps = {
 
 export default function BookReviewDialog(props: BookReviewDialogProps) {
   const { onClose, open, book, onBookEdit, isBookEditEnabled } = props;
+  const [description, setDescription] = useState<string | null>(null);
+  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
 
   const handleClose = () => {
     onClose();
@@ -43,6 +48,36 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
     }
     onBookEdit();
   };
+
+  useEffect(() => {
+    if (!open || !book?.isbn13) {
+      setDescription(null);
+      setIsDescriptionLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setDescription(null);
+    setIsDescriptionLoading(true);
+    new BookSearchApi()
+      .findDescriptionByIsbn13(book.isbn13)
+      .then((result) => {
+        if (!isActive) return;
+        setDescription(result.data.description);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setDescription(null);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsDescriptionLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [open, book?.isbn13]);
 
   if (!book) {
     return <></>;
@@ -146,6 +181,33 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
           </Grid>
           <Grid size={{ xs: 12, md: 8 }}>
             <Stack spacing={2}>
+              {isDescriptionLoading || description ? (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderColor: "rgba(31, 41, 55, 0.14)",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
+                    <Typography variant="h6" component="h2" fontWeight="bold" sx={{ mb: 1 }}>
+                      概要
+                    </Typography>
+                    {isDescriptionLoading ? (
+                      <LinearProgress />
+                    ) : (
+                      <Typography
+                        color="text.secondary"
+                        sx={{ lineHeight: 1.85, whiteSpace: "pre-line" }}
+                      >
+                        {description}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <></>
+              )}
               <Stack
                 direction="row"
                 alignItems="center"
