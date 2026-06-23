@@ -15,6 +15,7 @@ import { dateToString } from "../../../libs/utils/date";
 import { getFallbackImageUrl } from "../../../libs/utils/image";
 import { BookSearchResult } from "../../../types/bookSearch";
 import GoogleBooksAttribution from "../GoogleBooksAttribution";
+import ExpandableText from "../ExpandableText";
 
 type BookMasterSearchResultDialogProps = {
   open: boolean;
@@ -71,20 +72,9 @@ export default function BookMasterSearchResultDialog(
                         出版日: {dateToString(book.publishedAt)}
                       </Typography>
                       {book.description ? (
-                        <Typography
-                          color="text.secondary"
-                          sx={{
-                            mt: 1.5,
-                            whiteSpace: "pre-line",
-                            display: "-webkit-box",
-                            WebkitBoxOrient: "vertical",
-                            WebkitLineClamp: 4,
-                            overflow: "hidden",
-                            lineHeight: 1.7,
-                          }}
-                        >
-                          {book.description}
-                        </Typography>
+                        <Box sx={{ mt: 1.5 }}>
+                          <ExpandableText text={book.description} />
+                        </Box>
                       ) : (
                         <></>
                       )}

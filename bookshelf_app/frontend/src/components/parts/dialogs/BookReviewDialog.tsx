@@ -25,6 +25,7 @@ import LineBreakText from "../LineBreakText";
 import BookTagChips from "../BookTagChips";
 import GoogleBooksAttribution from "../GoogleBooksAttribution";
 import BookSearchApi from "../../../libs/apis/bookSearch";
+import ExpandableText from "../ExpandableText";
 
 export type BookReviewDialogProps = {
   open: boolean;
@@ -196,12 +197,7 @@ export default function BookReviewDialog(props: BookReviewDialogProps) {
                     {isDescriptionLoading ? (
                       <LinearProgress />
                     ) : (
-                      <Typography
-                        color="text.secondary"
-                        sx={{ lineHeight: 1.85, whiteSpace: "pre-line" }}
-                      >
-                        {description}
-                      </Typography>
+                      <ExpandableText text={description || ""} />
                     )}
                   </CardContent>
                 </Card>
