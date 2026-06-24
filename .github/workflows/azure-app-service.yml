@@ -124,7 +124,19 @@ jobs:
           CRYPT_SECRET_KEY: dummy-for-migration
           CRYPT_ALGORITHM: HS256
           GOOGLE_BOOKS_API_KEY: ""
-        run: alembic upgrade head
+        run: |
+          for attempt in {1..6}; do
+            echo "Running database migrations. attempt=${attempt}"
+            if alembic upgrade head; then
+              exit 0
+            fi
+            if [ "${attempt}" -eq 6 ]; then
+              echo "Database migration failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "Database may be waking up or firewall may still be propagating. Retrying in 30 seconds..."
+            sleep 30
+          done
 
       - name: Remove runner IP from Azure SQL
         if: always()
