@@ -1,6 +1,8 @@
 from datetime import date
 
 from bookshelf_app.api.book_search.service import BookSearchRateLimitError, BookSearchResultAppModel, PublisherAppModel
+from bookshelf_app import main
+from bookshelf_app.infra.dependencies import get_admin_dependency
 import bookshelf_app.api.book_search.router as target_router
 
 URL_BASE = "/api/book_search"
@@ -184,6 +186,44 @@ def test_book_search_returns_publisher_books_without_external_api(integration_cl
 
     assert response.status_code == 200
     assert response.json()["books"][0]["isbn13"] == "9784814401642"
+
+
+def test_book_search_clear_publisher_catalog_cache_requires_admin_dependency(integration_client, monkeypatch):
+    class FakeBookSearchService:
+        def clear_publisher_catalog_cache(self):
+            return 3
+
+    monkeypatch.setattr(target_router, "BookSearchService", FakeBookSearchService)
+    main.app.dependency_overrides[get_admin_dependency] = lambda: None
+    try:
+        response = integration_client.delete(f"{URL_BASE}/cache/publisher-catalog")
+    finally:
+        main.app.dependency_overrides.pop(get_admin_dependency, None)
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted_count": 3}
+
+
+def test_book_search_clear_book_metadata_cache_requires_admin_dependency(integration_client, monkeypatch):
+    class FakeBookSearchService:
+        def clear_book_metadata_cache(self):
+            return 4
+
+    monkeypatch.setattr(target_router, "BookSearchService", FakeBookSearchService)
+    main.app.dependency_overrides[get_admin_dependency] = lambda: None
+    try:
+        response = integration_client.delete(f"{URL_BASE}/cache/book-metadata")
+    finally:
+        main.app.dependency_overrides.pop(get_admin_dependency, None)
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted_count": 4}
+
+
+def test_book_search_clear_cache_rejects_request_without_token(integration_client):
+    response = integration_client.delete(f"{URL_BASE}/cache/book-metadata")
+
+    assert response.status_code == 401
 
 
 def test_book_search_unexpected_error_is_internal_server_error_without_external_api(integration_client, monkeypatch):

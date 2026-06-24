@@ -4,6 +4,7 @@ from html import unescape
 from html.parser import HTMLParser
 import json
 import re
+from sqlalchemy import delete
 from urllib.error import HTTPError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
@@ -92,6 +93,12 @@ class BookSearchService:
         self, publisher_id: str, keyword: str | None = None, limit: int = 40
     ) -> list[BookSearchResultAppModel]:
         return self._publisher_catalogs.search_books(publisher_id, keyword, limit)
+
+    def clear_publisher_catalog_cache(self) -> int:
+        return clear_publisher_catalog_cache()
+
+    def clear_book_metadata_cache(self) -> int:
+        return clear_book_metadata_cache()
 
     def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
         try:
@@ -583,6 +590,27 @@ def book_search_result_from_json(payload_json: str) -> BookSearchResultAppModel 
         )
     except (KeyError, TypeError, json.JSONDecodeError):
         return None
+
+
+def clear_publisher_catalog_cache() -> int:
+    for session in get_session_for_cache():
+        result = session.execute(delete(PublisherCatalogCacheDTO))
+        session.commit()
+        return result.rowcount or 0
+    raise RuntimeError("failed to open database session")
+
+
+def clear_book_metadata_cache() -> int:
+    for session in get_session_for_cache():
+        result = session.execute(delete(BookMetadataCacheDTO))
+        session.commit()
+        return result.rowcount or 0
+    raise RuntimeError("failed to open database session")
+
+
+def get_session_for_cache():
+    with SessionLocal() as session:
+        yield session
 
 
 def is_cache_expired(expires_at: datetime) -> bool:

@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bookshelf_app.api.book_search.service import (
@@ -10,6 +10,7 @@ from bookshelf_app.api.book_search.service import (
     PublisherAppModel,
 )
 from bookshelf_app.api.shared.custom_router import CustomRouter
+from bookshelf_app.infra.dependencies import get_admin_dependency
 
 router = CustomRouter()
 
@@ -44,6 +45,10 @@ class BookDescriptionResponse(BaseModel):
     description: str | None = None
 
 
+class CacheClearResponse(BaseModel):
+    deleted_count: int
+
+
 @router.get("/book_search", response_model=BookSearchResponse)
 async def search_books(keyword: str) -> BookSearchResponse:
     try:
@@ -55,6 +60,26 @@ async def search_books(keyword: str) -> BookSearchResponse:
         ) from exc
 
     return BookSearchResponse(books=[convert(result) for result in results])
+
+
+@router.delete(
+    "/book_search/cache/publisher-catalog",
+    response_model=CacheClearResponse,
+    dependencies=[Depends(get_admin_dependency)],
+)
+async def clear_publisher_catalog_cache() -> CacheClearResponse:
+    deleted_count = BookSearchService().clear_publisher_catalog_cache()
+    return CacheClearResponse(deleted_count=deleted_count)
+
+
+@router.delete(
+    "/book_search/cache/book-metadata",
+    response_model=CacheClearResponse,
+    dependencies=[Depends(get_admin_dependency)],
+)
+async def clear_book_metadata_cache() -> CacheClearResponse:
+    deleted_count = BookSearchService().clear_book_metadata_cache()
+    return CacheClearResponse(deleted_count=deleted_count)
 
 
 @router.get("/book_search/publishers", response_model=PublishersResponse)

@@ -24,6 +24,7 @@ import MyReviews from "./pages/mypage/MyReviews";
 import BookSearch from "./pages/mypage/BookSearch";
 import BookMasters from "./pages/admin/BookMasters";
 import TagMasters from "./pages/admin/TagMasters";
+import Debug from "./pages/admin/Debug";
 
 let theme = createTheme({
   typography: {
@@ -61,6 +62,7 @@ function App() {
                     />
                     <Route path="/admin/books" element={<BookMasters />} />
                     <Route path="/admin/tags" element={<TagMasters />} />
+                    <Route path="/admin/debug" element={<Debug />} />
                     <Route path="/auth/signin" element={<SignIn />} />
                     <Route path="/auth/signout" element={<SignOut />} />
                     <Route path="/reviews/user/:id" element={<UserReviews />} />

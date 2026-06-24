@@ -100,6 +100,8 @@ ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools
 ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --catalog --source-key oreilly_japan_catalog
 ```
 
+管理者ユーザーは、マイページの `管理` から `デバッグ` 画面を開き、`publisher_catalog_cache` と `book_metadata_cache` を個別に削除できます。対応APIは管理者権限を必須にしています。
+
 ## Azure App Service Deployment
 
 Azure へ載せる最初の構成は次を想定します。

@@ -21,6 +21,7 @@ const adminMenu: PageMenuProps = {
   pageInfoList: [
     { title: "書籍マスタ管理", url: "/admin/books" },
     { title: "タグマスタ管理", url: "/admin/tags" },
+    { title: "デバッグ", url: "/admin/debug" },
   ],
 };
 
