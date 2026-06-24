@@ -134,9 +134,12 @@ GitHub Actions には次を設定します。
 
 - Repository variable: `AZURE_WEBAPP_NAME`
 - Repository variable: `AZURE_WEBAPP_URL`
+- Repository variable: `AZURE_RESOURCE_GROUP`
+- Repository variable: `AZURE_SQL_SERVER_NAME`
 - Repository secret: `AZURE_CLIENT_ID`
 - Repository secret: `AZURE_TENANT_ID`
 - Repository secret: `AZURE_SUBSCRIPTION_ID`
+- Repository secret: `DB_CONNECTION`
 
 GitHub Actions から Azure への認証は OIDC を使います。Azure 側で Microsoft Entra application / service principal を作成し、App Service のある Resource Group へ `Contributor` 以上のロールを付与します。その後、Federated credential を追加します。
 
@@ -148,9 +151,13 @@ Subject: repo:<github-owner>/<github-repo>:environment:production
 Audience: api://AzureADTokenExchange
 ```
 
-GitHub Actions の deploy job は `environment: production` を使うため、Subject も `environment:production` にします。`AZURE_CLIENT_ID` は作成した application の Client ID、`AZURE_TENANT_ID` は Directory tenant ID、`AZURE_SUBSCRIPTION_ID` は Subscription ID を登録します。Publish Profile は使わないため、`AZURE_WEBAPP_PUBLISH_PROFILE` は不要です。
+GitHub Actions の deploy / migrate job は `environment: production` を使うため、Subject も `environment:production` にします。`AZURE_CLIENT_ID` は作成した application の Client ID、`AZURE_TENANT_ID` は Directory tenant ID、`AZURE_SUBSCRIPTION_ID` は Subscription ID を登録します。Publish Profile は使わないため、`AZURE_WEBAPP_PUBLISH_PROFILE` は不要です。
 
-初回の DB migration は、デプロイ前にローカルから Azure SQL に対して手動実行するのが安全です。
+DB migration は GitHub Actions の `migrate` job で自動実行します。`migrate` job は GitHub-hosted runner の Public IP を Azure SQL firewall に一時追加し、`alembic upgrade head` を実行した後、firewall rule を削除します。migration が失敗した場合、App Service deploy は実行されません。
+
+Azure SQL Server の `Public network access` は `Selected networks` にし、GitHub Actions 実行時の一時IP許可に任せます。ローカルから手動で migration したい場合だけ、自分のPublic IPをAzure SQL firewallに追加してください。
+
+手動で migration を実行する場合:
 
 ```bash
 DB_CONNECTION='mssql+pymssql://<user>:<password>@<server>.database.windows.net:1433/<database>' \
@@ -158,8 +165,6 @@ CRYPT_SECRET_KEY='<your secret>' \
 CRYPT_ALGORITHM='HS256' \
 alembic upgrade head
 ```
-
-CI/CD で migration を自動化するのは、接続・バックアップ・失敗時の戻し方が決まってからにします。
 
 ### Initial Admin Account
 
