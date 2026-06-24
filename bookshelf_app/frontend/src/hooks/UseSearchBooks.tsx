@@ -23,17 +23,25 @@ export default function useSearchBooks() {
     try {
       setError(undefined);
       setLoading(true);
-      let myReviews: BookWithReviews[] = [];
-      if (reviews == null) {
-        myReviews = (await api.getMyReviewsForEdit()).data.books_with_reviews;
-        setReviews(myReviews);
-      }
+      const myReviews = await loadMyReviewsForSearch(reviews, setReviews);
       const res = (await bookSearchApi.search(searchWord)).data.books;
-      const aggregated = aggregateReview(res, myReviews);
-      aggregated.sort(
-        (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
-      );
-      setBooks(aggregated);
+      setBooks(sortBooks(aggregateReview(res, myReviews)));
+    } catch (e: unknown) {
+      setError(toError(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchPublisher = async (publisherId: string, keyword = "") => {
+    try {
+      setError(undefined);
+      setLoading(true);
+      const myReviews = await loadMyReviewsForSearch(reviews, setReviews);
+      const res = (
+        await bookSearchApi.searchPublisherBooks(publisherId, keyword)
+      ).data.books;
+      setBooks(sortBooks(aggregateReview(res, myReviews)));
     } catch (e: unknown) {
       setError(toError(e));
     } finally {
@@ -48,11 +56,7 @@ export default function useSearchBooks() {
       const myReviews = (await api.getMyReviews()).data.books_with_reviews;
       setReviews(myReviews);
       const res = (await bookSearchApi.search(searchWord)).data.books;
-      const aggregated = aggregateReview(res, myReviews);
-      aggregated.sort(
-        (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
-      );
-      setBooks(aggregated);
+      setBooks(sortBooks(aggregateReview(res, myReviews)));
     } catch (e: unknown) {
       setError(toError(e));
     } finally {
@@ -65,9 +69,28 @@ export default function useSearchBooks() {
     loading,
     books,
     search,
+    searchPublisher,
     reload,
   };
 }
+
+const sortBooks = (
+  books: BookSearchResultWithReviews[]
+): BookSearchResultWithReviews[] => {
+  return books.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+};
+
+const loadMyReviewsForSearch = async (
+  reviews: BookWithReviews[] | null,
+  setReviews: (reviews: BookWithReviews[]) => void
+): Promise<BookWithReviews[]> => {
+  if (reviews != null) {
+    return reviews;
+  }
+  const myReviews = (await api.getMyReviewsForEdit()).data.books_with_reviews;
+  setReviews(myReviews);
+  return myReviews;
+};
 
 const aggregateReview = (
   books: BookSearchResult[],

@@ -1,6 +1,6 @@
 import { Review } from "./data";
 
-export type BookSearchSource = "google-books" | "openbd";
+export type BookSearchSource = "google-books" | "openbd" | "publisher-catalog";
 
 export type BookSearchResult = {
   source: BookSearchSource;

@@ -10,6 +10,23 @@ export default class BookSearchApi extends ApiBase {
     return { data: convert(res.data) };
   }
 
+  async searchPublisherBooks(
+    publisherId: string,
+    keyword = "",
+    limit = 40
+  ): Promise<ApiResponse<BookSearchResponse>> {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (keyword.trim()) {
+      params.set("keyword", keyword.trim());
+    }
+    const res = await this.getAsync<ApiBookSearchResponse>(
+      `/book_search/publishers/${encodeURIComponent(
+        publisherId
+      )}/books?${params.toString()}`
+    );
+    return { data: convert(res.data) };
+  }
+
   async findDescriptionByIsbn13(
     isbn13: string
   ): Promise<ApiResponse<BookDescriptionResponse>> {
@@ -58,7 +75,12 @@ type ApiBookDescriptionResponse = {
 const convert = (data: ApiBookSearchResponse): BookSearchResponse => {
   return {
     books: data.books.map((book) => ({
-      source: book.source === "openbd" ? "openbd" : "google-books",
+      source:
+        book.source === "openbd"
+          ? "openbd"
+          : book.source === "publisher-catalog"
+          ? "publisher-catalog"
+          : "google-books",
       sourceId: book.source_id,
       title: book.title,
       authors: book.authors,

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_PID=""
 FRONTEND_PID=""
+REQUIRED_NODE_MAJOR=20
 
 cleanup() {
   local exit_code=$?
@@ -23,6 +24,24 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+check_node_version() {
+  if ! command -v node >/dev/null 2>&1; then
+    echo "[dev] Node.js is not installed or not found in PATH." >&2
+    exit 1
+  fi
+
+  local node_version
+  local node_major
+  node_version="$(node -p "process.versions.node")"
+  node_major="${node_version%%.*}"
+  if (( node_major < REQUIRED_NODE_MAJOR )); then
+    echo "[dev] Node.js ${REQUIRED_NODE_MAJOR}+ is required. Current: v${node_version}" >&2
+    echo "[dev] If you use nodebrew, run: nodebrew use v22.13.1" >&2
+    exit 1
+  fi
+  echo "[dev] using Node.js v${node_version}"
+}
 
 export ENV_FILE="${ENV_FILE:-.env.local}"
 
@@ -57,6 +76,7 @@ echo "[dev] selecting Node.js v22.13.1 with nodebrew..."
 if command -v nodebrew >/dev/null 2>&1; then
   nodebrew use v22.13.1
 fi
+check_node_version
 
 echo "[dev] starting frontend: http://localhost:5173"
 (cd "${ROOT_DIR}/bookshelf_app/frontend" && npm run dev) &

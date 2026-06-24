@@ -1,6 +1,6 @@
 from datetime import date
 
-from bookshelf_app.api.book_search.service import BookSearchRateLimitError, BookSearchResultAppModel
+from bookshelf_app.api.book_search.service import BookSearchRateLimitError, BookSearchResultAppModel, PublisherAppModel
 import bookshelf_app.api.book_search.router as target_router
 
 URL_BASE = "/api/book_search"
@@ -140,6 +140,50 @@ def test_book_search_returns_rate_limit_message_without_external_api(integration
 
     assert response.status_code == 429
     assert response.json()["detail"] == "外部書籍検索APIの利用制限に達しました。しばらく時間を置いてから再度お試しください。"
+
+
+def test_book_search_returns_publishers_without_external_api(integration_client, monkeypatch):
+    class FakeBookSearchService:
+        def list_publishers(self):
+            return [PublisherAppModel(publisher_id="oreilly_japan", name="オライリー・ジャパン")]
+
+    monkeypatch.setattr(target_router, "BookSearchService", FakeBookSearchService)
+
+    response = integration_client.get(f"{URL_BASE}/publishers")
+
+    assert response.status_code == 200
+    assert response.json() == {"publishers": [{"publisher_id": "oreilly_japan", "name": "オライリー・ジャパン"}]}
+
+
+def test_book_search_returns_publisher_books_without_external_api(integration_client, monkeypatch):
+    class FakeBookSearchService:
+        def search_publisher_books(self, publisher_id: str, keyword: str | None = None, limit: int = 40):
+            assert publisher_id == "oreilly_japan"
+            assert keyword == "Python"
+            assert limit == 20
+            return [
+                BookSearchResultAppModel(
+                    source="openbd",
+                    source_id="9784814401642",
+                    title="入門 Python 3 第3版",
+                    authors=["著者1"],
+                    publisher="オライリー・ジャパン",
+                    isbn13="9784814401642",
+                    published_at=date(2026, 6, 16),
+                    image_url="https://example.com/cover.jpg",
+                    description="説明",
+                )
+            ]
+
+    monkeypatch.setattr(target_router, "BookSearchService", FakeBookSearchService)
+
+    response = integration_client.get(
+        f"{URL_BASE}/publishers/oreilly_japan/books",
+        params={"keyword": "Python", "limit": "20"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["books"][0]["isbn13"] == "9784814401642"
 
 
 def test_book_search_unexpected_error_is_internal_server_error_without_external_api(integration_client, monkeypatch):

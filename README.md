@@ -63,6 +63,43 @@ alembic upgrade head
 
 Alembic は `bookshelf_app/infra/db/migrations` 配下の migration を使います。
 
+## Book Search Cache
+
+出版社から探す機能では、外部サイト/APIへのアクセスを減らすためにDBキャッシュを使います。
+
+| Table | TTL | 内容 |
+| --- | --- | --- |
+| `publisher_catalog_cache` | 3日 | 出版社公式カタログから取得した ISBN、タイトル、発行日、価格、URL。現在はオライリー・ジャパンに対応。 |
+| `book_metadata_cache` | 30日 | ISBNごとに openBD / Google Books で補完した著者、出版社、出版日、書影URL、概要など。 |
+
+通常の流れは次の通りです。
+
+```text
+出版社公式カタログ
+  -> publisher_catalog_cache
+  -> ISBNで絞り込み・最新順ソート
+  -> book_metadata_cache
+  -> 足りないISBNだけ openBD / Google Books で補完
+```
+
+デバッグ時に ISBN 補完キャッシュだけ削除する場合:
+
+```bash
+ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --metadata
+```
+
+特定ISBNだけ削除する場合:
+
+```bash
+ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --metadata --isbn13 9784814401703
+```
+
+出版社カタログキャッシュも含めて再取得したい場合:
+
+```bash
+ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --catalog --source-key oreilly_japan_catalog
+```
+
 ## Azure App Service Deployment
 
 Azure へ載せる最初の構成は次を想定します。

@@ -1,14 +1,22 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from html import unescape
 from html.parser import HTMLParser
 import json
 import re
 from urllib.error import HTTPError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
 
 from bookshelf_app.config import get_settings
+from bookshelf_app.infra.db.book_search import BookMetadataCacheDTO, PublisherCatalogCacheDTO
+from bookshelf_app.infra.db.database import SessionLocal
+
+
+PUBLISHER_CATALOG_CACHE_DAYS = 3
+PUBLISHER_CATALOG_MAX_ITEMS = 1000
+GOOGLE_CATALOG_SUPPLEMENT_MAX_ITEMS = 40
+BOOK_METADATA_CACHE_DAYS = 30
 
 
 class BookSearchRateLimitError(Exception):
@@ -28,13 +36,30 @@ class BookSearchResultAppModel:
     description: str | None = None
 
 
+@dataclass(frozen=True)
+class PublisherAppModel:
+    publisher_id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class PublisherCatalogBookAppModel:
+    isbn13: str
+    title: str
+    published_at: date
+    price: str | None = None
+    source_url: str | None = None
+
+
 class BookSearchService:
     _google: "GoogleBooksProvider"
     _openbd: "OpenBdProvider"
+    _publisher_catalogs: "PublisherCatalogService"
 
     def __init__(self):
         self._google = GoogleBooksProvider(get_settings().google_books_api_key)
         self._openbd = OpenBdProvider()
+        self._publisher_catalogs = PublisherCatalogService(self._google, self._openbd)
 
     def search(self, keyword: str) -> list[BookSearchResultAppModel]:
         keyword = keyword.strip()
@@ -59,6 +84,14 @@ class BookSearchService:
     def find_description_by_isbn13(self, isbn13: str) -> str | None:
         result = self.find_by_isbn13(isbn13)
         return result.description if result else None
+
+    def list_publishers(self) -> list[PublisherAppModel]:
+        return self._publisher_catalogs.list_publishers()
+
+    def search_publisher_books(
+        self, publisher_id: str, keyword: str | None = None, limit: int = 40
+    ) -> list[BookSearchResultAppModel]:
+        return self._publisher_catalogs.search_books(publisher_id, keyword, limit)
 
     def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
         try:
@@ -120,6 +153,202 @@ class OpenBdProvider:
             description=extract_openbd_description(item),
         )
 
+    def find_by_isbn13s(self, isbn13s: list[str]) -> dict[str, BookSearchResultAppModel]:
+        normalized_isbns = [normalize_isbn(isbn13) for isbn13 in isbn13s if is_isbn13(isbn13)]
+        if not normalized_isbns:
+            return {}
+
+        data = fetch_json("https://api.openbd.jp/v1/get", {"isbn": ",".join(normalized_isbns)})
+        if not isinstance(data, list):
+            return {}
+
+        results: dict[str, BookSearchResultAppModel] = {}
+        for fallback_isbn, item in zip(normalized_isbns, data):
+            book = convert_openbd_item(item, fallback_isbn)
+            if book:
+                results[book.isbn13] = book
+        return results
+
+
+class PublisherCatalogService:
+    _providers: dict[str, "PublisherCatalogProvider"]
+    _google: GoogleBooksProvider
+    _openbd: OpenBdProvider
+
+    def __init__(self, google: GoogleBooksProvider, openbd: OpenBdProvider):
+        self._providers = {"oreilly_japan": OreillyCatalogProvider()}
+        self._google = google
+        self._openbd = openbd
+
+    def list_publishers(self) -> list[PublisherAppModel]:
+        return [PublisherAppModel(provider.publisher_id, provider.publisher_name) for provider in self._providers.values()]
+
+    def search_books(
+        self, publisher_id: str, keyword: str | None = None, limit: int = 40
+    ) -> list[BookSearchResultAppModel]:
+        provider = self._providers.get(publisher_id)
+        if provider is None:
+            return []
+
+        books = self._get_catalog_books(provider)
+        books = filter_catalog_books(books, keyword)
+        books = sorted(books, key=lambda book: book.published_at, reverse=True)
+        selected = books[: max(1, min(limit, 100))]
+        return self._enrich_books(selected, provider.publisher_name)
+
+    def _get_catalog_books(self, provider: "PublisherCatalogProvider") -> list[PublisherCatalogBookAppModel]:
+        cached = self._load_cache(provider.cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            books = provider.fetch_books()[:PUBLISHER_CATALOG_MAX_ITEMS]
+        except Exception:
+            stale = self._load_cache(provider.cache_key, allow_expired=True)
+            if stale is not None:
+                return stale
+            raise
+
+        self._save_cache(provider.cache_key, books)
+        return books
+
+    def _load_cache(self, source_key: str, allow_expired: bool = False) -> list[PublisherCatalogBookAppModel] | None:
+        with SessionLocal() as session:
+            dto = session.get(PublisherCatalogCacheDTO, source_key)
+            if dto is None:
+                return None
+            if not allow_expired and is_cache_expired(dto.expires_at):
+                return None
+            return catalog_books_from_json(dto.payload_json)
+
+    def _save_cache(self, source_key: str, books: list[PublisherCatalogBookAppModel]) -> None:
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=PUBLISHER_CATALOG_CACHE_DAYS)
+        payload = catalog_books_to_json(books)
+        with SessionLocal() as session:
+            dto = session.get(PublisherCatalogCacheDTO, source_key)
+            if dto is None:
+                dto = PublisherCatalogCacheDTO(
+                    source_key=source_key,
+                    payload_json=payload,
+                    fetched_at=now,
+                    expires_at=expires_at,
+                    is_deleted=False,
+                )
+                session.add(dto)
+            else:
+                dto.payload_json = payload
+                dto.fetched_at = now
+                dto.expires_at = expires_at
+                dto.is_deleted = False
+            session.commit()
+
+    def _enrich_books(
+        self, books: list[PublisherCatalogBookAppModel], publisher_name: str
+    ) -> list[BookSearchResultAppModel]:
+        cached_books = self._load_book_metadata_cache([book.isbn13 for book in books])
+        complete_cached_books = {
+            isbn13: book for isbn13, book in cached_books.items() if book.image_url
+        }
+        supplement_books = [
+            book for book in books if book.isbn13 not in complete_cached_books
+        ]
+        if not supplement_books:
+            return [complete_cached_books[book.isbn13] for book in books if book.isbn13 in complete_cached_books]
+
+        openbd_target_books = [book for book in supplement_books if book.isbn13 not in cached_books]
+        openbd_books = self._openbd.find_by_isbn13s([book.isbn13 for book in openbd_target_books])
+        fetched_books: dict[str, BookSearchResultAppModel] = {}
+        google_call_count = 0
+        for book in supplement_books:
+            openbd_book = cached_books.get(book.isbn13) or openbd_books.get(book.isbn13)
+            google_book = None
+            needs_google_supplement = openbd_book is None or not openbd_book.image_url
+            if needs_google_supplement and google_call_count < GOOGLE_CATALOG_SUPPLEMENT_MAX_ITEMS:
+                google_call_count += 1
+                google_book = self._find_google_by_isbn13(book.isbn13)
+
+            if google_book and openbd_book:
+                fetched_books[book.isbn13] = merge_book_search_result(google_book, openbd_book)
+            elif openbd_book:
+                fetched_books[book.isbn13] = openbd_book
+            elif google_book:
+                fetched_books[book.isbn13] = google_book
+            else:
+                fetched_books[book.isbn13] = convert_catalog_book(book, publisher_name)
+
+        self._save_book_metadata_cache(list(fetched_books.values()))
+        all_books = {**complete_cached_books, **fetched_books}
+        return [all_books[book.isbn13] for book in books if book.isbn13 in all_books]
+
+    def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
+        try:
+            return self._google.find_by_isbn13(isbn13)
+        except BookSearchRateLimitError:
+            return None
+
+    def _load_book_metadata_cache(self, isbn13s: list[str]) -> dict[str, BookSearchResultAppModel]:
+        normalized_isbns = [normalize_isbn(isbn13) for isbn13 in isbn13s if is_isbn13(isbn13)]
+        if not normalized_isbns:
+            return {}
+
+        results: dict[str, BookSearchResultAppModel] = {}
+        with SessionLocal() as session:
+            rows = session.query(BookMetadataCacheDTO).filter(BookMetadataCacheDTO.isbn13.in_(normalized_isbns)).all()
+            for row in rows:
+                if is_cache_expired(row.expires_at):
+                    continue
+                book = book_search_result_from_json(row.payload_json)
+                if book:
+                    results[book.isbn13] = book
+        return results
+
+    def _save_book_metadata_cache(self, books: list[BookSearchResultAppModel]) -> None:
+        if not books:
+            return
+
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=BOOK_METADATA_CACHE_DAYS)
+        with SessionLocal() as session:
+            for book in books:
+                dto = session.get(BookMetadataCacheDTO, book.isbn13)
+                payload = book_search_result_to_json(book)
+                if dto is None:
+                    dto = BookMetadataCacheDTO(
+                        isbn13=book.isbn13,
+                        payload_json=payload,
+                        fetched_at=now,
+                        expires_at=expires_at,
+                        is_deleted=False,
+                    )
+                    session.add(dto)
+                else:
+                    dto.payload_json = payload
+                    dto.fetched_at = now
+                    dto.expires_at = expires_at
+                    dto.is_deleted = False
+            session.commit()
+
+
+class PublisherCatalogProvider:
+    publisher_id: str
+    publisher_name: str
+    cache_key: str
+
+    def fetch_books(self) -> list[PublisherCatalogBookAppModel]:
+        raise NotImplementedError
+
+
+class OreillyCatalogProvider(PublisherCatalogProvider):
+    publisher_id = "oreilly_japan"
+    publisher_name = "オライリー・ジャパン"
+    cache_key = "oreilly_japan_catalog"
+    catalog_url = "https://www.oreilly.co.jp/catalog/"
+
+    def fetch_books(self) -> list[PublisherCatalogBookAppModel]:
+        html = fetch_text(self.catalog_url)
+        return parse_oreilly_catalog(html, self.catalog_url)
+
 
 def fetch_json(url: str, params: dict[str, str]) -> dict | list:
     filtered = {key: value for key, value in params.items() if value}
@@ -131,6 +360,31 @@ def fetch_json(url: str, params: dict[str, str]) -> dict | list:
         if error.code == 429:
             raise BookSearchRateLimitError() from error
         raise
+
+
+def fetch_text(url: str) -> str:
+    request = Request(url, headers={"User-Agent": "bookshelf-app"})
+    with urlopen(request, timeout=10) as response:
+        return response.read().decode("utf-8")
+
+
+def convert_openbd_item(item: dict | None, fallback_isbn13: str) -> BookSearchResultAppModel | None:
+    if not item or not item.get("summary"):
+        return None
+
+    summary = item["summary"]
+    isbn = normalize_isbn(summary.get("isbn") or fallback_isbn13)
+    return BookSearchResultAppModel(
+        source="openbd",
+        source_id=isbn,
+        title=summary.get("title") or "タイトル不明",
+        authors=split_authors(summary.get("author") or ""),
+        publisher=summary.get("publisher") or "不明",
+        isbn13=isbn,
+        published_at=parse_published_date(summary.get("pubdate")),
+        image_url=normalize_cover_url(summary.get("cover")),
+        description=extract_openbd_description(item),
+    )
 
 
 def create_google_search_queries(keyword: str) -> list[str]:
@@ -159,6 +413,183 @@ def unique_search_queries(queries: list[str]) -> list[str]:
         if query and query not in results:
             results.append(query)
     return results
+
+
+def parse_oreilly_catalog(html: str, base_url: str) -> list[PublisherCatalogBookAppModel]:
+    parser = _HtmlTableExtractor()
+    parser.feed(html)
+    parser.close()
+
+    books: list[PublisherCatalogBookAppModel] = []
+    for row in parser.rows:
+        if len(row.cells) < 4 or not is_isbn13(row.cells[0]):
+            continue
+        books.append(
+            PublisherCatalogBookAppModel(
+                isbn13=normalize_isbn(row.cells[0]),
+                title=row.cells[1].strip(),
+                price=row.cells[2].strip() or None,
+                published_at=parse_published_date(row.cells[3]),
+                source_url=urljoin(base_url, row.href) if row.href else base_url,
+            )
+        )
+
+    return unique_catalog_books(books)
+
+
+@dataclass
+class _HtmlTableRow:
+    cells: list[str]
+    href: str | None
+
+
+class _HtmlTableExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.rows: list[_HtmlTableRow] = []
+        self._in_row = False
+        self._in_cell = False
+        self._current_cells: list[str] = []
+        self._current_cell_parts: list[str] = []
+        self._current_href: str | None = None
+
+    def handle_starttag(self, tag: str, attrs):
+        tag = tag.lower()
+        if tag == "tr":
+            self._in_row = True
+            self._current_cells = []
+            self._current_href = None
+        elif self._in_row and tag in {"td", "th"}:
+            self._in_cell = True
+            self._current_cell_parts = []
+        elif self._in_cell and tag == "a" and self._current_href is None:
+            attr_dict = dict(attrs)
+            self._current_href = attr_dict.get("href")
+
+    def handle_endtag(self, tag: str):
+        tag = tag.lower()
+        if self._in_cell and tag in {"td", "th"}:
+            self._current_cells.append(normalize_space("".join(self._current_cell_parts)))
+            self._current_cell_parts = []
+            self._in_cell = False
+        elif self._in_row and tag == "tr":
+            self.rows.append(_HtmlTableRow(self._current_cells, self._current_href))
+            self._current_cells = []
+            self._current_href = None
+            self._in_row = False
+
+    def handle_data(self, data: str):
+        if self._in_cell:
+            self._current_cell_parts.append(data)
+
+
+def filter_catalog_books(
+    books: list[PublisherCatalogBookAppModel], keyword: str | None
+) -> list[PublisherCatalogBookAppModel]:
+    normalized = normalize_space(keyword or "").lower()
+    if not normalized:
+        return books
+    return [
+        book
+        for book in books
+        if normalized in book.title.lower() or normalized in normalize_isbn(book.isbn13).lower()
+    ]
+
+
+def convert_catalog_book(book: PublisherCatalogBookAppModel, publisher_name: str) -> BookSearchResultAppModel:
+    return BookSearchResultAppModel(
+        source="publisher-catalog",
+        source_id=book.source_url or book.isbn13,
+        title=book.title or "タイトル不明",
+        authors=["著者不明"],
+        publisher=publisher_name,
+        isbn13=book.isbn13,
+        published_at=book.published_at,
+        image_url=None,
+        description=None,
+    )
+
+
+def unique_catalog_books(books: list[PublisherCatalogBookAppModel]) -> list[PublisherCatalogBookAppModel]:
+    by_isbn: dict[str, PublisherCatalogBookAppModel] = {}
+    for book in books:
+        by_isbn.setdefault(book.isbn13, book)
+    return list(by_isbn.values())
+
+
+def catalog_books_to_json(books: list[PublisherCatalogBookAppModel]) -> str:
+    return json.dumps(
+        {
+            "books": [
+                {
+                    "isbn13": book.isbn13,
+                    "title": book.title,
+                    "published_at": book.published_at.isoformat(),
+                    "price": book.price,
+                    "source_url": book.source_url,
+                }
+                for book in books
+            ]
+        },
+        ensure_ascii=False,
+    )
+
+
+def catalog_books_from_json(payload_json: str) -> list[PublisherCatalogBookAppModel]:
+    payload = json.loads(payload_json)
+    return [
+        PublisherCatalogBookAppModel(
+            isbn13=normalize_isbn(item["isbn13"]),
+            title=item["title"],
+            published_at=parse_published_date(item["published_at"]),
+            price=item.get("price"),
+            source_url=item.get("source_url"),
+        )
+        for item in payload.get("books", [])
+        if isinstance(item, dict) and item.get("isbn13") and item.get("title")
+    ]
+
+
+def book_search_result_to_json(book: BookSearchResultAppModel) -> str:
+    return json.dumps(
+        {
+            "source": book.source,
+            "source_id": book.source_id,
+            "title": book.title,
+            "authors": book.authors,
+            "publisher": book.publisher,
+            "isbn13": book.isbn13,
+            "published_at": book.published_at.isoformat(),
+            "image_url": book.image_url,
+            "description": book.description,
+        },
+        ensure_ascii=False,
+    )
+
+
+def book_search_result_from_json(payload_json: str) -> BookSearchResultAppModel | None:
+    try:
+        payload = json.loads(payload_json)
+        return BookSearchResultAppModel(
+            source=payload["source"],
+            source_id=payload["source_id"],
+            title=payload["title"],
+            authors=payload["authors"],
+            publisher=payload["publisher"],
+            isbn13=normalize_isbn(payload["isbn13"]),
+            published_at=parse_published_date(payload["published_at"]),
+            image_url=payload.get("image_url"),
+            description=payload.get("description"),
+        )
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def is_cache_expired(expires_at: datetime) -> bool:
+    now = datetime.now(timezone.utc)
+    if expires_at.tzinfo is None:
+        return expires_at < now.replace(tzinfo=None)
+    return expires_at < now
 
 
 def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:
@@ -281,6 +712,10 @@ def normalize_isbn(isbn: str) -> str:
     return re.sub(r"[-\s]", "", isbn).upper()
 
 
+def normalize_space(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
 def is_isbn13(value: str) -> bool:
     return re.fullmatch(r"\d{13}", normalize_isbn(value)) is not None
 
@@ -300,6 +735,7 @@ def parse_published_date(value: str | None) -> date:
     if not value:
         return date(1970, 1, 1)
 
+    value = value.strip()
     if re.fullmatch(r"\d{4}", value):
         return date(int(value), 1, 1)
     if re.fullmatch(r"\d{4}-\d{2}", value):
@@ -307,6 +743,9 @@ def parse_published_date(value: str | None) -> date:
         return date(int(year), int(month), 1)
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         year, month, day = value.split("-")
+        return date(int(year), int(month), int(day))
+    if re.fullmatch(r"\d{4}/\d{2}/\d{2}", value):
+        year, month, day = value.split("/")
         return date(int(year), int(month), int(day))
     if re.fullmatch(r"\d{6}", value):
         return date(int(value[:4]), int(value[4:6]), 1)

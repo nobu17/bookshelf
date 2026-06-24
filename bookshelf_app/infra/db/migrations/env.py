@@ -8,6 +8,7 @@ import bookshelf_app.infra.db.auth  # noqa: F401　# pylint: disable=W0611
 import bookshelf_app.infra.db.tags  # noqa: F401 # pylint: disable=W0611
 import bookshelf_app.infra.db.books  # noqa: F401 # pylint: disable=W0611
 import bookshelf_app.infra.db.reviews  # noqa: F401　# pylint: disable=W0611
+import bookshelf_app.infra.db.book_search  # noqa: F401 # pylint: disable=W0611
 from bookshelf_app.infra.db.database import Base
 from bookshelf_app.config import get_settings
 
