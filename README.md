@@ -104,6 +104,28 @@ ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools
 
 管理者ユーザーは、マイページの `管理` から `デバッグ` 画面を開き、`publisher_catalog_cache` と `book_metadata_cache` を個別に削除できます。対応APIは管理者権限を必須にしています。
 
+### Metadata Cache Warmup
+
+`.github/workflows/warm-book-metadata-cache.yml` は毎週日曜 03:17（JST）に起動します。
+オライリー・ジャパンのカタログ全件から、次の書籍だけを40件ずつ補完します。
+
+- `book_metadata_cache` に未登録
+- `fetched_at` から14日以上経過
+- 書影が未取得
+
+openBDを先に一括照会し、書影が不足するISBNだけGoogle Booksで補完します。
+処理結果はバッチごとに保存するため、途中で失敗した場合も次回は未完了分を中心に再実行されます。
+workflowには既存のAzure OIDC設定、`AZURE_RESOURCE_GROUP`、`AZURE_SQL_SERVER_NAME`、`DB_CONNECTION`に加えて、GitHub Environment `production` のSecretとして `GOOGLE_BOOKS_API_KEY` が必要です。
+
+ローカルから手動実行する場合:
+
+```bash
+ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python \
+  -m bookshelf_app.tools.cache.warm_book_metadata
+```
+
+更新間隔やバッチサイズは `--refresh-after-days`、`--batch-size` で変更できます。
+
 ## Azure App Service Deployment
 
 Azure へ載せる最初の構成は次を想定します。

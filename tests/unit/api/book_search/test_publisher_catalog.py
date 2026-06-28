@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from types import SimpleNamespace
 
 from bookshelf_app.api.book_search import service as target
 from tests.unit.api.book_search.helper import create_book
@@ -280,3 +281,172 @@ def test_publisher_catalog_service_supplements_cached_book_without_image(monkeyp
 
     assert actual.books[0].image_url == "https://example.com/google-cover.jpg"
     assert saved_books[0].image_url == "https://example.com/google-cover.jpg"
+
+
+def test_forced_metadata_refresh_preserves_cached_image_and_description(monkeypatch):
+    cached_book = create_book(
+        source="google-books",
+        isbn13="9784814401703",
+        image_url="https://example.com/cached-cover.jpg",
+        description="既存の説明",
+    )
+    openbd_book = create_book(
+        source="openbd",
+        isbn13="9784814401703",
+        image_url=None,
+        description=None,
+    )
+    saved_books: list[target.BookSearchResultAppModel] = []
+
+    class FakeOpenBd:
+        def find_by_isbn13s(self, isbn13s: list[str]):
+            return {"9784814401703": openbd_book}
+
+    class FakeGoogle:
+        def find_by_isbn13(self, isbn13: str):
+            return None
+
+    service = target.PublisherCatalogService(google=FakeGoogle(), openbd=FakeOpenBd())
+    monkeypatch.setattr(
+        service,
+        "_load_book_metadata_cache",
+        lambda _isbn13s, allow_expired=False: {"9784814401703": cached_book},
+    )
+    monkeypatch.setattr(service, "_save_book_metadata_cache", lambda books: saved_books.extend(books))
+
+    actual = service._enrich_books(
+        [
+            target.PublisherCatalogBookAppModel(
+                isbn13="9784814401703",
+                title="テスト本",
+                published_at=date(2026, 1, 1),
+            )
+        ],
+        "オライリー・ジャパン",
+        force_refresh=True,
+    )
+
+    assert actual[0].image_url == "https://example.com/cached-cover.jpg"
+    assert actual[0].description == "既存の説明"
+    assert saved_books == actual
+
+
+def test_metadata_cache_needs_refresh_checks_age_and_image():
+    refresh_before = datetime.now(timezone.utc) - timedelta(days=14)
+    complete_book = create_book(image_url="https://example.com/cover.jpg")
+    incomplete_book = create_book(image_url=None)
+
+    fresh = SimpleNamespace(
+        fetched_at=refresh_before + timedelta(days=1),
+        payload_json=target.book_search_result_to_json(complete_book),
+        is_deleted=False,
+    )
+    stale = SimpleNamespace(
+        fetched_at=refresh_before - timedelta(seconds=1),
+        payload_json=target.book_search_result_to_json(complete_book),
+        is_deleted=False,
+    )
+    missing_image = SimpleNamespace(
+        fetched_at=refresh_before + timedelta(days=1),
+        payload_json=target.book_search_result_to_json(incomplete_book),
+        is_deleted=False,
+    )
+
+    assert not target.metadata_cache_needs_refresh(fresh, refresh_before)
+    assert target.metadata_cache_needs_refresh(stale, refresh_before)
+    assert target.metadata_cache_needs_refresh(missing_image, refresh_before)
+    assert target.metadata_cache_needs_refresh(None, refresh_before)
+
+
+def test_publisher_catalog_service_warms_candidates_in_batches(monkeypatch):
+    class FakeProvider:
+        publisher_id = "oreilly_japan"
+        publisher_name = "オライリー・ジャパン"
+        cache_key = "oreilly_japan_catalog"
+
+    catalog_books = [
+        target.PublisherCatalogBookAppModel(
+            isbn13=f"978481440000{index}",
+            title=f"本{index}",
+            published_at=date(2026, index, 1),
+        )
+        for index in range(1, 4)
+    ]
+    batches: list[list[str]] = []
+    service = target.PublisherCatalogService(google=object(), openbd=object())
+    service._providers = {"oreilly_japan": FakeProvider()}
+    monkeypatch.setattr(service, "_get_catalog_books", lambda _provider: catalog_books)
+    monkeypatch.setattr(
+        service,
+        "_find_metadata_refresh_candidates",
+        lambda _books, _refresh_before: catalog_books,
+    )
+
+    def fake_enrich(books, _publisher_name, force_refresh=False, google_delay_seconds=0):
+        assert force_refresh
+        assert google_delay_seconds == 0
+        batches.append([book.isbn13 for book in books])
+        return [create_book(isbn13=book.isbn13) for book in books]
+
+    monkeypatch.setattr(service, "_enrich_books", fake_enrich)
+
+    actual = service.warm_metadata_cache(
+        "oreilly_japan",
+        refresh_after_days=14,
+        batch_size=2,
+        google_delay_seconds=0,
+        batch_delay_seconds=0,
+    )
+
+    assert batches == [["9784814400001", "9784814400002"], ["9784814400003"]]
+    assert actual == target.MetadataCacheWarmupResult(
+        catalog_count=3,
+        candidate_count=3,
+        refreshed_count=3,
+        failed_count=0,
+    )
+
+
+def test_publisher_catalog_service_continues_after_failed_batch(monkeypatch):
+    class FakeProvider:
+        publisher_id = "oreilly_japan"
+        publisher_name = "オライリー・ジャパン"
+        cache_key = "oreilly_japan_catalog"
+
+    catalog_books = [
+        target.PublisherCatalogBookAppModel(
+            isbn13=f"978481440000{index}",
+            title=f"本{index}",
+            published_at=date(2026, index, 1),
+        )
+        for index in range(1, 3)
+    ]
+    service = target.PublisherCatalogService(google=object(), openbd=object())
+    service._providers = {"oreilly_japan": FakeProvider()}
+    monkeypatch.setattr(service, "_get_catalog_books", lambda _provider: catalog_books)
+    monkeypatch.setattr(
+        service,
+        "_find_metadata_refresh_candidates",
+        lambda _books, _refresh_before: catalog_books,
+    )
+    calls = 0
+
+    def fake_enrich(books, _publisher_name, force_refresh=False, google_delay_seconds=0):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("temporary failure")
+        return [create_book(isbn13=books[0].isbn13)]
+
+    monkeypatch.setattr(service, "_enrich_books", fake_enrich)
+
+    actual = service.warm_metadata_cache(
+        "oreilly_japan",
+        refresh_after_days=14,
+        batch_size=1,
+        google_delay_seconds=0,
+        batch_delay_seconds=0,
+    )
+
+    assert actual.refreshed_count == 1
+    assert actual.failed_count == 1

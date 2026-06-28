@@ -3,7 +3,9 @@ from datetime import date, datetime, timedelta, timezone
 from html import unescape
 from html.parser import HTMLParser
 import json
+import logging
 import re
+import time
 from sqlalchemy import delete
 from urllib.error import HTTPError
 from urllib.parse import urlencode, urljoin
@@ -18,6 +20,8 @@ PUBLISHER_CATALOG_CACHE_DAYS = 3
 PUBLISHER_CATALOG_MAX_ITEMS = 1000
 GOOGLE_CATALOG_SUPPLEMENT_MAX_ITEMS = 40
 BOOK_METADATA_CACHE_DAYS = 30
+
+logger = logging.getLogger(__name__)
 
 
 class BookSearchRateLimitError(Exception):
@@ -58,6 +62,14 @@ class PublisherBookPageAppModel:
     page: int
     page_size: int
     total_count: int
+
+
+@dataclass(frozen=True)
+class MetadataCacheWarmupResult:
+    catalog_count: int
+    candidate_count: int
+    refreshed_count: int
+    failed_count: int
 
 
 class BookSearchService:
@@ -107,6 +119,22 @@ class BookSearchService:
 
     def clear_book_metadata_cache(self) -> int:
         return clear_book_metadata_cache()
+
+    def warm_publisher_metadata_cache(
+        self,
+        publisher_id: str,
+        refresh_after_days: int = 14,
+        batch_size: int = 40,
+        google_delay_seconds: float = 0.2,
+        batch_delay_seconds: float = 2.0,
+    ) -> MetadataCacheWarmupResult:
+        return self._publisher_catalogs.warm_metadata_cache(
+            publisher_id,
+            refresh_after_days,
+            batch_size,
+            google_delay_seconds,
+            batch_delay_seconds,
+        )
 
     def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
         try:
@@ -219,6 +247,73 @@ class PublisherCatalogService:
             total_count=len(books),
         )
 
+    def warm_metadata_cache(
+        self,
+        publisher_id: str,
+        refresh_after_days: int,
+        batch_size: int,
+        google_delay_seconds: float,
+        batch_delay_seconds: float,
+    ) -> MetadataCacheWarmupResult:
+        provider = self._providers.get(publisher_id)
+        if provider is None:
+            raise ValueError(f"unknown publisher: {publisher_id}")
+
+        books = self._get_catalog_books(provider)
+        refresh_before = datetime.now(timezone.utc) - timedelta(days=max(1, refresh_after_days))
+        candidates = self._find_metadata_refresh_candidates(books, refresh_before)
+        normalized_batch_size = max(1, min(batch_size, GOOGLE_CATALOG_SUPPLEMENT_MAX_ITEMS))
+        refreshed_count = 0
+        failed_count = 0
+
+        for start in range(0, len(candidates), normalized_batch_size):
+            batch = candidates[start : start + normalized_batch_size]
+            try:
+                refreshed = self._enrich_books(
+                    batch,
+                    provider.publisher_name,
+                    force_refresh=True,
+                    google_delay_seconds=max(0, google_delay_seconds),
+                )
+                refreshed_count += len(refreshed)
+            except Exception:
+                failed_count += len(batch)
+                logger.exception(
+                    "Failed to warm book metadata cache. publisher_id:%s, start:%s, batch_size:%s",
+                    publisher_id,
+                    start,
+                    len(batch),
+                )
+
+            if start + normalized_batch_size < len(candidates) and batch_delay_seconds > 0:
+                time.sleep(batch_delay_seconds)
+
+        return MetadataCacheWarmupResult(
+            catalog_count=len(books),
+            candidate_count=len(candidates),
+            refreshed_count=refreshed_count,
+            failed_count=failed_count,
+        )
+
+    def _find_metadata_refresh_candidates(
+        self,
+        books: list[PublisherCatalogBookAppModel],
+        refresh_before: datetime,
+    ) -> list[PublisherCatalogBookAppModel]:
+        if not books:
+            return []
+
+        isbn13s = [book.isbn13 for book in books]
+        with SessionLocal() as session:
+            rows = session.query(BookMetadataCacheDTO).filter(BookMetadataCacheDTO.isbn13.in_(isbn13s)).all()
+            cache_by_isbn = {row.isbn13: row for row in rows}
+
+        return [
+            book
+            for book in books
+            if metadata_cache_needs_refresh(cache_by_isbn.get(book.isbn13), refresh_before)
+        ]
+
     def _get_catalog_books(self, provider: "PublisherCatalogProvider") -> list[PublisherCatalogBookAppModel]:
         cached = self._load_cache(provider.cache_key)
         if cached is not None:
@@ -267,11 +362,22 @@ class PublisherCatalogService:
             session.commit()
 
     def _enrich_books(
-        self, books: list[PublisherCatalogBookAppModel], publisher_name: str
+        self,
+        books: list[PublisherCatalogBookAppModel],
+        publisher_name: str,
+        force_refresh: bool = False,
+        google_delay_seconds: float = 0,
     ) -> list[BookSearchResultAppModel]:
-        cached_books = self._load_book_metadata_cache([book.isbn13 for book in books])
+        isbn13s = [book.isbn13 for book in books]
+        cached_books = (
+            self._load_book_metadata_cache(isbn13s, allow_expired=True)
+            if force_refresh
+            else self._load_book_metadata_cache(isbn13s)
+        )
         complete_cached_books = {
-            isbn13: book for isbn13, book in cached_books.items() if book.image_url
+            isbn13: book
+            for isbn13, book in cached_books.items()
+            if book.image_url and not force_refresh
         }
         supplement_books = [
             book for book in books if book.isbn13 not in complete_cached_books
@@ -279,29 +385,43 @@ class PublisherCatalogService:
         if not supplement_books:
             return [complete_cached_books[book.isbn13] for book in books if book.isbn13 in complete_cached_books]
 
-        openbd_target_books = [book for book in supplement_books if book.isbn13 not in cached_books]
+        openbd_target_books = [
+            book
+            for book in supplement_books
+            if force_refresh or book.isbn13 not in cached_books
+        ]
         openbd_books = self._openbd.find_by_isbn13s([book.isbn13 for book in openbd_target_books])
         fetched_books: dict[str, BookSearchResultAppModel] = {}
+        fallback_books: dict[str, BookSearchResultAppModel] = {}
         google_call_count = 0
         for book in supplement_books:
-            openbd_book = cached_books.get(book.isbn13) or openbd_books.get(book.isbn13)
+            cached_book = cached_books.get(book.isbn13)
+            openbd_book = openbd_books.get(book.isbn13) if force_refresh else cached_book or openbd_books.get(book.isbn13)
             google_book = None
             needs_google_supplement = openbd_book is None or not openbd_book.image_url
             if needs_google_supplement and google_call_count < GOOGLE_CATALOG_SUPPLEMENT_MAX_ITEMS:
+                if google_call_count > 0 and google_delay_seconds > 0:
+                    time.sleep(google_delay_seconds)
                 google_call_count += 1
                 google_book = self._find_google_by_isbn13(book.isbn13)
 
+            refreshed_book = None
             if google_book and openbd_book:
-                fetched_books[book.isbn13] = merge_book_search_result(google_book, openbd_book)
+                refreshed_book = merge_book_search_result(google_book, openbd_book)
             elif openbd_book:
-                fetched_books[book.isbn13] = openbd_book
+                refreshed_book = openbd_book
             elif google_book:
-                fetched_books[book.isbn13] = google_book
+                refreshed_book = google_book
+            elif cached_book:
+                fallback_books[book.isbn13] = cached_book
             else:
-                fetched_books[book.isbn13] = convert_catalog_book(book, publisher_name)
+                refreshed_book = convert_catalog_book(book, publisher_name)
+
+            if refreshed_book:
+                fetched_books[book.isbn13] = preserve_cached_metadata(refreshed_book, cached_book)
 
         self._save_book_metadata_cache(list(fetched_books.values()))
-        all_books = {**complete_cached_books, **fetched_books}
+        all_books = {**complete_cached_books, **fallback_books, **fetched_books}
         return [all_books[book.isbn13] for book in books if book.isbn13 in all_books]
 
     def _find_google_by_isbn13(self, isbn13: str) -> BookSearchResultAppModel | None:
@@ -310,7 +430,11 @@ class PublisherCatalogService:
         except BookSearchRateLimitError:
             return None
 
-    def _load_book_metadata_cache(self, isbn13s: list[str]) -> dict[str, BookSearchResultAppModel]:
+    def _load_book_metadata_cache(
+        self,
+        isbn13s: list[str],
+        allow_expired: bool = False,
+    ) -> dict[str, BookSearchResultAppModel]:
         normalized_isbns = [normalize_isbn(isbn13) for isbn13 in isbn13s if is_isbn13(isbn13)]
         if not normalized_isbns:
             return {}
@@ -319,7 +443,7 @@ class PublisherCatalogService:
         with SessionLocal() as session:
             rows = session.query(BookMetadataCacheDTO).filter(BookMetadataCacheDTO.isbn13.in_(normalized_isbns)).all()
             for row in rows:
-                if is_cache_expired(row.expires_at):
+                if not allow_expired and is_cache_expired(row.expires_at):
                     continue
                 book = book_search_result_from_json(row.payload_json)
                 if book:
@@ -634,6 +758,47 @@ def is_cache_expired(expires_at: datetime) -> bool:
     if expires_at.tzinfo is None:
         return expires_at < now.replace(tzinfo=None)
     return expires_at < now
+
+
+def metadata_cache_needs_refresh(
+    dto: BookMetadataCacheDTO | None,
+    refresh_before: datetime,
+) -> bool:
+    if dto is None or getattr(dto, "is_deleted", False):
+        return True
+
+    fetched_at = dto.fetched_at
+    comparable_refresh_before = refresh_before
+    if fetched_at.tzinfo is None and refresh_before.tzinfo is not None:
+        comparable_refresh_before = refresh_before.replace(tzinfo=None)
+    elif fetched_at.tzinfo is not None and refresh_before.tzinfo is None:
+        comparable_refresh_before = refresh_before.replace(tzinfo=fetched_at.tzinfo)
+
+    if fetched_at <= comparable_refresh_before:
+        return True
+
+    book = book_search_result_from_json(dto.payload_json)
+    return book is None or not book.image_url
+
+
+def preserve_cached_metadata(
+    refreshed_book: BookSearchResultAppModel,
+    cached_book: BookSearchResultAppModel | None,
+) -> BookSearchResultAppModel:
+    if cached_book is None:
+        return refreshed_book
+
+    return BookSearchResultAppModel(
+        source=refreshed_book.source,
+        source_id=refreshed_book.source_id,
+        title=refreshed_book.title,
+        authors=refreshed_book.authors or cached_book.authors,
+        publisher=refreshed_book.publisher,
+        isbn13=refreshed_book.isbn13,
+        published_at=refreshed_book.published_at,
+        image_url=refreshed_book.image_url or cached_book.image_url,
+        description=refreshed_book.description or cached_book.description,
+    )
 
 
 def convert_google_volume(item: dict) -> BookSearchResultAppModel | None:

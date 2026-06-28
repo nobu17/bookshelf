@@ -1,0 +1,94 @@
+name: Warm Book Metadata Cache
+
+on:
+  schedule:
+    # Sunday 03:17 JST. The CLI refreshes only entries at least 14 days old.
+    - cron: "17 18 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-book-metadata-cache
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  warm-cache:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Azure login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get runner public IP
+        id: runner_ip
+        run: echo "ip=$(curl -sS https://api.ipify.org)" >> "$GITHUB_OUTPUT"
+
+      - name: Allow runner IP to Azure SQL
+        env:
+          FIREWALL_RULE_NAME: github-cache-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          az sql server firewall-rule create \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --server "${{ vars.AZURE_SQL_SERVER_NAME }}" \
+            --name "${FIREWALL_RULE_NAME}" \
+            --start-ip-address "${{ steps.runner_ip.outputs.ip }}" \
+            --end-ip-address "${{ steps.runner_ip.outputs.ip }}"
+
+      - name: Warm metadata cache
+        env:
+          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
+          CRYPT_SECRET_KEY: dummy-for-cache-warmup
+          CRYPT_ALGORITHM: HS256
+          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
+          PYTHONPATH: .
+        run: |
+          for attempt in {1..3}; do
+            echo "Warming book metadata cache. attempt=${attempt}"
+            if python -m bookshelf_app.tools.cache.warm_book_metadata; then
+              exit 0
+            fi
+            if [ "${attempt}" -eq 3 ]; then
+              echo "Cache warmup failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "Retrying in 60 seconds..."
+            sleep 60
+          done
+
+      - name: Remove runner IP from Azure SQL
+        if: always()
+        env:
+          FIREWALL_RULE_NAME: github-cache-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          az sql server firewall-rule delete \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --server "${{ vars.AZURE_SQL_SERVER_NAME }}" \
+            --name "${FIREWALL_RULE_NAME}" || true
