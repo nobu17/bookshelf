@@ -12,12 +12,20 @@ import { toError } from "../libs/utils/error";
 const api = new BookWithMyReviewsApi();
 const bookSearchApi = new BookSearchApi();
 
+type PublisherPagination = {
+  page: number;
+  totalCount: number;
+  totalPages: number;
+};
+
 export default function useSearchBooks() {
   useAuthApi(api);
   const [reviews, setReviews] = useState<BookWithReviews[] | null>(null);
   const [books, setBooks] = useState<BookSearchResultWithReviews[]>([]);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(false);
+  const [publisherPagination, setPublisherPagination] =
+    useState<PublisherPagination | null>(null);
 
   const search = async (searchWord: string) => {
     try {
@@ -26,6 +34,7 @@ export default function useSearchBooks() {
       const myReviews = await loadMyReviewsForSearch(reviews, setReviews);
       const res = (await bookSearchApi.search(searchWord)).data.books;
       setBooks(sortBooks(aggregateReview(res, myReviews)));
+      setPublisherPagination(null);
     } catch (e: unknown) {
       setError(toError(e));
     } finally {
@@ -33,15 +42,24 @@ export default function useSearchBooks() {
     }
   };
 
-  const searchPublisher = async (publisherId: string, keyword = "") => {
+  const searchPublisher = async (
+    publisherId: string,
+    keyword = "",
+    page = 1
+  ) => {
     try {
       setError(undefined);
       setLoading(true);
       const myReviews = await loadMyReviewsForSearch(reviews, setReviews);
       const res = (
-        await bookSearchApi.searchPublisherBooks(publisherId, keyword)
-      ).data.books;
-      setBooks(sortBooks(aggregateReview(res, myReviews)));
+        await bookSearchApi.searchPublisherBooks(publisherId, keyword, page)
+      ).data;
+      setBooks(sortBooks(aggregateReview(res.books, myReviews)));
+      setPublisherPagination({
+        page: res.page,
+        totalCount: res.totalCount,
+        totalPages: res.totalPages,
+      });
     } catch (e: unknown) {
       setError(toError(e));
     } finally {
@@ -70,6 +88,7 @@ export default function useSearchBooks() {
     books,
     search,
     searchPublisher,
+    publisherPagination,
     reload,
   };
 }

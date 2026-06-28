@@ -5,6 +5,7 @@ import {
   CardContent,
   CircularProgress,
   InputAdornment,
+  Pagination,
   Stack,
   TextField,
   ToggleButton,
@@ -42,14 +43,15 @@ const displayError = (error: Error | undefined) => {
 
 const displayResult = (
   books: BookSearchResultWithReviews[],
-  handleSelect: (book: BookSearchResultWithReviews) => void
+  handleSelect: (book: BookSearchResultWithReviews) => void,
+  totalCount = books.length
 ) => {
   if (!books || books.length === 0) {
     return <Typography variant="subtitle1">検索結果: 0 件</Typography>;
   }
   return (
     <>
-      <Typography variant="subtitle1">検索結果: {books.length} 件</Typography>
+      <Typography variant="subtitle1">検索結果: {totalCount} 件</Typography>
       <BookSearchCards
         books={books}
         onSelect={(b) => {
@@ -61,8 +63,15 @@ const displayResult = (
 };
 
 export default function SearchBooksContainer() {
-  const { loading, error, books, search, searchPublisher, reload } =
-    useSearchBooks();
+  const {
+    loading,
+    error,
+    books,
+    search,
+    searchPublisher,
+    publisherPagination,
+    reload,
+  } = useSearchBooks();
   const [word, setWord] = useState("");
   const [publisherKeyword, setPublisherKeyword] = useState("");
   const [searchMode, setSearchMode] = useState<"keyword" | "publisher">(
@@ -111,7 +120,11 @@ export default function SearchBooksContainer() {
       return;
     }
     if (searchMode === "publisher") {
-      await searchPublisher(publisher.id, publisherKeyword);
+      await searchPublisher(
+        publisher.id,
+        publisherKeyword,
+        publisherPagination?.page ?? 1
+      );
       return;
     }
     await reload(word);
@@ -125,7 +138,11 @@ export default function SearchBooksContainer() {
 
   const handlePublisherSearch = async () => {
     setSearchMode("publisher");
-    await searchPublisher(publisher.id, publisherKeyword);
+    await searchPublisher(publisher.id, publisherKeyword, 1);
+  };
+
+  const handlePublisherPageChange = async (_: unknown, page: number) => {
+    await searchPublisher(publisher.id, publisherKeyword, page);
   };
 
   const handleCaptureStart = () => {
@@ -224,7 +241,34 @@ export default function SearchBooksContainer() {
         </Stack>
       )}
       <br />
-      {loading ? <CircularProgress /> : displayResult(books, handleSelect)}
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          {displayResult(
+            books,
+            handleSelect,
+            searchMode === "publisher"
+              ? publisherPagination?.totalCount
+              : undefined
+          )}
+          {searchMode === "publisher" &&
+            publisherPagination &&
+            publisherPagination.totalPages > 1 && (
+              <Stack alignItems="center" sx={{ my: 3 }}>
+                <Pagination
+                  page={publisherPagination.page}
+                  count={publisherPagination.totalPages}
+                  onChange={handlePublisherPageChange}
+                  color="primary"
+                  disabled={loading}
+                  showFirstButton
+                  showLastButton
+                />
+              </Stack>
+            )}
+        </>
+      )}
       <BookReviewCreateFormDialogContainers
         open={isEditOpen}
         editItem={createItem}

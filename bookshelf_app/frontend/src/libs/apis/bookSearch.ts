@@ -13,18 +13,30 @@ export default class BookSearchApi extends ApiBase {
   async searchPublisherBooks(
     publisherId: string,
     keyword = "",
+    page = 1,
     limit = 40
-  ): Promise<ApiResponse<BookSearchResponse>> {
-    const params = new URLSearchParams({ limit: String(limit) });
+  ): Promise<ApiResponse<PublisherBookSearchResponse>> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
     if (keyword.trim()) {
       params.set("keyword", keyword.trim());
     }
-    const res = await this.getAsync<ApiBookSearchResponse>(
+    const res = await this.getAsync<ApiPublisherBookSearchResponse>(
       `/book_search/publishers/${encodeURIComponent(
         publisherId
       )}/books?${params.toString()}`
     );
-    return { data: convert(res.data) };
+    return {
+      data: {
+        ...convert(res.data),
+        page: res.data.page,
+        pageSize: res.data.page_size,
+        totalCount: res.data.total_count,
+        totalPages: res.data.total_pages,
+      },
+    };
   }
 
   async findDescriptionByIsbn13(
@@ -46,8 +58,22 @@ type BookSearchResponse = {
   books: BookSearchResult[];
 };
 
+export type PublisherBookSearchResponse = BookSearchResponse & {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
 type ApiBookSearchResponse = {
   books: ApiBookSearchResult[];
+};
+
+type ApiPublisherBookSearchResponse = ApiBookSearchResponse & {
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
 };
 
 type ApiBookSearchResult = {

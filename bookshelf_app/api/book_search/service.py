@@ -52,6 +52,14 @@ class PublisherCatalogBookAppModel:
     source_url: str | None = None
 
 
+@dataclass(frozen=True)
+class PublisherBookPageAppModel:
+    books: list[BookSearchResultAppModel]
+    page: int
+    page_size: int
+    total_count: int
+
+
 class BookSearchService:
     _google: "GoogleBooksProvider"
     _openbd: "OpenBdProvider"
@@ -90,9 +98,9 @@ class BookSearchService:
         return self._publisher_catalogs.list_publishers()
 
     def search_publisher_books(
-        self, publisher_id: str, keyword: str | None = None, limit: int = 40
-    ) -> list[BookSearchResultAppModel]:
-        return self._publisher_catalogs.search_books(publisher_id, keyword, limit)
+        self, publisher_id: str, keyword: str | None = None, page: int = 1, limit: int = 40
+    ) -> PublisherBookPageAppModel:
+        return self._publisher_catalogs.search_books(publisher_id, keyword, page, limit)
 
     def clear_publisher_catalog_cache(self) -> int:
         return clear_publisher_catalog_cache()
@@ -191,17 +199,25 @@ class PublisherCatalogService:
         return [PublisherAppModel(provider.publisher_id, provider.publisher_name) for provider in self._providers.values()]
 
     def search_books(
-        self, publisher_id: str, keyword: str | None = None, limit: int = 40
-    ) -> list[BookSearchResultAppModel]:
+        self, publisher_id: str, keyword: str | None = None, page: int = 1, limit: int = 40
+    ) -> PublisherBookPageAppModel:
         provider = self._providers.get(publisher_id)
         if provider is None:
-            return []
+            return PublisherBookPageAppModel([], page=max(1, page), page_size=limit, total_count=0)
 
         books = self._get_catalog_books(provider)
         books = filter_catalog_books(books, keyword)
         books = sorted(books, key=lambda book: book.published_at, reverse=True)
-        selected = books[: max(1, min(limit, 100))]
-        return self._enrich_books(selected, provider.publisher_name)
+        page_size = max(1, min(limit, 100))
+        current_page = max(1, page)
+        start = (current_page - 1) * page_size
+        selected = books[start : start + page_size]
+        return PublisherBookPageAppModel(
+            books=self._enrich_books(selected, provider.publisher_name),
+            page=current_page,
+            page_size=page_size,
+            total_count=len(books),
+        )
 
     def _get_catalog_books(self, provider: "PublisherCatalogProvider") -> list[PublisherCatalogBookAppModel]:
         cached = self._load_cache(provider.cache_key)

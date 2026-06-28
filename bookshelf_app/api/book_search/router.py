@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from bookshelf_app.api.book_search.service import (
@@ -29,6 +29,13 @@ class BookSearchResultResponse(BaseModel):
 
 class BookSearchResponse(BaseModel):
     books: list[BookSearchResultResponse]
+
+
+class PublisherBookSearchResponse(BookSearchResponse):
+    page: int
+    page_size: int
+    total_count: int
+    total_pages: int
 
 
 class PublisherResponse(BaseModel):
@@ -88,17 +95,29 @@ async def list_publishers() -> PublishersResponse:
     return PublishersResponse(publishers=[convert_publisher(publisher) for publisher in publishers])
 
 
-@router.get("/book_search/publishers/{publisher_id}/books", response_model=BookSearchResponse)
-async def search_publisher_books(publisher_id: str, keyword: str | None = None, limit: int = 40) -> BookSearchResponse:
+@router.get("/book_search/publishers/{publisher_id}/books", response_model=PublisherBookSearchResponse)
+async def search_publisher_books(
+    publisher_id: str,
+    keyword: str | None = None,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=40, ge=1, le=100),
+) -> PublisherBookSearchResponse:
     try:
-        results = BookSearchService().search_publisher_books(publisher_id, keyword, limit)
+        result = BookSearchService().search_publisher_books(publisher_id, keyword, page, limit)
     except BookSearchRateLimitError as exc:
         raise HTTPException(
             status_code=429,
             detail="外部書籍検索APIの利用制限に達しました。しばらく時間を置いてから再度お試しください。",
         ) from exc
 
-    return BookSearchResponse(books=[convert(result) for result in results])
+    total_pages = (result.total_count + result.page_size - 1) // result.page_size
+    return PublisherBookSearchResponse(
+        books=[convert(book) for book in result.books],
+        page=result.page,
+        page_size=result.page_size,
+        total_count=result.total_count,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/book_search/isbn13/{isbn13}/description", response_model=BookDescriptionResponse)

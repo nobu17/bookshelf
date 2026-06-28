@@ -83,8 +83,11 @@ def test_publisher_catalog_service_returns_latest_enriched_books(monkeypatch):
 
     actual = service.search_books("oreilly_japan", limit=1)
 
-    assert [book.isbn13 for book in actual] == ["9784814401703"]
-    assert actual[0].image_url == "https://example.com/cover.jpg"
+    assert [book.isbn13 for book in actual.books] == ["9784814401703"]
+    assert actual.books[0].image_url == "https://example.com/cover.jpg"
+    assert actual.page == 1
+    assert actual.page_size == 1
+    assert actual.total_count == 2
     assert google_calls == []
 
 
@@ -125,9 +128,60 @@ def test_publisher_catalog_service_filters_catalog_books(monkeypatch):
 
     actual = service.search_books("oreilly_japan", keyword="Python", limit=40)
 
-    assert len(actual) == 1
-    assert actual[0].isbn13 == "9784814401642"
-    assert actual[0].source == "publisher-catalog"
+    assert len(actual.books) == 1
+    assert actual.books[0].isbn13 == "9784814401642"
+    assert actual.books[0].source == "publisher-catalog"
+    assert actual.total_count == 1
+
+
+def test_publisher_catalog_service_returns_requested_page(monkeypatch):
+    class FakeProvider:
+        publisher_id = "oreilly_japan"
+        publisher_name = "オライリー・ジャパン"
+        cache_key = "oreilly_japan_catalog"
+
+    class FakeOpenBd:
+        def find_by_isbn13s(self, isbn13s: list[str]):
+            raise AssertionError("openBD should not be called for cached books")
+
+    class FakeGoogle:
+        def find_by_isbn13(self, isbn13: str):
+            raise AssertionError("Google Books should not be called for cached books")
+
+    catalog_books = [
+        target.PublisherCatalogBookAppModel(
+            isbn13=f"978481440000{index}",
+            title=f"本{index}",
+            published_at=date(2026, index, 1),
+        )
+        for index in range(1, 4)
+    ]
+    cached_books = {
+        book.isbn13: create_book(
+            source="openbd",
+            isbn13=book.isbn13,
+            title=book.title,
+            publisher="オライリー・ジャパン",
+            published_at=book.published_at,
+            image_url=f"https://example.com/{book.isbn13}.jpg",
+        )
+        for book in catalog_books
+    }
+    service = target.PublisherCatalogService(google=FakeGoogle(), openbd=FakeOpenBd())
+    service._providers = {"oreilly_japan": FakeProvider()}
+    monkeypatch.setattr(service, "_load_cache", lambda _key, allow_expired=False: catalog_books)
+    monkeypatch.setattr(
+        service,
+        "_load_book_metadata_cache",
+        lambda isbn13s: {isbn13: cached_books[isbn13] for isbn13 in isbn13s},
+    )
+
+    actual = service.search_books("oreilly_japan", page=2, limit=1)
+
+    assert [book.isbn13 for book in actual.books] == ["9784814400002"]
+    assert actual.page == 2
+    assert actual.page_size == 1
+    assert actual.total_count == 3
 
 
 def test_publisher_catalog_service_uses_book_metadata_cache(monkeypatch):
@@ -169,7 +223,7 @@ def test_publisher_catalog_service_uses_book_metadata_cache(monkeypatch):
 
     actual = service.search_books("oreilly_japan", limit=40)
 
-    assert actual == [cached_book]
+    assert actual.books == [cached_book]
 
 
 def test_publisher_catalog_service_supplements_cached_book_without_image(monkeypatch):
@@ -224,5 +278,5 @@ def test_publisher_catalog_service_supplements_cached_book_without_image(monkeyp
 
     actual = service.search_books("oreilly_japan", limit=40)
 
-    assert actual[0].image_url == "https://example.com/google-cover.jpg"
+    assert actual.books[0].image_url == "https://example.com/google-cover.jpg"
     assert saved_books[0].image_url == "https://example.com/google-cover.jpg"
