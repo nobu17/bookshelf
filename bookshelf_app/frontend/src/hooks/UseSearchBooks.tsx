@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookSearchResult,
   BookSearchResultWithReviews,
@@ -6,7 +6,7 @@ import {
 import { BookWithMyReviewsApi } from "../libs/apis/bookWithReviews";
 import useAuthApi from "./UseAuthApi";
 import { BookWithReviews } from "../types/data";
-import BookSearchApi from "../libs/apis/bookSearch";
+import BookSearchApi, { Publisher } from "../libs/apis/bookSearch";
 import { toError } from "../libs/utils/error";
 
 const api = new BookWithMyReviewsApi();
@@ -24,8 +24,21 @@ export default function useSearchBooks() {
   const [books, setBooks] = useState<BookSearchResultWithReviews[]>([]);
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(false);
+  const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [publisherPagination, setPublisherPagination] =
     useState<PublisherPagination | null>(null);
+
+  useEffect(() => {
+    const loadPublishers = async () => {
+      try {
+        const res = await bookSearchApi.listPublishers();
+        setPublishers(res.data);
+      } catch (e: unknown) {
+        setError(toError(e));
+      }
+    };
+    loadPublishers();
+  }, []);
 
   const search = async (searchWord: string) => {
     try {
@@ -86,6 +99,7 @@ export default function useSearchBooks() {
     error,
     loading,
     books,
+    publishers,
     search,
     searchPublisher,
     publisherPagination,

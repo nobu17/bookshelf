@@ -31,6 +31,117 @@ def test_parse_oreilly_catalog_extracts_table_books():
     ]
 
 
+def test_parse_gihyo_catalog_response_extracts_books():
+    data = {
+        "list": {
+            "978-4-297-15790-6": {
+                "series": "",
+                "title": "システム開発と<wbr>「具体と抽象」",
+                "subtitle": "〜問題発見と問題解決を往復する<wbr>「思考のメタ化」<wbr>を身につける&#8288;〜",
+                "price": [2000, 0],
+                "release": ["2026.7.28", ""],
+                "url": "/book/2026/978-4-297-15790-6",
+            },
+            "invalid": {
+                "title": "ISBNなし",
+                "release": ["2026.7.28", ""],
+            },
+        }
+    }
+
+    actual = target.parse_gihyo_catalog_response(data, "https://gihyo.jp")
+
+    assert actual == [
+        target.PublisherCatalogBookAppModel(
+            isbn13="9784297157906",
+            title="システム開発と「具体と抽象」 〜問題発見と問題解決を往復する「思考のメタ化」を身につける⁠〜",
+            price="2,000",
+            published_at=date(2026, 7, 28),
+            source_url="https://gihyo.jp/book/2026/978-4-297-15790-6",
+        )
+    ]
+
+
+def test_fetch_gihyo_catalog_books_reads_all_pages(monkeypatch):
+    calls: list[dict[str, str]] = []
+
+    def fake_fetch_json(_url: str, params: dict[str, str]):
+        calls.append(params)
+        if params["offset"] == "0":
+            return {
+                "list": {
+                    "978-4-297-15790-6": {
+                        "title": "1冊目",
+                        "release": ["2026.7.28", ""],
+                        "url": "/book/2026/978-4-297-15790-6",
+                    }
+                },
+                "next": True,
+            }
+        return {
+            "list": {
+                "978-4-297-15727-2": {
+                    "title": "2冊目",
+                    "release": ["2026.7.27", ""],
+                    "url": "/book/2026/978-4-297-15727-2",
+                }
+            },
+            "next": False,
+        }
+
+    monkeypatch.setattr(target, "fetch_json", fake_fetch_json)
+
+    actual = target.fetch_gihyo_catalog_books(
+        "https://gihyo.jp/api_gh/book/genre/test",
+        "https://gihyo.jp",
+        100,
+    )
+
+    assert [book.isbn13 for book in actual] == ["9784297157906", "9784297157272"]
+    assert calls == [
+        {"limit": "100", "offset": "0"},
+        {"limit": "100", "offset": "100"},
+    ]
+
+
+def test_gihyo_catalog_provider_merges_genres_by_newest(monkeypatch):
+    def fake_fetch_gihyo_catalog_books(url: str, _base_url: str, _limit: int):
+        if "first" in url:
+            return [
+                target.PublisherCatalogBookAppModel(
+                    isbn13="9784297150001",
+                    title="古いプログラミング本",
+                    published_at=date(2024, 1, 1),
+                )
+            ]
+        return [
+            target.PublisherCatalogBookAppModel(
+                isbn13="9784297150002",
+                title="新しいネットワーク本",
+                published_at=date(2026, 1, 1),
+            )
+        ]
+
+    monkeypatch.setattr(target, "fetch_gihyo_catalog_books", fake_fetch_gihyo_catalog_books)
+    provider = target.GihyoCatalogProvider()
+    provider.catalog_urls = ["first", "second"]
+
+    actual = provider.fetch_books()
+
+    assert [book.isbn13 for book in actual] == ["9784297150002", "9784297150001"]
+
+
+def test_publisher_catalog_service_lists_supported_publishers():
+    service = target.PublisherCatalogService(google=object(), openbd=object())
+
+    actual = service.list_publishers()
+
+    assert actual == [
+        target.PublisherAppModel("oreilly_japan", "オライリー・ジャパン"),
+        target.PublisherAppModel("gihyo", "技術評論社"),
+    ]
+
+
 def test_publisher_catalog_service_returns_latest_enriched_books(monkeypatch):
     google_calls: list[str] = []
 

@@ -219,7 +219,10 @@ class PublisherCatalogService:
     _openbd: OpenBdProvider
 
     def __init__(self, google: GoogleBooksProvider, openbd: OpenBdProvider):
-        self._providers = {"oreilly_japan": OreillyCatalogProvider()}
+        self._providers = {
+            "oreilly_japan": OreillyCatalogProvider(),
+            "gihyo": GihyoCatalogProvider(),
+        }
         self._google = google
         self._openbd = openbd
 
@@ -497,6 +500,25 @@ class OreillyCatalogProvider(PublisherCatalogProvider):
         return parse_oreilly_catalog(html, self.catalog_url)
 
 
+class GihyoCatalogProvider(PublisherCatalogProvider):
+    publisher_id = "gihyo"
+    publisher_name = "技術評論社"
+    cache_key = "gihyo_catalog"
+    base_url = "https://gihyo.jp"
+    catalog_urls = [
+        "https://gihyo.jp/api_gh/book/genre/%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%9F%E3%83%B3%E3%82%B0%E3%83%BB%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E9%96%8B%E7%99%BA",
+        "https://gihyo.jp/api_gh/book/genre/%E3%83%8D%E3%83%83%E3%83%88%E3%83%AF%E3%83%BC%E3%82%AF%E3%83%BBUNIX%E3%83%BB%E3%83%87%E3%83%BC%E3%82%BF%E3%83%99%E3%83%BC%E3%82%B9",
+    ]
+    fetch_limit = 100
+
+    def fetch_books(self) -> list[PublisherCatalogBookAppModel]:
+        books: list[PublisherCatalogBookAppModel] = []
+        for url in self.catalog_urls:
+            books.extend(fetch_gihyo_catalog_books(url, self.base_url, self.fetch_limit))
+        unique_books = unique_catalog_books(books)
+        return sorted(unique_books, key=lambda book: book.published_at, reverse=True)
+
+
 def fetch_json(url: str, params: dict[str, str]) -> dict | list:
     filtered = {key: value for key, value in params.items() if value}
     request = Request(f"{url}?{urlencode(filtered)}", headers={"User-Agent": "bookshelf-app"})
@@ -582,6 +604,87 @@ def parse_oreilly_catalog(html: str, base_url: str) -> list[PublisherCatalogBook
         )
 
     return unique_catalog_books(books)
+
+
+def fetch_gihyo_catalog_books(
+    api_url: str,
+    base_url: str,
+    limit: int,
+) -> list[PublisherCatalogBookAppModel]:
+    books: list[PublisherCatalogBookAppModel] = []
+    offset = 0
+    page_size = max(1, min(limit, 100))
+    while len(books) < PUBLISHER_CATALOG_MAX_ITEMS:
+        data = fetch_json(
+            api_url,
+            {
+                "limit": str(page_size),
+                "offset": str(offset),
+            },
+        )
+        if not isinstance(data, dict):
+            break
+
+        page_books = parse_gihyo_catalog_response(data, base_url)
+        books.extend(page_books)
+        if not data.get("next") or not page_books:
+            break
+
+        offset += page_size
+
+    return unique_catalog_books(books)
+
+
+def parse_gihyo_catalog_response(data: dict, base_url: str) -> list[PublisherCatalogBookAppModel]:
+    items = data.get("list")
+    if not isinstance(items, dict):
+        return []
+
+    books: list[PublisherCatalogBookAppModel] = []
+    for isbn, item in items.items():
+        if not isinstance(item, dict) or not is_isbn13(isbn):
+            continue
+        title = normalize_gihyo_title(item)
+        if not title:
+            continue
+        books.append(
+            PublisherCatalogBookAppModel(
+                isbn13=normalize_isbn(isbn),
+                title=title,
+                price=format_gihyo_price(item.get("price")),
+                published_at=parse_gihyo_release(item.get("release")),
+                source_url=urljoin(base_url, item.get("url") or ""),
+            )
+        )
+    return books
+
+
+def normalize_gihyo_title(item: dict) -> str:
+    title_parts = [
+        item.get("series") or "",
+        item.get("title") or "",
+        item.get("subtitle") or "",
+    ]
+    return normalize_space(unescape(strip_html(" ".join(title_parts))))
+
+
+def format_gihyo_price(value) -> str | None:
+    if not isinstance(value, list) or not value:
+        return None
+    prices = [price for price in value if isinstance(price, int) and price > 0]
+    if not prices:
+        return None
+    return f"{prices[0]:,}"
+
+
+def parse_gihyo_release(value) -> date:
+    if not isinstance(value, list) or not value:
+        return date(1970, 1, 1)
+    for item in value:
+        parsed = parse_published_date(str(item))
+        if parsed != date(1970, 1, 1):
+            return parsed
+    return date(1970, 1, 1)
 
 
 @dataclass
@@ -955,6 +1058,9 @@ def parse_published_date(value: str | None) -> date:
         return date(int(year), int(month), int(day))
     if re.fullmatch(r"\d{4}/\d{2}/\d{2}", value):
         year, month, day = value.split("/")
+        return date(int(year), int(month), int(day))
+    if re.fullmatch(r"\d{4}\.\d{1,2}\.\d{1,2}", value):
+        year, month, day = value.split(".")
         return date(int(year), int(month), int(day))
     if re.fullmatch(r"\d{6}", value):
         return date(int(value[:4]), int(value[4:6]), 1)

@@ -66,12 +66,13 @@ Alembic は `bookshelf_app/infra/db/migrations` 配下の migration を使いま
 ## Book Search Cache
 
 出版社から探す機能では、外部サイト/APIへのアクセスを減らすためにDBキャッシュを使います。
-オライリー・ジャパンの公式カタログは最大1,000件をキャッシュし、画面では新着順に40件ずつページ表示します。
+オライリー・ジャパンと技術評論社の公式カタログは最大1,000件をキャッシュし、画面では新着順に40件ずつページ表示します。
+技術評論社は「プログラミング・システム開発」と「ネットワーク・UNIX・データベース」の2ジャンルを1つのカタログとして扱います。
 タイトルで絞り込んだ場合は、絞り込み後の総件数を基準にページ分割します。
 
 | Table | TTL | 内容 |
 | --- | --- | --- |
-| `publisher_catalog_cache` | 3日 | 出版社公式カタログから取得した ISBN、タイトル、発行日、価格、URL。現在はオライリー・ジャパンに対応。 |
+| `publisher_catalog_cache` | 3日 | 出版社公式カタログ/APIから取得した ISBN、タイトル、発行日、価格、URL。 |
 | `book_metadata_cache` | 30日 | ISBNごとに openBD / Google Books で補完した著者、出版社、出版日、書影URL、概要など。 |
 
 通常の流れは次の通りです。
@@ -102,12 +103,18 @@ ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools
 ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --catalog --source-key oreilly_japan_catalog
 ```
 
+技術評論社だけ再取得したい場合:
+
+```bash
+ENV_FILE=.env.local PYTHONPATH=. ./venv_webapp/bin/python -m bookshelf_app.tools.cache.book_search --catalog --source-key gihyo_catalog
+```
+
 管理者ユーザーは、マイページの `管理` から `デバッグ` 画面を開き、`publisher_catalog_cache` と `book_metadata_cache` を個別に削除できます。対応APIは管理者権限を必須にしています。
 
 ### Metadata Cache Warmup
 
 `.github/workflows/warm-book-metadata-cache.yml` は毎週日曜 03:17（JST）に起動します。
-オライリー・ジャパンのカタログ全件から、次の書籍だけを40件ずつ補完します。
+オライリー・ジャパンと技術評論社のカタログ全件から、次の書籍だけを40件ずつ補完します。
 
 - `book_metadata_cache` に未登録
 - `fetched_at` から14日以上経過

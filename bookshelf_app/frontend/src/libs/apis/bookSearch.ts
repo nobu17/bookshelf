@@ -39,6 +39,18 @@ export default class BookSearchApi extends ApiBase {
     };
   }
 
+  async listPublishers(): Promise<ApiResponse<Publisher[]>> {
+    const res = await this.getAsync<ApiPublishersResponse>(
+      "/book_search/publishers"
+    );
+    return {
+      data: res.data.publishers.map((publisher) => ({
+        publisherId: publisher.publisher_id,
+        name: publisher.name,
+      })),
+    };
+  }
+
   async findDescriptionByIsbn13(
     isbn13: string
   ): Promise<ApiResponse<BookDescriptionResponse>> {
@@ -65,6 +77,11 @@ export type PublisherBookSearchResponse = BookSearchResponse & {
   totalPages: number;
 };
 
+export type Publisher = {
+  publisherId: string;
+  name: string;
+};
+
 type ApiBookSearchResponse = {
   books: ApiBookSearchResult[];
 };
@@ -74,6 +91,15 @@ type ApiPublisherBookSearchResponse = ApiBookSearchResponse & {
   page_size: number;
   total_count: number;
   total_pages: number;
+};
+
+type ApiPublishersResponse = {
+  publishers: ApiPublisher[];
+};
+
+type ApiPublisher = {
+  publisher_id: string;
+  name: string;
 };
 
 type ApiBookSearchResult = {

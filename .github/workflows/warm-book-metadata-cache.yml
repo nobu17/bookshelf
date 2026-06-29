@@ -70,17 +70,19 @@ jobs:
           GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
           PYTHONPATH: .
         run: |
-          for attempt in {1..3}; do
-            echo "Warming book metadata cache. attempt=${attempt}"
-            if python -m bookshelf_app.tools.cache.warm_book_metadata; then
-              exit 0
-            fi
-            if [ "${attempt}" -eq 3 ]; then
-              echo "Cache warmup failed after ${attempt} attempts."
-              exit 1
-            fi
-            echo "Retrying in 60 seconds..."
-            sleep 60
+          for publisher_id in oreilly_japan gihyo; do
+            for attempt in {1..3}; do
+              echo "Warming book metadata cache. publisher_id=${publisher_id}, attempt=${attempt}"
+              if python -m bookshelf_app.tools.cache.warm_book_metadata --publisher-id "${publisher_id}"; then
+                break
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "Cache warmup failed after ${attempt} attempts. publisher_id=${publisher_id}"
+                exit 1
+              fi
+              echo "Retrying in 60 seconds..."
+              sleep 60
+            done
           done
 
       - name: Remove runner IP from Azure SQL

@@ -4,8 +4,12 @@ import {
   CardActions,
   CardContent,
   CircularProgress,
+  FormControl,
   InputAdornment,
+  InputLabel,
+  MenuItem,
   Pagination,
+  Select,
   Stack,
   TextField,
   ToggleButton,
@@ -23,17 +27,12 @@ import {
   BookSearchResultWithReviews,
 } from "../../types/bookSearch";
 import BookSearchInput from "../parts/BookSearchInput";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ReviewStateDef } from "../../types/data";
 import { ReviewEditInfo } from "../parts/BookReviewEditForm";
 import OneBookReviewsListDialogContainer from "./OneBookReviewsListDialogContainer";
 import BookReviewCreateFormDialogContainers from "./BookReviewCreateFormDialogContainers";
 import ISBN13CaptureDialog from "../parts/dialogs/ISBN13CaptureDialog";
-
-const publisher = {
-  id: "oreilly_japan",
-  name: "オライリー・ジャパン",
-};
 
 const displayError = (error: Error | undefined) => {
   if (error) {
@@ -67,6 +66,7 @@ export default function SearchBooksContainer() {
     loading,
     error,
     books,
+    publishers,
     search,
     searchPublisher,
     publisherPagination,
@@ -74,6 +74,7 @@ export default function SearchBooksContainer() {
   } = useSearchBooks();
   const [word, setWord] = useState("");
   const [publisherKeyword, setPublisherKeyword] = useState("");
+  const [selectedPublisherId, setSelectedPublisherId] = useState("");
   const [searchMode, setSearchMode] = useState<"keyword" | "publisher">(
     "keyword"
   );
@@ -84,6 +85,15 @@ export default function SearchBooksContainer() {
   const [selectBook, setSelectBook] = useState<BookSearchResult | null>(null);
 
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
+  const selectedPublisher = publishers.find(
+    (publisher) => publisher.publisherId === selectedPublisherId
+  );
+
+  useEffect(() => {
+    if (!selectedPublisherId && publishers.length > 0) {
+      setSelectedPublisherId(publishers[0].publisherId);
+    }
+  }, [publishers, selectedPublisherId]);
 
   const handleSelect = (book: BookSearchResultWithReviews) => {
     // no existing review case, show create new dialog
@@ -120,8 +130,11 @@ export default function SearchBooksContainer() {
       return;
     }
     if (searchMode === "publisher") {
+      if (!selectedPublisherId) {
+        return;
+      }
       await searchPublisher(
-        publisher.id,
+        selectedPublisherId,
         publisherKeyword,
         publisherPagination?.page ?? 1
       );
@@ -137,12 +150,18 @@ export default function SearchBooksContainer() {
   };
 
   const handlePublisherSearch = async () => {
+    if (!selectedPublisherId) {
+      return;
+    }
     setSearchMode("publisher");
-    await searchPublisher(publisher.id, publisherKeyword, 1);
+    await searchPublisher(selectedPublisherId, publisherKeyword, 1);
   };
 
   const handlePublisherPageChange = async (_: unknown, page: number) => {
-    await searchPublisher(publisher.id, publisherKeyword, page);
+    if (!selectedPublisherId) {
+      return;
+    }
+    await searchPublisher(selectedPublisherId, publisherKeyword, page);
   };
 
   const handleCaptureStart = () => {
@@ -204,10 +223,53 @@ export default function SearchBooksContainer() {
         >
           <Card variant="outlined" sx={{ borderRadius: 1 }}>
             <CardContent sx={{ pb: 1 }}>
-              <Stack spacing={0.5}>
-                <Typography variant="subtitle1">{publisher.name}</Typography>
+              <Stack spacing={2}>
+                <Stack spacing={0.5}>
+                  <Typography variant="subtitle1">
+                    {selectedPublisher?.name ?? "出版社"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    公式カタログから新しい順に探します
+                  </Typography>
+                </Stack>
+                <FormControl size="small" fullWidth disabled={loading}>
+                  <InputLabel id="publisher-select-label">出版社</InputLabel>
+                  <Select
+                    labelId="publisher-select-label"
+                    label="出版社"
+                    value={selectedPublisherId}
+                    onChange={(event) => {
+                      setSelectedPublisherId(event.target.value);
+                    }}
+                  >
+                    {publishers.map((publisher) => (
+                      <MenuItem
+                        key={publisher.publisherId}
+                        value={publisher.publisherId}
+                      >
+                        {publisher.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="表示結果をタイトルで絞り込み"
+                  value={publisherKeyword}
+                  onChange={(event) => setPublisherKeyword(event.target.value)}
+                  disabled={loading}
+                  size="small"
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
                 <Typography variant="body2" color="text.secondary">
-                  公式カタログから新しい順に探します
+                  絞り込みは「本を表示」後の一覧にも反映できます
                 </Typography>
               </Stack>
             </CardContent>
@@ -216,28 +278,12 @@ export default function SearchBooksContainer() {
                 variant="contained"
                 startIcon={<MenuBookIcon />}
                 onClick={handlePublisherSearch}
-                disabled={loading}
+                disabled={loading || !selectedPublisherId}
               >
                 本を表示
               </Button>
             </CardActions>
           </Card>
-          <TextField
-            label="表示結果をタイトルで絞り込み"
-            value={publisherKeyword}
-            onChange={(event) => setPublisherKeyword(event.target.value)}
-            disabled={loading}
-            size="small"
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
         </Stack>
       )}
       <br />
