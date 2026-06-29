@@ -8,7 +8,9 @@ def get_app_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter(format))
-    logger.addHandler(stream_handler)
+    if not logger.handlers:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter(format))
+        logger.addHandler(stream_handler)
+    logger.propagate = False
     return logger

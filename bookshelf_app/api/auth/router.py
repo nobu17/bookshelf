@@ -72,7 +72,7 @@ class TokenModel(BaseModel):
 
 
 @router.post("/auth/token", response_model=TokenModel)
-async def login_for_access_token(
+def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenModel:
@@ -92,5 +92,5 @@ async def login_for_access_token(
 
 
 @router.get("/users/me", response_model=TokenUserModel)
-async def get_current(current_user: TokenUserAppModel = Depends(get_user_dependency)) -> TokenUserModel:
+def get_current(current_user: TokenUserAppModel = Depends(get_user_dependency)) -> TokenUserModel:
     return TokenUserModel(**vars(current_user))

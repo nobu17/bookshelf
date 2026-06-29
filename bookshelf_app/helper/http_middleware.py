@@ -1,4 +1,5 @@
 import asyncio
+from time import perf_counter
 import traceback
 
 from fastapi import Request, Response, status
@@ -121,17 +122,31 @@ async def _call_next_with_transient_retry(request: Request, call_next) -> Respon
         return await call_next(request)
 
     retry_count = len(TRANSIENT_RETRY_DELAYS_SECONDS)
+    request_started_at = perf_counter()
     for attempt in range(retry_count + 1):
+        attempt_started_at = perf_counter()
         try:
-            return await call_next(request)
+            response = await call_next(request)
+            if attempt > 0:
+                logger.info(
+                    "Request recovered after transient database error. "
+                    f"method:{request.method}, path:{request.url.path}, "
+                    f"retries:{attempt}, total_elapsed:{perf_counter() - request_started_at:.3f}"
+                )
+            return response
         except Exception as exc:
             if attempt >= retry_count or not is_transient_db_error(exc):
                 raise
 
             delay = TRANSIENT_RETRY_DELAYS_SECONDS[attempt]
+            error_codes = find_transient_db_error_codes(exc)
             logger.warning(
                 "Transient database error is happened. retrying request. "
-                f"method:{request.method}, path:{request.url.path}, attempt:{attempt + 1}/{retry_count}, delay:{delay}"
+                f"method:{request.method}, path:{request.url.path}, "
+                f"attempt:{attempt + 1}/{retry_count}, delay:{delay}, "
+                f"error_codes:{error_codes or ['unknown']}, "
+                f"attempt_elapsed:{perf_counter() - attempt_started_at:.3f}, "
+                f"total_elapsed:{perf_counter() - request_started_at:.3f}"
             )
             await asyncio.sleep(delay)
 
@@ -142,7 +157,12 @@ def is_transient_db_error(exc: Exception) -> bool:
     if not isinstance(exc, (DBAPIError, OperationalError)) and not _contains_dbapi_error(exc):
         return False
 
-    return any(str(code) in _flatten_exception_text(exc) for code in TRANSIENT_DB_ERROR_CODES)
+    return bool(find_transient_db_error_codes(exc))
+
+
+def find_transient_db_error_codes(exc: BaseException) -> list[int]:
+    exception_text = _flatten_exception_text(exc)
+    return sorted(code for code in TRANSIENT_DB_ERROR_CODES if str(code) in exception_text)
 
 
 def _contains_dbapi_error(exc: BaseException) -> bool:

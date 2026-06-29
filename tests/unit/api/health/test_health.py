@@ -1,10 +1,8 @@
-import asyncio
-
 from bookshelf_app.api.health import router as target
 
 
 def test_health_returns_ok():
-    response = asyncio.run(target.health())
+    response = target.health()
 
     assert response.status == "ok"
 
@@ -18,7 +16,7 @@ def test_health_db_executes_select(monkeypatch):
 
     monkeypatch.setattr(target, "get_session", lambda: iter([FakeSession()]))
 
-    response = asyncio.run(target.health_db())
+    response = target.health_db()
 
     assert response.status == "ok"
     assert statements == ["SELECT 1"]

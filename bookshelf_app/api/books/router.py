@@ -147,7 +147,7 @@ class BookTagUpdateModel(BaseModel):
 
 
 @router.get("/books", response_model=BookMastersResponse, dependencies=[Depends(get_admin_dependency)])
-async def search_book_masters(
+def search_book_masters(
     keyword: str = "",
     max_count: int = Query(default=100, ge=1, le=500),
     book_service: BookService = Depends(get_book_service),
@@ -157,7 +157,7 @@ async def search_book_masters(
 
 
 @router.post("/books", response_model=BookResponse, dependencies=[Depends(get_user_dependency)])
-async def create_book(
+def create_book(
     body: BookCreateModel,
     book_service: BookService = Depends(get_book_service),
 ) -> BookResponse:
@@ -166,7 +166,7 @@ async def create_book(
 
 
 @router.get("/books/isbn13/{isbn13}", response_model=BooksResponse)
-async def find_books_by_isbn13(
+def find_books_by_isbn13(
     isbn13: str,
     book_service: BookService = Depends(get_book_service),
 ) -> BooksResponse:
@@ -176,7 +176,7 @@ async def find_books_by_isbn13(
 
 
 @router.get("/books/book_id/{book_id}", response_model=BookResponse)
-async def find_book_by_book_id(
+def find_book_by_book_id(
     book_id: UUID4,
     book_service: BookService = Depends(get_book_service),
 ) -> BookResponse:
@@ -186,7 +186,7 @@ async def find_book_by_book_id(
 
 
 @router.put("/books/{book_id}", response_model=BookResponse, dependencies=[Depends(get_admin_dependency)])
-async def update_book(
+def update_book(
     book_id: UUID4,
     body: BookUpdateModel,
     book_service: BookService = Depends(get_book_service),
@@ -196,7 +196,7 @@ async def update_book(
 
 
 @router.put("/books/tags/{book_id}", response_model=None, dependencies=[Depends(get_user_dependency)])
-async def update_book_tags(
+def update_book_tags(
     book_id: UUID4,
     body: BookTagUpdateModel,
     book_service: BookService = Depends(get_book_service),

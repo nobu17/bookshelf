@@ -15,6 +15,7 @@ def test_is_transient_db_error_detects_azure_sql_40613():
     )
 
     assert http_middleware.is_transient_db_error(exc)
+    assert http_middleware.find_transient_db_error_codes(exc) == [40613]
 
 
 def test_is_transient_db_error_detects_dead_pymssql_connection_20047():
@@ -25,6 +26,7 @@ def test_is_transient_db_error_detects_dead_pymssql_connection_20047():
     )
 
     assert http_middleware.is_transient_db_error(exc)
+    assert http_middleware.find_transient_db_error_codes(exc) == [20047]
 
 
 def test_is_transient_db_error_ignores_regular_exception():

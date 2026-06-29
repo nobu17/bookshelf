@@ -140,6 +140,12 @@ Azure App Service の Startup Command:
 bash startup.sh
 ```
 
+`startup.sh` はGunicornのworker timeoutを既定120秒で起動します。
+必要な場合はApp Serviceの環境変数 `GUNICORN_TIMEOUT` で秒数を変更できます。
+DBアクセスを行うFastAPIルートは同期関数として定義し、FastAPIのスレッドプール上で実行します。
+これによりAzure SQLの再開待ち中もUvicorn workerのイベントループをブロックしません。
+一時的なDBエラーの再試行ログには、Azure SQLのエラーコード、各試行時間、累積時間を出力します。
+
 App Service の Application settings には次を設定します。
 
 ```text

@@ -145,7 +145,7 @@ class BookReviewsResponse(BaseModel):
 
 
 @router.get("/reviews/find", response_model=BookReviewResponse)
-async def get_by_review_id(
+def get_by_review_id(
     review_id: UUID4,
     review_service: BookReviewService = Depends(get_book_review_service),
 ) -> BookReviewResponse:
@@ -154,7 +154,7 @@ async def get_by_review_id(
 
 
 @router.get("/reviews/me", response_model=BookReviewsResponse)
-async def get_my_reviews(
+def get_my_reviews(
     review_service: BookReviewService = Depends(get_book_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),
 ) -> BookReviewsResponse:
@@ -164,7 +164,7 @@ async def get_my_reviews(
 
 
 @router.get("/reviews/latest/{max_count}", response_model=BookReviewsResponse)
-async def get_latest_reviews(
+def get_latest_reviews(
     max_count: int, review_service: BookReviewService = Depends(get_book_review_service)
 ) -> BookReviewsResponse:
     result = review_service.find_latest_modified(max_count)
@@ -173,7 +173,7 @@ async def get_latest_reviews(
 
 
 @router.post("/reviews", response_model=BookReviewResponse)
-async def create_review(
+def create_review(
     body: BookReviewCreateModel,
     review_service: BookReviewService = Depends(get_book_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),
@@ -184,7 +184,7 @@ async def create_review(
 
 
 @router.put("/reviews/{review_id}", response_model=BookReviewResponse)
-async def update_review(
+def update_review(
     review_id: UUID4,
     body: BookReviewUpdateModel,
     review_service: BookReviewService = Depends(get_book_review_service),
@@ -196,7 +196,7 @@ async def update_review(
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_review(
+def delete_review(
     review_id: UUID4,
     review_service: BookReviewService = Depends(get_book_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),

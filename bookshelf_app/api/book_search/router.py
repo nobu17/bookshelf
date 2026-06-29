@@ -57,7 +57,7 @@ class CacheClearResponse(BaseModel):
 
 
 @router.get("/book_search", response_model=BookSearchResponse)
-async def search_books(keyword: str) -> BookSearchResponse:
+def search_books(keyword: str) -> BookSearchResponse:
     try:
         results = BookSearchService().search(keyword)
     except BookSearchRateLimitError as exc:
@@ -74,7 +74,7 @@ async def search_books(keyword: str) -> BookSearchResponse:
     response_model=CacheClearResponse,
     dependencies=[Depends(get_admin_dependency)],
 )
-async def clear_publisher_catalog_cache() -> CacheClearResponse:
+def clear_publisher_catalog_cache() -> CacheClearResponse:
     deleted_count = BookSearchService().clear_publisher_catalog_cache()
     return CacheClearResponse(deleted_count=deleted_count)
 
@@ -84,19 +84,19 @@ async def clear_publisher_catalog_cache() -> CacheClearResponse:
     response_model=CacheClearResponse,
     dependencies=[Depends(get_admin_dependency)],
 )
-async def clear_book_metadata_cache() -> CacheClearResponse:
+def clear_book_metadata_cache() -> CacheClearResponse:
     deleted_count = BookSearchService().clear_book_metadata_cache()
     return CacheClearResponse(deleted_count=deleted_count)
 
 
 @router.get("/book_search/publishers", response_model=PublishersResponse)
-async def list_publishers() -> PublishersResponse:
+def list_publishers() -> PublishersResponse:
     publishers = BookSearchService().list_publishers()
     return PublishersResponse(publishers=[convert_publisher(publisher) for publisher in publishers])
 
 
 @router.get("/book_search/publishers/{publisher_id}/books", response_model=PublisherBookSearchResponse)
-async def search_publisher_books(
+def search_publisher_books(
     publisher_id: str,
     keyword: str | None = None,
     page: int = Query(default=1, ge=1),
@@ -121,7 +121,7 @@ async def search_publisher_books(
 
 
 @router.get("/book_search/isbn13/{isbn13}/description", response_model=BookDescriptionResponse)
-async def get_book_description(isbn13: str) -> BookDescriptionResponse:
+def get_book_description(isbn13: str) -> BookDescriptionResponse:
     try:
         description = BookSearchService().find_description_by_isbn13(isbn13)
     except BookSearchRateLimitError as exc:

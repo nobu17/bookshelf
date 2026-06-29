@@ -180,7 +180,7 @@ class SpecificUserBooksWithReviewsResponse(BaseModel):
 
 
 @router.get("/book_with_reviews/latest/{max_count}", response_model=BooksWithReviewsResponse)
-async def find_books_with_latest_reviews(
+def find_books_with_latest_reviews(
     max_count: int,
     service: BookWithReviewsService = Depends(get_book_with_review_service),
 ) -> BooksWithReviewsResponse:
@@ -190,7 +190,7 @@ async def find_books_with_latest_reviews(
 
 
 @router.get("/book_with_reviews/user_id/{user_id}", response_model=SpecificUserBooksWithReviewsResponse)
-async def find_books_with_reviews_by_user_id(
+def find_books_with_reviews_by_user_id(
     user_id: UUID4,
     service: BookWithReviewsService = Depends(get_book_with_review_service),
 ) -> SpecificUserBooksWithReviewsResponse:
@@ -202,7 +202,7 @@ async def find_books_with_reviews_by_user_id(
 
 
 @router.get("/book_with_reviews/me", response_model=BooksWithReviewsResponse)
-async def find_books_with_my_reviews(
+def find_books_with_my_reviews(
     service: BookWithReviewsService = Depends(get_book_with_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),
 ) -> BooksWithReviewsResponse:
@@ -212,7 +212,7 @@ async def find_books_with_my_reviews(
 
 
 @router.get("/book_with_reviews/for_edit/me", response_model=BooksWithReviewsResponse)
-async def find_books_for_edit_with_my_reviews(
+def find_books_for_edit_with_my_reviews(
     service: BookWithReviewsService = Depends(get_book_with_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),
 ) -> BooksWithReviewsResponse:
@@ -222,7 +222,7 @@ async def find_books_for_edit_with_my_reviews(
 
 
 @router.get("/book_with_reviews/for_edit/book_id/{book_id}", response_model=BookWithReviewsResponse)
-async def find_specific_book_for_edit_with_my_reviews(
+def find_specific_book_for_edit_with_my_reviews(
     book_id: UUID4,
     service: BookWithReviewsService = Depends(get_book_with_review_service),
     user: TokenUserAppModel = Depends(get_user_dependency),

@@ -51,7 +51,7 @@ class TagResponse(TagBaseModel):
 
 
 @router.get("/tags", response_model=list[TagResponse])
-async def list_tags(
+def list_tags(
     tag_service: TagService = Depends(get_tag_service),
 ) -> list[TagResponse]:
     data_results: list[TagResponse] = []
@@ -64,7 +64,7 @@ async def list_tags(
 
 
 @router.post("/tags", response_model=TagResponse, dependencies=[Depends(get_user_dependency)])
-async def create_tag(
+def create_tag(
     body: TagCreateModel,
     tag_service: TagService = Depends(get_tag_service),
 ) -> TagResponse:
@@ -73,7 +73,7 @@ async def create_tag(
 
 
 @router.put("/tags/{id}", response_model=TagResponse, dependencies=[Depends(get_admin_dependency)])
-async def update_tag(
+def update_tag(
     id: UUID4,
     body: TagUpdateModel,
     tag_service: TagService = Depends(get_tag_service),
@@ -83,7 +83,7 @@ async def update_tag(
 
 
 @router.delete("/tags/{id}", dependencies=[Depends(get_admin_dependency)], status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tag(
+def delete_tag(
     id: UUID4,
     tag_service: TagService = Depends(get_tag_service),
 ):
