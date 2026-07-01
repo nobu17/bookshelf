@@ -25,6 +25,7 @@ import BookSearch from "./pages/mypage/BookSearch";
 import BookMasters from "./pages/admin/BookMasters";
 import TagMasters from "./pages/admin/TagMasters";
 import Debug from "./pages/admin/Debug";
+import DatabaseStartupGate from "./components/containers/DatabaseStartupGate";
 
 let theme = createTheme({
   typography: {
@@ -47,31 +48,33 @@ function App() {
     <>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <ThemeProvider theme={theme}>
-          <AuthContextProvider>
-            <GlobalSpinnerContextProvider>
-              <BrowserRouter>
-                <GlobalSpinner />
-                <Header></Header>
-                <Container maxWidth="lg" disableGutters>
-                  <Routes>
-                    <Route path="/mypage" element={<MyHome />} />
-                    <Route path="/mypage/reviews" element={<MyReviews />} />
-                    <Route
-                      path="/mypage/book/search"
-                      element={<BookSearch />}
-                    />
-                    <Route path="/admin/books" element={<BookMasters />} />
-                    <Route path="/admin/tags" element={<TagMasters />} />
-                    <Route path="/admin/debug" element={<Debug />} />
-                    <Route path="/auth/signin" element={<SignIn />} />
-                    <Route path="/auth/signout" element={<SignOut />} />
-                    <Route path="/reviews/user/:id" element={<UserReviews />} />
-                    <Route path="*" element={<Home />} />
-                  </Routes>
-                </Container>
-              </BrowserRouter>
-            </GlobalSpinnerContextProvider>
-          </AuthContextProvider>
+          <DatabaseStartupGate>
+            <AuthContextProvider>
+              <GlobalSpinnerContextProvider>
+                <BrowserRouter>
+                  <GlobalSpinner />
+                  <Header></Header>
+                  <Container maxWidth="lg" disableGutters>
+                    <Routes>
+                      <Route path="/mypage" element={<MyHome />} />
+                      <Route path="/mypage/reviews" element={<MyReviews />} />
+                      <Route
+                        path="/mypage/book/search"
+                        element={<BookSearch />}
+                      />
+                      <Route path="/admin/books" element={<BookMasters />} />
+                      <Route path="/admin/tags" element={<TagMasters />} />
+                      <Route path="/admin/debug" element={<Debug />} />
+                      <Route path="/auth/signin" element={<SignIn />} />
+                      <Route path="/auth/signout" element={<SignOut />} />
+                      <Route path="/reviews/user/:id" element={<UserReviews />} />
+                      <Route path="*" element={<Home />} />
+                    </Routes>
+                  </Container>
+                </BrowserRouter>
+              </GlobalSpinnerContextProvider>
+            </AuthContextProvider>
+          </DatabaseStartupGate>
         </ThemeProvider>
       </LocalizationProvider>
     </>

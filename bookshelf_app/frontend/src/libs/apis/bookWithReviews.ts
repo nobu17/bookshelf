@@ -20,6 +20,8 @@ type SpecificUserBooksWithResponse = {
 
 type BookWithResponse = BookWithReviews;
 
+const latestBooksCacheKey = "bookshelf.latestBooks.v1";
+
 export default class BookWithReviewsApi extends ApiBase {
   async getLatest(
     maxCount: number = 100
@@ -27,8 +29,21 @@ export default class BookWithReviewsApi extends ApiBase {
     const result = await this.getAsync<ApiRawResp>(
       `/book_with_reviews/latest/${maxCount}`
     );
-    return { data: convert(result.data) };
+    const converted = convert(result.data);
+    storeLatestBooksCache(result.data);
+    return { data: converted };
   }
+
+  getCachedLatest(): ApiResponse<BooksWithResponse> | null {
+    try {
+      const cached = restoreLatestBooksCache();
+      return cached ? { data: convert(cached) } : null;
+    } catch {
+      removeLatestBooksCache();
+      return null;
+    }
+  }
+
   async getSpecificUserReviews(
     userId: string
   ): Promise<ApiResponse<SpecificUserBooksWithResponse>> {
@@ -156,4 +171,34 @@ type ApiRawResp = {
 type ApiSpecificUserRawResp = {
   books_with_reviews: ApiBookWithReviews[];
   user_name: string;
+};
+
+const storeLatestBooksCache = (data: ApiRawResp): void => {
+  try {
+    localStorage.setItem(latestBooksCacheKey, JSON.stringify(data));
+  } catch {
+    // Browsers can disable or limit local storage. API results remain usable.
+  }
+};
+
+const restoreLatestBooksCache = (): ApiRawResp | null => {
+  try {
+    const json = localStorage.getItem(latestBooksCacheKey);
+    if (!json) return null;
+
+    const data = JSON.parse(json) as ApiRawResp;
+    assertBooksWithReviewsResponse(data);
+    return data;
+  } catch {
+    removeLatestBooksCache();
+    return null;
+  }
+};
+
+const removeLatestBooksCache = (): void => {
+  try {
+    localStorage.removeItem(latestBooksCacheKey);
+  } catch {
+    // Ignore unavailable local storage.
+  }
 };

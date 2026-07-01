@@ -6,12 +6,13 @@ import { BookTag, BookWithReviews } from "../../types/data";
 type BookCardsProps = {
   books: BookWithReviews[];
   isRibbonRender?: boolean;
+  disabled?: boolean;
   onSelect: (book: BookWithReviews) => void;
   onTagClick?: (tag: BookTag) => void;
 };
 
 export default function BookCards(props: BookCardsProps) {
-  const { books, isRibbonRender, onSelect, onTagClick } = props;
+  const { books, isRibbonRender, disabled, onSelect, onTagClick } = props;
   const handleSelect = (bookId: string) => {
     const book = books.find((x) => x.bookId == bookId);
     if (book) {
@@ -37,6 +38,7 @@ export default function BookCards(props: BookCardsProps) {
             <BookCard
               book={book}
               isRibbonRender={isRibbonRender}
+              disabled={disabled}
               onSelect={handleSelect}
               onTagClick={onTagClick}
             ></BookCard>

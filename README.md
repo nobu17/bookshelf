@@ -165,7 +165,9 @@ SCM_DO_BUILD_DURING_DEPLOYMENT=1
 
 Frontend の API root は Vite のビルド時に決まります。未指定時は同一ドメインの `/api` を使います。別APIホストへ向ける場合だけ、GitHub Actions の build 時に `VITE_APP_API_ROOT` を設定してください。App Service の Application settings に後から `VITE_APP_API_ROOT` を足しても、既にビルド済みの静的ファイルには反映されません。
 
-軽量なヘルスチェックとして `GET /api/health`、DB接続確認として `GET /api/health/db` を提供します。GitHub Actions の `Keep Warm` workflow は、無料枠のコールドスタート緩和用に JST 7:00-23:00 の間だけ30分ごとに `GET /api/health/db` を呼び、App Service と Azure SQL の両方に軽く触れます。無料枠のCPU制限を消費するため、常時起動の代替として過度に短い間隔では実行しません。
+軽量なヘルスチェックとして `GET /api/health`、DB接続確認として `GET /api/health/db` を提供します。フロントエンドは起動時にDB接続確認を一度だけ行い、Azure SQLの再開を待ってから認証確認と各APIの読み込みを開始します。待機中は前回取得したホーム画面の書籍をブラウザのローカルストレージから読み取り専用で表示します。
+
+GitHub Actions の `Wake Database` workflow は手動実行専用です。定期的なKeep WarmはAzure SQL無料枠のvCore秒を消費し、GitHub Actionsのスケジュール遅延もあるため使用しません。必要なときはActions画面から `Run workflow` を実行すると、`GET /api/health/db` によりApp ServiceとAzure SQLを事前に起動できます。
 
 GitHub Actions には次を設定します。
 

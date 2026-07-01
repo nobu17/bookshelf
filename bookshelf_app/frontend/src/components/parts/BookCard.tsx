@@ -15,13 +15,14 @@ import GoogleBooksAttribution from "./GoogleBooksAttribution";
 type BookCardProps = {
   book: BookWithReviews;
   isRibbonRender?: boolean;
+  disabled?: boolean;
   onSelect: (bookId: string) => void;
   onTagClick?: (tag: BookTag) => void;
 };
 
 export default function BookCard(props: BookCardProps) {
   const { bookId, title } = props.book;
-  const { book, isRibbonRender } = props;
+  const { book, isRibbonRender, disabled = false } = props;
   const { onSelect, onTagClick } = props;
   const handleTagClick = (tag: BookTag, event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
@@ -38,14 +39,17 @@ export default function BookCard(props: BookCardProps) {
         boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
         transition:
           "border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
-        "&:hover": {
-          borderColor: "rgba(25, 118, 210, 0.42)",
-          boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
-          transform: "translateY(-2px)",
-        },
+        ...(!disabled && {
+          "&:hover": {
+            borderColor: "rgba(25, 118, 210, 0.42)",
+            boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
+            transform: "translateY(-2px)",
+          },
+        }),
       }}
     >
       <CardActionArea
+        disabled={disabled}
         className={styles.box}
         sx={{
           height: "100%",
